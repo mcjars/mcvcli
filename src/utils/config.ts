@@ -12,6 +12,7 @@ function upgradeConfig(config: any) {
 			jarFile: config.jarFile,
 			profileName: config.profileName,
 			modpackSlug: null,
+			modpackVersion: null,
 			ramMB: config.ramMB
 		}
 
