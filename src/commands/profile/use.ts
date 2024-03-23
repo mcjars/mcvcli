@@ -13,7 +13,7 @@ export default async function profileUse(args: Args) {
 
 	const config = getConfig()
 
-	if (args.profile === config.profileName) {
+	if (args.profile === config.data.profileName) {
 		console.log('already using this profile!')
 		process.exit(1)
 	}
@@ -23,15 +23,15 @@ export default async function profileUse(args: Args) {
 		process.exit(1)
 	}
 
-	if (fs.existsSync(path.join('.mccli.profiles', config.profileName, '.mccli.json'))) {
+	if (fs.existsSync(path.join('.mccli.profiles', config.data.profileName, '.mccli.json'))) {
 		console.log('profile folder is not empty!')
 		process.exit(1)
 	}
 
-	await fs.promises.mkdir(path.join('.mccli.profiles', config.profileName), { recursive: true })
+	await fs.promises.mkdir(path.join('.mccli.profiles', config.data.profileName), { recursive: true })
 	
 	const files = fs.readdirSync('.').filter((file) => !file.startsWith('.mccli.profiles'))
-	files.forEach((file) => fs.renameSync(file, path.join('.mccli.profiles', config.profileName, file)))
+	files.forEach((file) => fs.renameSync(file, path.join('.mccli.profiles', config.data.profileName, file)))
 
 	const profileFiles = fs.readdirSync(path.join('.mccli.profiles', args.profile))
 	profileFiles.forEach((file) => fs.renameSync(path.join('.mccli.profiles', args.profile, file), file))

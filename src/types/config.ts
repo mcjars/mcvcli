@@ -6,5 +6,3 @@ export const configSchema = z.object({
 	profileName: z.string(),
 	ramMB: z.number()
 })
-
-export type Config = z.infer<typeof configSchema>

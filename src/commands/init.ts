@@ -3,8 +3,8 @@ import path from "path"
 import enquirer from "enquirer"
 import chalk from "chalk"
 import * as api from "src/api"
-import { Config } from "src/types/config"
 import getJarVersion from "src/utils/jar"
+import { Config } from "src/utils/config"
 
 export type Args = {
 	directory: string
@@ -80,16 +80,15 @@ export default async function init(args: Args, profileName?: string) {
         initial: 4096
       })
 
-      const config: Config = {
+      const config = new Config({
         __README: 'This file is used to store the configuration for the mccli tool. Do not modify this file unless you know what you are doing.',
         jarFile: 'server.jar',
         profileName: profileName ?? 'default',
         ramMB
-      }
+      })
 
       await api.install(latest.download, config)
-
-      fs.writeFileSync('.mccli.json', JSON.stringify(config, null, 2))
+      config.write()
 
       break
     }
@@ -117,14 +116,14 @@ export default async function init(args: Args, profileName?: string) {
         initial: 4096
       })
 
-      const config: Config = {
+      const config = new Config({
         __README: 'This file is used to store the configuration for the mccli tool. Do not modify this file unless you know what you are doing.',
         jarFile,
         profileName: profileName ?? 'default',
         ramMB
-      }
+      })
 
-      fs.writeFileSync('.mccli.json', JSON.stringify(config, null, 2))
+      config.write()
 
       break
     }

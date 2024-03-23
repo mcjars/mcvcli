@@ -17,7 +17,7 @@ export default async function profileDelete(args: Args) {
 		process.exit(1)
 	}
 
-	if (args.profile === config.profileName) {
+	if (args.profile === config.data.profileName) {
 		console.log('cannot delete current profile!')
 		process.exit(1)
 	}

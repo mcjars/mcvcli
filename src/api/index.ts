@@ -1,8 +1,8 @@
 import AdmZip from "adm-zip"
 import path from "path"
 import fs from "fs"
-import { Config } from "src/types/config"
 import doDownload from "src/utils/download"
+import { Config } from "src/utils/config"
 
 export const supportedProjects = ['paper', 'purpur', 'fabric', 'quilt', 'folia', 'velocity', 'waterfall', 'bungeecord', 'vanilla'] as const
 export type SupportedProject = typeof supportedProjects[number]
@@ -90,22 +90,23 @@ export async function install(download: {
 	zip: string | null
 }, config: Config) {
 	if (download.jar && !download.zip) {
-		await doDownload('server', download.jar, config.jarFile)
+		await doDownload('server.jar', download.jar, config.data.jarFile)
 	} else if (download.zip) {
-		const zipName = download.zip.split('/').pop()?.slice(0, -4)!
+		const zipName = download.zip.split('/').pop()?.slice(0, -4)!,
+			fileName = `${zipName}.zip`
 
-		await doDownload('server', download.zip, path.join(path.dirname(config.jarFile), zipName + '.zip'))
+		await doDownload(fileName, download.zip, path.join(path.dirname(config.data.jarFile), fileName))
 
-		const archive = new AdmZip(path.join(path.dirname(config.jarFile), zipName + '.zip'))
-		archive.extractAllTo(path.dirname(config.jarFile), true)
+		const archive = new AdmZip(path.join(path.dirname(config.data.jarFile), fileName))
+		archive.extractAllTo(path.dirname(config.data.jarFile), true)
 
-		await fs.promises.unlink(path.join(path.dirname(config.jarFile), zipName + '.zip'))
+		await fs.promises.unlink(path.join(path.dirname(config.data.jarFile), fileName))
 
-		config.jarFile = zipName
-		await fs.promises.writeFile('.mccli.json', JSON.stringify(config, null, 2))
+		config.data.jarFile = zipName
+		config.write()
 
 		if (download.jar) {
-			await doDownload('vanilla', download.jar, path.join(path.dirname(config.jarFile), 'server.jar'))
+			await doDownload('server.jar', download.jar, path.join(path.dirname(config.data.jarFile), 'server.jar'))
 		}
 	}
 }

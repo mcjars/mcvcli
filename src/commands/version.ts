@@ -24,11 +24,11 @@ export default async function version(args: Args) {
 	}
 
 	const config = getConfig(),
-		version = await getJarVersion(path.resolve(config.jarFile))
+		version = await getJarVersion(path.resolve(config.data.jarFile))
 
 	const { latestJar, latestMc } = await api.latest(version.type, version.minecraftVersion!)
 
-	console.log('installed jar location:', chalk.cyan(config.jarFile))
+	console.log('installed jar location:', chalk.cyan(config.data.jarFile))
 	console.log('installed jar version:')
 	console.log('  type:', chalk.cyan(version.type))
 	if (version.minecraftVersion) console.log('  minecraft version:', chalk.cyan(version.minecraftVersion), latestMc === version.minecraftVersion ? chalk.green('(latest)') : chalk.red('(outdated)'))

@@ -12,5 +12,5 @@ export default async function profileList(args: Args) {
 	profiles.forEach((profile) => console.log('  - ', profile))
 	if (!profiles.length) console.log('  (none)')
 
-	console.log('current profile:', chalk.cyan(config.profileName))
+	console.log('current profile:', chalk.cyan(config.data.profileName))
 }

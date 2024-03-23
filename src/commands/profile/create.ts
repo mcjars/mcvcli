@@ -14,7 +14,7 @@ export default async function profileCreate(args: Args) {
 
 	const config = getConfig()
 
-	if (args.name === config.profileName) {
+	if (args.name === config.data.profileName) {
 		console.log('cannot create profile with same name as current profile!')
 		process.exit(1)
 	}

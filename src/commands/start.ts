@@ -9,12 +9,12 @@ export default function start(args: Args) {
 	const config = getConfig()
 
 	console.log('starting server...')
-	console.log(`java -Xmx${config.ramMB}M -jar ${config.jarFile} nogui`)
+	console.log(`java -Xmx${config.data.ramMB}M -jar ${config.data.jarFile} nogui`)
 
 	fs.writeFileSync('eula.txt', 'eula=true')
 
-	const child = cp.spawn('java', [`-Xmx${config.ramMB}M`, '-jar', config.jarFile, 'nogui'], {
-		cwd: path.dirname(config.jarFile)
+	const child = cp.spawn('java', [`-Xmx${config.data.ramMB}M`, '-jar', config.data.jarFile, 'nogui'], {
+		cwd: path.dirname(config.data.jarFile)
 	})
 
 	child.stdout.pipe(process.stdout)
