@@ -29,9 +29,6 @@ dependencies:
   enquirer:
     specifier: ^2.4.1
     version: 2.4.1
-  fetch-api-progress:
-    specifier: ^0.1.0
-    version: 0.1.0
   prismarine-nbt:
     specifier: ^2.5.0
     version: 2.5.0
@@ -241,10 +238,6 @@ packages:
 
   /fast-json-stable-stringify@2.1.0:
     resolution: {integrity: sha512-lhd/wF+Lk98HZoTCtlVraHtfh5XYijIjalXck7saUtuanSDyLMxnHhSXEDJqHxD7msR8D0uCmqlkwjCV8xvwHw==}
-    dev: false
-
-  /fetch-api-progress@0.1.0:
-    resolution: {integrity: sha512-r9RltUST8CMGVh5krH334cGLB/14OHp+l4Evl+F3c9WKXhGLv0dx5u3JnT/5azEfJXwIvwlJwxLO4EAyixXcSQ==}
     dev: false
 
   /get-caller-file@2.0.5:

@@ -1,5 +1,5 @@
 import { filesystem } from "@rjweb/utils"
-import path from "path"
+import { existsSync } from "fs"
 import { SupportedProject } from "src/api"
 
 type APIResponse = {
@@ -21,6 +21,12 @@ export default async function jarVersion(jar: string): Promise<{
   minecraftVersion: string
   jarVersion: string
 }> {
+  if (!existsSync(jar)) return {
+    type: 'unknown',
+    minecraftVersion: 'unknown',
+    jarVersion: 'unknown'
+  }
+
   const hash = await filesystem.hash(jar, { algorithm: 'sha256' })
 
   try {

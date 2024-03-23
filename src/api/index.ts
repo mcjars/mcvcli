@@ -3,6 +3,7 @@ import path from "path"
 import fs from "fs"
 import doDownload from "src/utils/download"
 import { Config } from "src/utils/config"
+import chalk from "chalk"
 
 export const supportedProjects = ['paper', 'purpur', 'fabric', 'quilt', 'folia', 'velocity', 'waterfall', 'bungeecord', 'vanilla'] as const
 export type SupportedProject = typeof supportedProjects[number]
@@ -109,4 +110,121 @@ export async function install(download: {
 			await doDownload('server.jar', download.jar, path.join(path.dirname(config.data.jarFile), 'server.jar'))
 		}
 	}
+}
+
+export async function installModpack(slug: string, oldVersionId: string | null, versionId: string, config: Config) {
+	const versions = await modpackVersions(slug),
+		version = versions.find((v) => v.id === versionId)!,
+		oldVersion = versions.find((v) => v.id === oldVersionId)
+
+	config.data.modpackVersion = version.id
+
+	if (oldVersion) try {
+		await doDownload('old_modpack.mrpack', oldVersion.files.find((file) => file.primary)?.url ?? oldVersion.files[0].url, path.join(path.dirname(config.data.jarFile), 'modpack.mrpack'))
+
+		const archive = new AdmZip(path.join(path.dirname(config.data.jarFile), 'modpack.mrpack')),
+			index = JSON.parse(archive.readAsText('modrinth.index.json')) as {
+				dependencies: Record<string, string>
+				files: {
+					path: string
+				}[]
+			}
+
+		for (const file of index.files) {
+			await fs.promises.rm(path.join(path.dirname(config.data.jarFile), file.path), { recursive: true })
+			console.log('removed', chalk.cyan(file.path), 'from old version')
+		}
+
+		for (const file of archive.getEntries()) {
+			if (file.entryName.startsWith('overrides/')) {
+				const filePath = file.entryName.slice(10)
+
+				await fs.promises.rm(path.join(path.dirname(config.data.jarFile), filePath), { recursive: true })
+				console.log('removed', chalk.cyan(filePath), 'from old version')
+			}
+		}
+
+		await fs.promises.rm(path.join(path.dirname(config.data.jarFile), 'modpack.mrpack'))
+	} catch {
+		console.log('error reading old version! you may have to manually remove the old files.')
+	}
+
+	try {
+		await doDownload('modpack.mrpack', version.files.find((file) => file.primary)?.url ?? version.files[0].url, path.join(path.dirname(config.data.jarFile), 'modpack.mrpack'))
+
+		const archive = new AdmZip(path.join(path.dirname(config.data.jarFile), 'modpack.mrpack')),
+			index = JSON.parse(archive.readAsText('modrinth.index.json')) as {
+				dependencies: Record<string, string>
+				files: {
+					downloads: string[]
+					path: string
+					env?: {
+						server: 'required' | 'optional' | 'unsupported'
+					}
+				}[]
+			}
+
+		const versionBuilds = await builds(version.loaders[0] as SupportedProject, index.dependencies.minecraft ?? version.game_versions[0])
+
+		const loaderVersion = index.dependencies[`${version.loaders[0]}-loader`] ?? index.dependencies[`${version.loaders[0]}-api`],
+			jar = versionBuilds.find((build) => build.jarVersion === loaderVersion) ?? versionBuilds[0]
+
+		await install(jar.download, config)
+
+		for (const file of index.files) {
+			if (file.env?.server !== 'unsupported') {
+				await fs.promises.mkdir(path.dirname(path.join(path.dirname(config.data.jarFile), file.path)), { recursive: true })
+				await doDownload(file.path, file.downloads[0], path.join(path.dirname(config.data.jarFile), file.path))
+			}
+		}
+
+		const overrides = archive.getEntry('overrides')
+		if (overrides?.isDirectory) {
+			archive.extractEntryTo(overrides, path.dirname(config.data.jarFile), false, true)
+		}
+
+		await fs.promises.rm(path.join(path.dirname(config.data.jarFile), 'modpack.mrpack'))
+	} catch {
+		console.log('unsupported loader or game version!')
+		process.exit(1)
+	}
+}
+
+export async function latestModpack(slug: string): Promise<{
+	latestVersion: string
+}> {
+	const res = await fetch(`https://api.modrinth.com/v2/project/${slug}/version`).then((res) => res.json()) as {
+		version_number: string
+	}[]
+
+	return {
+		latestVersion: res[0].version_number
+	}
+}
+
+export async function modpackVersions(slug: string) {
+	const res = await fetch(`https://api.modrinth.com/v2/project/${slug}/version`).then((res) => res.json()) as {
+		id: string
+		title: string
+		game_versions: string[]
+		version_number: string
+		loaders: string[]
+		files: {
+			url: string
+			primary: boolean
+		}[]
+	}[]
+
+	return res
+}
+
+export async function modpackInfos(slug: string) {
+	const res = await fetch(`https://api.modrinth.com/v2/project/${slug}`).then((res) => res.json()) as {
+		title: string
+		license: {
+			id: string
+		}
+	}
+
+	return res
 }

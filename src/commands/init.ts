@@ -35,13 +35,14 @@ export default async function init(args: Args, profileName?: string) {
     message: 'Server Jar File',
     name: 'jarFile',
     choices: [
-      'Install New',
+      'Install New (Jar)',
+			'Install New (Modpack)',
       ...files.filter((file) => file.endsWith('.jar'))
     ]
   })
 
   switch (jarFile) {
-    case "Install New": {
+    case "Install New (Jar)": {
       const { type } = await enquirer.prompt<{
         type: api.SupportedProject
       }>({
@@ -81,9 +82,12 @@ export default async function init(args: Args, profileName?: string) {
       })
 
       const config = new Config({
+				configVersion: 2,
         __README: 'This file is used to store the configuration for the mccli tool. Do not modify this file unless you know what you are doing.',
         jarFile: 'server.jar',
         profileName: profileName ?? 'default',
+				modpackSlug: null,
+				modpackVersion: null,
         ramMB
       })
 
@@ -92,6 +96,88 @@ export default async function init(args: Args, profileName?: string) {
 
       break
     }
+
+		case "Install New (Modpack)": {
+			const { modpackSlug } = await enquirer.prompt<{
+				modpackSlug: string
+			}>({
+				type: 'input',
+				message: 'Modpack Slug',
+				name: 'modpackSlug'
+			})
+
+			const response = await fetch(`https://api.modrinth.com/v2/project/${modpackSlug}`)
+			if (!response.ok) {
+				console.log('modpack not found!')
+				process.exit(1)
+			}
+
+			const data = await response.json() as {
+				server_side: 'required' | 'optional' | 'unsupported'
+				project_type: 'modpack' | 'mod' | 'unknown'
+				title: string
+				license: {
+					id: string
+				}
+			}
+
+			if (data.server_side === 'unsupported') {
+				console.log('modpack does not support server-side installation!')
+				process.exit(1)
+			}
+
+			if (data.project_type !== 'modpack') {
+				console.log('project is not a modpack!')
+				process.exit(1)
+			}
+
+			console.log('modpack found:')
+			console.log('  title:', chalk.cyan(data.title))
+			console.log('  license:', chalk.cyan(data.license.id))
+
+			const { ramMB } = await enquirer.prompt<{
+				ramMB: number
+			}>({
+				type: 'numeral',
+				message: 'Server RAM (MB)',
+				name: 'ramMB',
+				min: 1024,
+				initial: 4096
+			})
+
+			const config = new Config({
+				configVersion: 2,
+				__README: 'This file is used to store the configuration for the mccli tool. Do not modify this file unless you know what you are doing.',
+				jarFile: 'server.jar',
+				profileName: profileName ?? 'default',
+				modpackSlug,
+				modpackVersion: null,
+				ramMB
+			})
+
+			const versions = await api.modpackVersions(modpackSlug)
+
+			if (versions.length === 0) {
+				console.log('no versions found!')
+				process.exit(1)
+			}
+
+			const { version } = await enquirer.prompt<{
+				version: string
+			}>({
+				type: 'select',
+				message: 'Modpack Version',
+				name: 'version',
+				choices: versions.map((v) => v.title)
+			})
+
+			const modpackVersion = versions.find((v) => v.title === version)
+
+			await api.installModpack(modpackSlug, null, modpackVersion!.id, config)
+			config.write()
+
+			break
+		}
 
     default: {
       console.log('checking installed version...')
@@ -117,9 +203,12 @@ export default async function init(args: Args, profileName?: string) {
       })
 
       const config = new Config({
+				configVersion: 2,
         __README: 'This file is used to store the configuration for the mccli tool. Do not modify this file unless you know what you are doing.',
         jarFile,
         profileName: profileName ?? 'default',
+				modpackSlug: null,
+				modpackVersion: null,
         ramMB
       })
 

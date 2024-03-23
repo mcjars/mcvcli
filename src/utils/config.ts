@@ -1,13 +1,30 @@
 import fs from "fs"
 import chalk from "chalk"
 
-import { configSchema } from "src/types/config"
+import { configSchema, configVersions } from "src/types/config"
 import { z } from "zod"
 
-export class Config {
-	constructor(public data: z.infer<typeof configSchema>) {
-		this.data = data
+function upgradeConfig(config: any) {
+	if (!config.configVersion) {
+		config = {
+			configVersion: 2,
+			__README: 'This file is used to store the configuration for the mccli tool. Do not modify this file unless you know what you are doing.',
+			jarFile: config.jarFile,
+			profileName: config.profileName,
+			modpackSlug: null,
+			ramMB: config.ramMB
+		}
+
+		console.log('upgraded config to version', chalk.cyan(config.configVersion))
+		fs.writeFileSync('.mccli.json', JSON.stringify(config, null, 2))
 	}
+
+	if (config.configVersion !== configVersions._def.options.at(-1)?.value) return upgradeConfig(config)
+	else return config
+}
+
+export class Config {
+	constructor(public data: z.infer<typeof configSchema>) {}
 
 	public write() {
 		fs.writeFileSync('.mccli.json', JSON.stringify(this.data, null, 2))
@@ -23,9 +40,9 @@ export default function getConfig() {
 	}
 
 	try {
-		const config = configSchema.parse(JSON.parse(fs.readFileSync('.mccli.json', 'utf-8')))
+		const config = JSON.parse(fs.readFileSync('.mccli.json', 'utf-8'))
 
-		return new Config(config)
+		return new Config(configSchema.parse(upgradeConfig(config)))
 	} catch {
 		console.log('invalid', chalk.yellow('.mccli.json'), 'file!')
 

@@ -23,16 +23,40 @@ export default async function version(args: Args) {
 		console.log('checking currently installed version...')
 	}
 
-	const config = getConfig(),
-		version = await getJarVersion(path.resolve(config.data.jarFile))
+	const config = getConfig()
 
-	const { latestJar, latestMc } = await api.latest(version.type, version.minecraftVersion!)
+	if (!config.data.modpackSlug && !config.data.modpackVersion) {
+		const version = await getJarVersion(path.resolve(config.data.jarFile))
 
-	console.log('installed jar location:', chalk.cyan(config.data.jarFile))
-	console.log('installed jar version:')
-	console.log('  type:', chalk.cyan(version.type))
-	if (version.minecraftVersion) console.log('  minecraft version:', chalk.cyan(version.minecraftVersion), latestMc === version.minecraftVersion ? chalk.green('(latest)') : chalk.red('(outdated)'))
-	if (version.jarVersion) console.log('  jar version:', chalk.cyan(version.jarVersion), latestJar === version.jarVersion ? chalk.green('(latest)') : chalk.red('(outdated)'))
+		const { latestJar, latestMc } = await api.latest(version.type, version.minecraftVersion!)
+
+		console.log('installed jar location:', chalk.cyan(config.data.jarFile))
+		console.log('installed jar version:')
+		console.log('  type:', chalk.cyan(version.type))
+		if (version.minecraftVersion) console.log('  minecraft version:', chalk.cyan(version.minecraftVersion), latestMc === version.minecraftVersion ? chalk.green('(latest)') : chalk.red('(outdated)'))
+		if (version.jarVersion) console.log('  jar version:', chalk.cyan(version.jarVersion), latestJar === version.jarVersion ? chalk.green('(latest)') : chalk.red('(outdated)'))
+	} else if (config.data.modpackSlug && config.data.modpackVersion) {
+		const { modpackSlug, modpackVersion } = config.data
+
+		const [ { latestVersion }, versions, infos, jar ] = await Promise.all([
+			api.latestModpack(modpackSlug),
+			api.modpackVersions(modpackSlug),
+			api.modpackInfos(modpackSlug),
+			getJarVersion(path.resolve(config.data.jarFile))
+		])
+
+		const version = versions.find(v => v.id === modpackVersion)
+
+		console.log('installed modpack:')
+		console.log('  title:', chalk.cyan(infos.title))
+		console.log('  license:', chalk.cyan(infos.license.id))
+		console.log('  version:', chalk.cyan(version?.version_number ?? 'unknown'), latestVersion === version?.version_number ? chalk.green('(latest)') : chalk.red('(outdated)'))
+		console.log('installed jar location:', chalk.cyan(config.data.jarFile))
+		console.log('installed jar version:')
+		console.log('  type:', chalk.cyan(jar.type))
+		if (jar.minecraftVersion) console.log('  minecraft version:', chalk.cyan(jar.minecraftVersion), latestVersion === jar.minecraftVersion ? chalk.green('(latest)') : chalk.red('(outdated)'))
+		if (jar.jarVersion) console.log('  jar version:', chalk.cyan(jar.jarVersion), latestVersion === jar.jarVersion ? chalk.green('(latest)') : chalk.red('(outdated)'))
+	}
 
 	if (args.profile) process.chdir('../..')
 }

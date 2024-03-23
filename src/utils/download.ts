@@ -1,24 +1,26 @@
-import { trackResponseProgress,  } from "fetch-api-progress"
 import { number } from "@rjweb/utils"
 import chalk from "chalk"
 import fs from "fs"
 import bytes from "bytes"
 
-export default async function download(display: string, url: string, dest: string, size?: number | null) {
+export default async function download(display: string, url: string, dest: string, overrideSize?: number | null) {
 	const request = await fetch(url)
 
 	if (!request.body) throw new Error('no body')
 
-	const tracked = trackResponseProgress(request, (progress) => {
-		const percent = number.limit(Math.round(progress.loaded / (progress.total ?? size ?? progress.loaded) * 100), 99)
+	const size = overrideSize ?? request.headers.has('content-length') ? parseInt(request.headers.get('content-length') ?? '0') : null,
+		file = fs.createWriteStream(dest)
 
-		process.stdout.write(`\rdownloading ${chalk.cyan(display)} ${percent}% ${progress.total || size ? `(${bytes(progress.loaded)} / ${bytes(progress.total ?? size ?? 0)})` : ''}      `)
-	})
+	let progress = 0
+	for await (const chunk of request.body) {
+		progress += chunk.length
+		const percent = number.limit(Math.round(progress / (size ?? chunk.length) * 100), 99)
 
-	const file = fs.createWriteStream(dest)
+		process.stdout.write(`\rdownloading ${chalk.cyan(display)} ${percent}% ${size ? `(${bytes(progress)} / ${bytes(size ?? 0)})` : ''}      `)
 
-	for await (const chunk of tracked.body!) {
-		file.write(chunk)
+		await new Promise<void>((resolve) => {
+			file.write(chunk, () => resolve())
+		})
 	}
 
 	file.close()
