@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<script src="https://cdn.tailwindcss.com"></script>
+	<title>Jumper</title>
+</head>
+<body>
+	<div id="join">
+		<button class="bg-blue-500 hover:opacity-70 p-3 rounded" onclick="join()">join</button>
+	</div>
+	<div id="game" hidden>
+		<p class="absolute left-0 bottom-0 bg-gray-700 px-2 rounded h-7 w-40" id="tps">TPS 0/40 | PLY 0</p>
+		<p class="absolute left-0 bottom-20 bg-gray-700 p-2 rounded w-64" id="messages"></p>
+		<form>
+			<input autocomplete="off" placeholder="Chat" class="absolute left-0 bottom-8 bg-gray-700 p-2 h-10  rounded w-64" id="message" minlength="1" maxlength="128"></p>
+		</form>
+
+		<div id="player" class="bg-green-700 w-8 h-32">you</div>
+	</div>
+</body>
+<script type="text/javascript">
+	/**
+	 * @type {Array<Player>} 
+	 * 
+	 * @typedef {object} Player
+	 * @property {number} id
+	 * @property {Element} elem
+	 * @property {"normal" | "crouch"} state
+	 * @property {number} x
+	 * @property {number} y
+	*/ const players = []
+	/** @type {Player} */
+	const player = {
+		id: -1,
+		elem: document.querySelector('#player'),
+		state: 'normal',
+		x: 800,
+		y: 1000
+	}
+
+	let ws, tps = 0, jump = 0, moved = false
+
+	document.onmousedown = (event) => {
+		const elem = document.createElement('div')
+
+		elem.runs = 0
+		elem.className = 'bg-blue-400 w-8 h-8'
+	  elem.style = `position:absolute;left:${event.clientX}px;top:${event.clientY}px`
+		elem.id = 'block_water'
+
+		document.querySelector('#game').appendChild(elem)
+	}
+
+	document.onkeydown = (event) => {
+		switch (event.key) {
+			case " ": {
+				if (player.y <= 0) jump = 10
+				break
+			}
+
+			case "Control": {
+				moved = true
+				player.state = 'crouch'
+
+				break
+			}
+
+			case "a": {
+				moved = true
+				player.x -= 20
+
+				break
+			}
+
+			case "d": {
+				moved = true
+				player.x += 20
+
+				break
+			}
+
+			default: {
+				console.log(`pressed key ${event.key}`)
+			}
+		}
+	}
+
+	document.onkeyup = (event) => {
+		switch (event.key) {
+			case "Control": {
+				moved = true
+				player.state = 'normal'
+
+				break
+			}
+		}
+	}
+
+	/** @param {string} message */
+	function pushMessage(message) {
+		const box = document.querySelector('#messages')
+		let messages = box.innerText.split('\n')
+		
+		messages = messages.slice(messages.length < 5 ? 0 : 1)
+
+		messages.push(message)
+		box.innerText = messages.join('\n')
+	}
+
+	function join() {
+		ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`)
+
+		document.querySelector('form').onsubmit = (event) => {
+			event.preventDefault()
+
+			const message = document.querySelector('#message').value
+			document.querySelector('#message').value = ''
+			document.querySelector('#message').blur()
+
+			ws.send(JSON.stringify({
+				event: 'chat',
+				message
+			}))
+		}
+
+		ws.onopen = () => {
+			document.querySelector('#join').hidden = true
+			document.querySelector('#game').hidden = false
+		}
+
+		ws.onclose = () => {
+      document.querySelector('#join').hidden = false
+      document.querySelector('#game').hidden = true
+    }
+
+		ws.onmessage = (event) => {
+			const data = JSON.parse(event.data)
+
+			switch (data.event) {
+				case "connectLog":
+				case "connect": {
+					const elem = document.createElement('div')
+
+					elem.innerText = `#${data.id}`
+					elem.id = data.id
+
+					document.querySelector('#game').appendChild(elem)
+
+					players.push({
+						id: data.id,
+						elem,
+						x: data.x,
+						y: data.y
+					})
+
+					if (data.event === 'connect') pushMessage(`#${data.id} has joined`)
+					break
+				}
+				
+				case "disconnect": {
+					const playerI = players.findIndex((p) => p.id === data.id)
+					players[playerI].elem.remove()
+
+					players.splice(playerI, 1)
+
+					pushMessage(`#${data.id} has left`)
+					break
+				}
+
+				case "id": {
+					player.id = data.id
+					break
+				}
+
+				case "move": {
+					if (data.id === player.id) break
+
+					const playerI = players.findIndex((p) => p.id === data.id)
+
+					if (playerI !== -1) {
+						players[playerI].elem.style = `position: absolute;left:${data.x}px;bottom:${data.y}px`
+						players[playerI].elem.className = `bg-black text-white w-8 ${data.state === 'normal' ? 'h-32' : 'h-16'}`
+						players[playerI].state = data.state
+						players[playerI].x = data.x
+						players[playerI].y = data.y
+					}
+
+					break
+				}
+
+				case "chat": {
+					pushMessage(`#${data.id}: ${data.message}`)
+
+					break
+				}
+			}
+		}
+	}
+
+	setInterval(() => {
+		if (!document.querySelector('#join').hidden) return
+
+		tps++
+
+		if (jump) {
+			moved = true
+			player.y += 10
+			jump--
+		} else {
+			if (player.y > 0) {
+				moved = true
+				player.y -= 15
+			}
+		}
+
+		function elementsOverlap(el1, el2) {
+			const domRect1 = el1.getBoundingClientRect();
+			const domRect2 = el2.getBoundingClientRect();
+
+			return !(
+				domRect1.top > domRect2.bottom ||
+				domRect1.right < domRect2.left ||
+				domRect1.bottom < domRect2.top ||
+				domRect1.left > domRect2.right
+			);
+		}
+
+		for (const pPlayer of players) {
+			const movedF = () => moved = true
+
+			if (elementsOverlap(pPlayer.elem, player.elem)) ws.send(JSON.stringify({
+				event: 'chat',
+				message: `is touching #${pPlayer.id}`
+			}))
+		}
+		
+		if (player.y < 0) player.y = 0
+		player.elem.style = `position: absolute;left:${player.x}px;bottom:${player.y}px`
+		player.elem.className = `bg-green-700 w-8 ${player.state === 'normal' ? 'h-32' : 'h-16'}`
+		player.elem.innerText = `you (#${player.id})`
+		if (moved) ws.send(JSON.stringify({
+			event: 'move',
+			state: player.state,
+			x: player.x,
+			y: player.y
+		}))
+
+		moved = false
+
+		for (const water of document.querySelectorAll('#block_water')) {
+			const left = parseInt(water.style.left), top = parseInt(water.style.top)
+
+			console.log(left, top)
+			if (top < window.innerHeight - 10) water.style.top = `${top + 10}px`
+			else if (water.runs < 100) {
+				water.runs++
+				water.style.top = `${window.innerHeight - 10}px`
+				water.className = 'bg-blue-400 w-32 h-2'
+			} else {
+				water.remove()
+			}
+		}
+	}, 25)
+	
+	setInterval(() => {
+		document.querySelector('#tps').innerText = `TPS ${tps}/40 | PLY ${players.length}`
+		tps = 0
+	}, 1000)
+</script>
+</html>

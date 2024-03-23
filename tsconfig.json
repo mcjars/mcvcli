@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "baseUrl": ".",
+    "module": "CommonJS",
+    "lib": ["ES2021"],
+    "pretty": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "declaration": false,
+    "esModuleInterop": true,
+    "target": "ES2018",
+    "outDir": "lib",
+  },
+  "include": [
+    "src/**/*"
+  ]
+}

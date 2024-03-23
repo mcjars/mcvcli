@@ -1,0 +1,32 @@
+{
+  "version": "1.0.0",
+  "name": "mccli",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "bun ../src/index.ts",
+    "bundle": "bun build src/index.ts --target node --bundle --minify --outfile lib/mccli.js",
+    "install:dev": "bun run bundle && npm i -g . --install-links"
+  },
+  "bin": {
+    "mccli": "./lib/mccli.js"
+  },
+  "dependencies": {
+    "@rjweb/utils": "^1.12.1",
+    "@types/adm-zip": "^0.5.5",
+    "@types/semver": "^7.5.8",
+    "@types/yargs": "^17.0.32",
+    "adm-zip": "^0.5.12",
+    "chalk": "^5.3.0",
+    "enquirer": "^2.4.1",
+    "fetch-api-progress": "^0.1.0",
+    "prismarine-nbt": "^2.5.0",
+    "yargs": "^17.7.2",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/node": "^18.19.26",
+    "bun": "^1.0.35",
+    "typescript": "^5.4.3"
+  }
+}
