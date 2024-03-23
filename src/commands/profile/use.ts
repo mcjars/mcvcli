@@ -2,12 +2,15 @@ import fs from "fs"
 import path from "path"
 import chalk from "chalk"
 import getConfig from "src/utils/config"
+import cleanPath from "src/utils/cleanPath"
 
 export type Args = {
 	profile: string
 }
 
 export default async function profileUse(args: Args) {
+	args.profile = cleanPath(args.profile)
+
 	const config = getConfig()
 
 	if (args.profile === config.profileName) {

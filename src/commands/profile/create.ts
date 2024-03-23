@@ -3,12 +3,15 @@ import path from "path"
 import chalk from "chalk"
 import init from "src/commands/init"
 import getConfig from "src/utils/config"
+import cleanPath from "src/utils/cleanPath"
 
 export type Args = {
 	name: string
 }
 
 export default async function profileCreate(args: Args) {
+	args.name = cleanPath(args.name)
+
 	const config = getConfig()
 
 	if (args.name === config.profileName) {
