@@ -68,7 +68,7 @@ export default async function install(args: Args) {
 				// @ts-ignore
 				async suggest(input: string) {
 					const packs = await api.searchModpacks(input)
-					return packs.map((pack) => ({ name: pack.title, value: pack.slug }))
+					return packs.map((pack) => ({ message: pack.title, value: pack.slug }))
 				}
 			})
 

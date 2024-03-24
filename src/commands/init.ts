@@ -106,7 +106,7 @@ export default async function init(args: Args, profileName?: string) {
 				type: 'autocomplete',
 				message: 'Modrinth Modpack',
 				name: 'modpackSlug',
-				choices: initialPacks.map((pack) => pack.title),
+				choices: initialPacks.map((pack) => ({ name: pack.title, value: pack.slug })),
 				// @ts-ignore
 				async suggest(input: string) {
 					const packs = await api.searchModpacks(input)
