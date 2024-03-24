@@ -2,32 +2,40 @@ import fs from "fs"
 import path from "path"
 import os from "os"
 
+type CacheFile = {
+	data: any
+	expires: number | null
+}
+
 export class Cache {
 	constructor(public directory: string) {}
 
-	public getString(key: string, set?: string): string | null {
-		const location = path.join(this.directory, 'strings', `${key}.txt`)
+	public get<Data extends object = object>(key: string): Data | null {
+		const location = path.join(this.directory, 'basic', `${key}.json`)
 
-		if (!fs.existsSync(location) && !set) {
+		if (!fs.existsSync(location)) {
 			return null
-		} else if (!set) {
-			return fs.readFileSync(location, 'utf-8')
-		}
+		} else {
+			const content = JSON.parse(fs.readFileSync(location, 'utf-8')) as CacheFile
 
-		if (set) {
-			fs.mkdirSync(path.join(this.directory, 'strings'), { recursive: true })
-			fs.writeFileSync(location, set)
-		}
+			if (content.expires && content.expires < Date.now()) {
+				fs.rmSync(location)
+				return null
+			}
 
-		return set
+			return content.data
+		}
 	}
 
-	public setString(key: string, value: string) {
-		this.getString(key, value)
+	public set(key: string, value: object, expires?: number) {
+		const location = path.join(this.directory, 'basic', `${key}.json`)
+
+		fs.mkdirSync(path.dirname(location), { recursive: true })
+		fs.writeFileSync(location, JSON.stringify({ data: value, expires: expires && Date.now() + expires }))
 	}
 
-	public deleteString(key: string) {
-		const location = path.join(this.directory, 'strings', `${key}.txt`)
+	public delete(key: string) {
+		const location = path.join(this.directory, 'basic', `${key}.json`)
 
 		if (fs.existsSync(location)) {
 			fs.rmSync(location)
