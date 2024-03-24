@@ -39,3 +39,21 @@ mccli profile create {name} # create a new profile
 mccli profile use {name} # switch to another profile
 mccli profile delete {name} # nuke a profile from existance
 ```
+
+## Developing
+
+To Develop on this tool, you need to install all required dependencies
+
+```bash
+git clone https://github.com/0x7d8/mccli
+
+cd mccli
+
+# make sure to have nodejs installed already
+npm i -g pnpm
+pnpm i
+pnpm install:dev
+
+# mccli is now globally available
+mccli
+```
