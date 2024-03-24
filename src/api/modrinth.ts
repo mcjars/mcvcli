@@ -32,7 +32,7 @@ export async function projectByHash(sha1: string) {
 	}
 }
 
-export async function latest(project: Awaited<ReturnType<typeof projectByHash>>, jar: {
+export function latest(project: Awaited<ReturnType<typeof projectByHash>>, jar: {
 	type: SupportedProject | 'unknown'
   minecraftVersion: string
 }) {
