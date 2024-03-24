@@ -150,10 +150,12 @@ export default async function init(args: Args, profileName?: string) {
 			const { version } = await enquirer.prompt<{
 				version: string
 			}>({
-				type: 'select',
+				type: 'autocomplete',
 				message: 'Modpack Version',
 				name: 'version',
-				choices: versions.map((v) => v.title)
+				choices: versions.map((v) => v.title),
+				// @ts-ignore
+				limit: 10
 			})
 
 			const modpackVersion = versions.find((v) => v.title === version)

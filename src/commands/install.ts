@@ -88,10 +88,12 @@ export default async function install(args: Args) {
 			const { version } = await enquirer.prompt<{
 				version: string
 			}>({
-				type: 'select',
+				type: 'autocomplete',
 				message: 'Modpack Version',
 				name: 'version',
-				choices: modpackVersions.map((v) => v.title)
+				choices: modpackVersions.map((v) => v.title),
+				// @ts-ignore
+				limit: 10
 			})
 
 			const modpackVersion = modpackVersions.find((v) => v.title === version)
