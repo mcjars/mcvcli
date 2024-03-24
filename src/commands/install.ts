@@ -79,9 +79,11 @@ export default async function install(args: Args) {
 				choices: modpackVersions.map((v) => v.title)
 			})
 
-			const modpackVersion = modpackVersions.find((v) => v.version_number === version)
+			const modpackVersion = modpackVersions.find((v) => v.title === version)
 
 			await api.installModpack(modpackSlug, config.data.modpackVersion, modpackVersion!.id, config)
+			config.data.modpackSlug = modpackSlug
+			config.write()
 
 			console.log('server installed!')
 		}

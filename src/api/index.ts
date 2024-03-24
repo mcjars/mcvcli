@@ -205,7 +205,7 @@ export async function latestModpack(slug: string): Promise<{
 export async function modpackVersions(slug: string) {
 	const res = await fetch(`https://api.modrinth.com/v2/project/${slug}/version`).then((res) => res.json()) as {
 		id: string
-		title: string
+		name: string
 		game_versions: string[]
 		version_number: string
 		loaders: string[]
@@ -215,7 +215,14 @@ export async function modpackVersions(slug: string) {
 		}[]
 	}[]
 
-	return res
+	return res.map((version) => ({
+		id: version.id,
+		title: version.name ?? version.version_number,
+		game_versions: version.game_versions,
+		version_number: version.version_number,
+		loaders: version.loaders,
+		files: version.files
+	}))
 }
 
 export async function modpackInfos(slug: string) {

@@ -88,7 +88,6 @@ export default async function update(args: Args) {
 			const modpackVersion = modpackVersions.find((v) => v.title === version)
 
 			await api.installModpack(config.data.modpackSlug!, config.data.modpackVersion, modpackVersion!.id, config)
-			config.data.modpackVersion = modpackVersion!.id
 			config.write()
 
 			break
