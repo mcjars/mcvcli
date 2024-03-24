@@ -21,7 +21,7 @@ export default async function mods(args: Args) {
 	console.log('mods:')
 	for (const mod of mods) {
 		if ('infos' in mod) {
-			console.log('  -', mod.infos.title)
+			console.log('  -', mod.infos.project.title)
 			console.log('    version:', chalk.cyan(mod.infos.version))
 			console.log('    license:', chalk.cyan(mod.infos.project.license))
 			console.log('    url:', chalk.cyan(`https://modrinth.com/mod/${mod.infos.project.slug}`))
