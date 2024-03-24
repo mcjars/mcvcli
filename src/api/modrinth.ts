@@ -36,7 +36,7 @@ export function latest(versions: Awaited<ReturnType<typeof projectByHash>>['vers
 	type: SupportedProject | 'unknown'
   minecraftVersion: string
 }) {
-	return versions.find((version) => version.loaders[0] === jar.type && version.game_versions.includes(jar.minecraftVersion))
+	return versions.find((version) => version.loaders.includes(jar.type) && version.game_versions.includes(jar.minecraftVersion))
 }
 
 export async function project(slug: string) {
