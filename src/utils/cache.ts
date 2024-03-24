@@ -41,6 +41,27 @@ export class Cache {
 			fs.rmSync(location)
 		}
 	}
+
+
+	public keys() {
+		const location = path.join(this.directory, 'basic')
+
+		if (!fs.existsSync(location)) {
+			return []
+		} else {
+			return fs.readdirSync(location).map((file) => file.replace('.json', ''))
+		}
+	}
+
+	public size() {
+		const keys = this.keys()
+
+		return keys.reduce((acc, key) => {
+			const location = path.join(this.directory, 'basic', `${key}.json`)
+
+			return acc + fs.statSync(location).size
+		}, 0)
+	}
 }
 
 export default function getCache(directory: string = path.join(os.userInfo().homedir, '.mccli', 'cache')) {

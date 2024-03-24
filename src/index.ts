@@ -17,6 +17,8 @@ import modsList from "src/commands/mods/list"
 import modsUpdate from "src/commands/mods/update"
 import modsInstall from "src/commands/mods/install"
 import modsUninstall from "src/commands/mods/uninstall"
+import cacheView from "src/commands/cache/view"
+import cacheClear from "src/commands/cache/clear"
 
 yargs(hideBin(process.argv))
   .command('version', 'get the currently installed version', (yargs) => yargs
@@ -73,6 +75,12 @@ yargs(hideBin(process.argv))
     (rg) => modsInstall(rg))
     .command('uninstall', 'uninstall a mod', (yargs) => yargs,
     (rg) => modsUninstall(rg))
+  )
+  .command('cache', 'manage the cache', (yargs) => yargs
+    .command('view', 'view the cache', (yargs) => yargs,
+    (rg) => cacheView(rg))
+    .command('clear', 'clear the cache', (yargs) => yargs,
+    (rg) => cacheClear(rg))
   )
   .command('lookup <player>', 'lookup a player', (yargs) => yargs
     .positional('player', {
