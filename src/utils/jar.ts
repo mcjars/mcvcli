@@ -52,7 +52,7 @@ export default async function jarVersion(jar: string, cache: Cache): Promise<{
     cache.set(`jar_${hash}`, {
       type: build.build.type.toLowerCase() as SupportedProject,
       minecraftVersion: build.build.versionId ?? build.build.projectVersionId ?? 'unknown',
-      jarVersion: build.build.buildNumber.toString()
+      jarVersion: build.build.buildNumber === 1 ? build.build.projectVersionId ?? build.build.buildNumber.toString() : build.build.buildNumber.toString()
     }, time(12).h())
 
     return {
