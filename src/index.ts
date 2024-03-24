@@ -13,7 +13,8 @@ import profileDelete from "src/commands/profile/delete"
 import profileUse from "src/commands/profile/use"
 import profileCreate from "src/commands/profile/create"
 import lookup from "src/commands/lookup"
-import mods from "src/commands/mods"
+import modsList from "src/commands/mods/list"
+import modsUpdate from "src/commands/mods/update"
 
 yargs(hideBin(process.argv))
   .command('version', 'get the currently installed version', (yargs) => yargs
@@ -61,6 +62,12 @@ yargs(hideBin(process.argv))
       }),
     (rg) => profileCreate(rg))
   )
+  .command('mods', 'manage mods', (yargs) => yargs
+    .command('list', 'list all mods', (yargs) => yargs,
+    (rg) => modsList(rg))
+    .command('update', 'update mods', (yargs) => yargs,
+    (rg) => modsUpdate(rg))
+  )
   .command('lookup <player>', 'lookup a player', (yargs) => yargs
     .positional('player', {
       type: 'string',
@@ -68,8 +75,6 @@ yargs(hideBin(process.argv))
       demandOption: true
     }),
   (rg) => lookup(rg))
-  .command('mods', 'list installed mods', (yargs) => yargs,
-  (rg) => mods(rg))
   .strictCommands()
   .demandCommand(1)
   .parse()

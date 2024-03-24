@@ -11,10 +11,17 @@ export type Mod = {
 } | {
 	file: string
 	infos: Awaited<ReturnType<typeof api['modrinth']['projectByHash']>>
+	latest: Awaited<ReturnType<typeof api['modrinth']['latest']>>
 }
 
-export async function getMods(directory: string, cache: Cache) {
-	const files = await fs.promises.readdir(directory)
+export async function getMods(directory: string, jar: {
+	type: api.SupportedProject | 'unknown'
+  minecraftVersion: string
+  jarVersion: string
+}, cache: Cache): Promise<Mod[]> {
+	if (jar.minecraftVersion === 'unknown' || jar.type === 'unknown') return []
+
+	const files = await fs.promises.readdir(directory).then((files) => files.filter((file) => file.endsWith('.jar')))
 
 	let progress = 0
 
@@ -31,7 +38,8 @@ export async function getMods(directory: string, cache: Cache) {
 		if (mod) {
 			mods.push({
 				file,
-				infos: mod
+				infos: mod,
+				latest: await api.modrinth.latest(mod, jar)
 			})
 		} else {
 			try {
@@ -41,7 +49,8 @@ export async function getMods(directory: string, cache: Cache) {
 
 				mods.push({
 					file,
-					infos: mod
+					infos: mod,
+					latest: await api.modrinth.latest(mod, jar)
 				})
 			} catch {
 				mods.push({ file })
