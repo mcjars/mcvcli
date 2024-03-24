@@ -12,10 +12,7 @@
     "mccli": "./lib/mccli.js"
   },
   "dependencies": {
-    "@rjweb/utils": "^1.12.1",
-    "@types/adm-zip": "^0.5.5",
-    "@types/semver": "^7.5.8",
-    "@types/yargs": "^17.0.32",
+    "@rjweb/utils": "^1.12.2",
     "adm-zip": "^0.5.12",
     "bytes": "^3.1.2",
     "chalk": "^5.3.0",
@@ -27,6 +24,9 @@
   "devDependencies": {
     "@types/bytes": "^3.1.4",
     "@types/node": "^18.19.26",
+    "@types/adm-zip": "^0.5.5",
+    "@types/semver": "^7.5.8",
+    "@types/yargs": "^17.0.32",
     "bun": "^1.0.35",
     "typescript": "^5.4.3"
   }
