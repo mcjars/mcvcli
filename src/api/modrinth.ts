@@ -33,6 +33,7 @@ export async function mod(slug: string) {
 	const res = await fetch(`https://api.modrinth.com/v2/project/${slug}`, fetchOptions).then((res) => res.json()) as {
 		title: string
 		id: string
+		slug: string | null
 		server_side: 'required' | 'optional' | 'unsupported'
 		versions: string[]
 		license: {
@@ -42,6 +43,7 @@ export async function mod(slug: string) {
 
 	return {
 		id: res.id,
+		slug: res.slug ?? res.id,
 		title: res.title,
 		serverSide: res.server_side,
 		versions: res.versions,

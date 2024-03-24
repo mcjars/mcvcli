@@ -24,6 +24,7 @@ export default async function mods(args: Args) {
 			console.log('  -', mod.infos.title)
 			console.log('    version:', chalk.cyan(mod.infos.version))
 			console.log('    license:', chalk.cyan(mod.infos.project.license))
+			console.log('    url:', chalk.cyan(`https://modrinth.com/mod/${mod.infos.project.slug}`))
 			console.log(mod.infos.latest ? chalk.green('    (latest)') : chalk.red('    (outdated)'))
 		}
 	}
