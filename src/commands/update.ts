@@ -4,6 +4,7 @@ import enquirer from "enquirer"
 import * as api from "src/api"
 import getConfig from "src/utils/config"
 import getJarVersion from "src/utils/jar"
+import getCache from "src/utils/cache"
 
 export type Args = {}
 
@@ -11,7 +12,8 @@ export default async function update(args: Args) {
 	console.log('checking currently installed version...')
 
 	const config = getConfig(),
-		version = await getJarVersion(path.resolve(config.data.jarFile))
+		cache = getCache(),
+		version = await getJarVersion(path.resolve(config.data.jarFile), cache)
 
 	const [ { latestJar, latestMc }, { latestVersion }, modpackVersions ] = await Promise.all([
 		api.latest(version.type, version.minecraftVersion!),

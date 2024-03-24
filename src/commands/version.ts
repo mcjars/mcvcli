@@ -4,6 +4,7 @@ import chalk from "chalk"
 import * as api from "src/api"
 import getConfig from "src/utils/config"
 import getJarVersion from "src/utils/jar"
+import getCache from "src/utils/cache"
 
 export type Args = {
 	profile?: string
@@ -23,10 +24,11 @@ export default async function version(args: Args) {
 		console.log('checking currently installed version...')
 	}
 
-	const config = getConfig()
+	const config = getConfig(),
+		cache = getCache()
 
 	if (!config.data.modpackSlug && !config.data.modpackVersion) {
-		const version = await getJarVersion(path.resolve(config.data.jarFile))
+		const version = await getJarVersion(path.resolve(config.data.jarFile), cache)
 
 		const { latestJar, latestMc } = await api.latest(version.type, version.minecraftVersion!)
 
@@ -42,7 +44,7 @@ export default async function version(args: Args) {
 			api.latestModpack(modpackSlug),
 			api.modpackVersions(modpackSlug),
 			api.modpackInfos(modpackSlug),
-			getJarVersion(path.resolve(config.data.jarFile))
+			getJarVersion(path.resolve(config.data.jarFile), cache)
 		])
 
 		const version = versions.find(v => v.id === modpackVersion)

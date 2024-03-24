@@ -1,6 +1,7 @@
-import { filesystem } from "@rjweb/utils"
+import { filesystem, time } from "@rjweb/utils"
 import { existsSync } from "fs"
 import { SupportedProject } from "src/api"
+import { Cache } from "src/utils/cache"
 
 type APIResponse = {
   success: false
@@ -16,7 +17,7 @@ type APIResponse = {
   }
 }
 
-export default async function jarVersion(jar: string): Promise<{
+export default async function jarVersion(jar: string, cache: Cache): Promise<{
   type: SupportedProject | 'unknown'
   minecraftVersion: string
   jarVersion: string
@@ -29,6 +30,14 @@ export default async function jarVersion(jar: string): Promise<{
 
   const hash = await filesystem.hash(jar, { algorithm: 'sha256' })
 
+  const cached = cache.get<{
+    type: SupportedProject
+    minecraftVersion: string
+    jarVersion: string
+  }>(`jar_${hash}`)
+
+  if (cached) return cached
+
   try {
     const build = await fetch(`https://mc.rjns.dev/api/v1/build/${hash}`).then((res) => res.json()) as APIResponse
 
@@ -39,6 +48,12 @@ export default async function jarVersion(jar: string): Promise<{
         jarVersion: 'unknown'
       }
     }
+
+    cache.set(`jar_${hash}`, {
+      type: build.build.type.toLowerCase() as SupportedProject,
+      minecraftVersion: build.build.versionId ?? build.build.projectVersionId ?? 'unknown',
+      jarVersion: build.build.buildNumber.toString()
+    }, time(12).h())
 
     return {
       type: build.build.type.toLowerCase() as SupportedProject,

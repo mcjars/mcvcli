@@ -27,16 +27,16 @@ export async function projectByHash(sha1: string) {
 		id: res.id,
 		title: res.name ?? res.version_number,
 		version: res.version_number,
-		project: projectData,
+		project: projectData!,
 		versions: versionsData
 	}
 }
 
-export function latest(project: Awaited<ReturnType<typeof projectByHash>>, jar: {
+export function latest(versions: Awaited<ReturnType<typeof projectByHash>>['versions'], jar: {
 	type: SupportedProject | 'unknown'
   minecraftVersion: string
 }) {
-	return project.versions.find((version) => version.loaders[0] === jar.type && version.game_versions.includes(jar.minecraftVersion))
+	return versions.find((version) => version.loaders[0] === jar.type && version.game_versions.includes(jar.minecraftVersion))
 }
 
 export async function project(slug: string) {
@@ -50,6 +50,8 @@ export async function project(slug: string) {
 			id: string
 		}
 	}
+
+	if (!res) return null
 
 	return {
 		id: res.id,
@@ -91,7 +93,13 @@ export async function versions(slug: string) {
 			filename: string
 			primary: boolean
 		}[]
+		dependencies: {
+			version_id: string | null
+			project_id: string
+		}[]
 	}[]
+
+	if (!res) return []
 
 	return res.map((version) => ({
 		id: version.id,
@@ -99,6 +107,25 @@ export async function versions(slug: string) {
 		game_versions: version.game_versions,
 		version_number: version.version_number,
 		loaders: version.loaders,
-		files: version.files
+		files: version.files,
+		dependencies: version.dependencies
+	}))
+}
+
+export async function search(query: string, facets: string) {
+	const res = await fetch(`https://api.modrinth.com/v2/search?query=${encodeURIComponent(query)}&facets=${facets}`, fetchOptions).then((res) => res.json()) as{
+		hits: {
+			title: string
+			project_id: string
+			slug: string
+			versions: string[]
+		}[]
+	}
+
+	return res.hits.map((hit) => ({
+		id: hit.project_id,
+		title: hit.title,
+		slug: hit.slug ?? hit.project_id,
+		versions: hit.versions
 	}))
 }

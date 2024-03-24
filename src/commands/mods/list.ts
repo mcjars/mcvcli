@@ -17,7 +17,7 @@ export default async function modsList(args: Args) {
 		process.exit(1)
 	}
 
-	const mods = await getMods(path.join(path.dirname(config.data.jarFile), 'mods'), await getJarVersion(config.data.jarFile), cache)
+	const mods = await getMods(path.join(path.dirname(config.data.jarFile), 'mods'), await getJarVersion(config.data.jarFile, cache), cache)
 
 	console.log('mods:')
 	for (const mod of mods) {

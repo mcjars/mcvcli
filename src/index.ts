@@ -15,6 +15,8 @@ import profileCreate from "src/commands/profile/create"
 import lookup from "src/commands/lookup"
 import modsList from "src/commands/mods/list"
 import modsUpdate from "src/commands/mods/update"
+import modsInstall from "src/commands/mods/install"
+import modsUninstall from "src/commands/mods/uninstall"
 
 yargs(hideBin(process.argv))
   .command('version', 'get the currently installed version', (yargs) => yargs
@@ -67,6 +69,10 @@ yargs(hideBin(process.argv))
     (rg) => modsList(rg))
     .command('update', 'update mods', (yargs) => yargs,
     (rg) => modsUpdate(rg))
+    .command('install', 'install a mod', (yargs) => yargs,
+    (rg) => modsInstall(rg))
+    .command('uninstall', 'uninstall a mod', (yargs) => yargs,
+    (rg) => modsUninstall(rg))
   )
   .command('lookup <player>', 'lookup a player', (yargs) => yargs
     .positional('player', {

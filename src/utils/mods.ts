@@ -39,7 +39,7 @@ export async function getMods(directory: string, jar: {
 			mods.push({
 				file,
 				infos: mod,
-				latest: api.modrinth.latest(mod, jar)
+				latest: api.modrinth.latest(mod.versions, jar)
 			})
 		} else {
 			try {
@@ -50,7 +50,7 @@ export async function getMods(directory: string, jar: {
 				mods.push({
 					file,
 					infos: mod,
-					latest: api.modrinth.latest(mod, jar)
+					latest: api.modrinth.latest(mod.versions, jar)
 				})
 			} catch {
 				mods.push({ file })

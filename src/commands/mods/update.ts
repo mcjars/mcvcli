@@ -5,7 +5,6 @@ import getConfig from "src/utils/config"
 import { getMods } from "src/utils/mods"
 import enquirer from "enquirer"
 import chalk from "chalk"
-import * as api from "src/api"
 import getJarVersion from "src/utils/jar"
 import download from "src/utils/download"
 
@@ -14,7 +13,7 @@ export type Args = {}
 export default async function modsUpdate(args: Args) {
 	const config = getConfig(),
 		cache = getCache(),
-		jar = await getJarVersion(config.data.jarFile)
+		jar = await getJarVersion(config.data.jarFile, cache)
 
 	if (!fs.existsSync(path.join(path.dirname(config.data.jarFile), 'mods'))) {
 		console.log('no mods folder found!')

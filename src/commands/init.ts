@@ -5,6 +5,7 @@ import chalk from "chalk"
 import * as api from "src/api"
 import getJarVersion from "src/utils/jar"
 import { Config } from "src/utils/config"
+import getCache from "src/utils/cache"
 
 export type Args = {
 	directory: string
@@ -168,8 +169,9 @@ export default async function init(args: Args, profileName?: string) {
 
 		default: {
 			console.log('checking installed version...')
+			const cache = getCache()
 
-			const version = await getJarVersion(path.resolve(jarFile))
+			const version = await getJarVersion(path.resolve(jarFile), cache)
 
 			const { latestJar, latestMc } = await api.latest(version.type, version.minecraftVersion!)
 
