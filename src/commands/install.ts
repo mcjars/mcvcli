@@ -53,6 +53,7 @@ export default async function install(args: Args) {
 			await api.install(latest.download, config)
 		
 			console.log('server installed!')
+			break
 		}
 
 		case "Install Modpack": {
@@ -103,6 +104,7 @@ export default async function install(args: Args) {
 			config.write()
 
 			console.log('server installed!')
+			break
 		}
 	}
 }
