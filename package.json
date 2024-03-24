@@ -3,6 +3,7 @@
   "name": "mccli",
   "license": "MIT",
   "type": "module",
+  "homepage": "https://github.com/0x7d8/mccli",
   "scripts": {
     "dev": "bun ../src/index.ts",
     "bundle": "bun build src/index.ts --target node --bundle --minify --outfile lib/mccli.js",
@@ -10,6 +11,10 @@
   },
   "bin": {
     "mccli": "./lib/mccli.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/0x7d8/mccli.git"
   },
   "dependencies": {
     "@rjweb/utils": "^1.12.2",
@@ -22,9 +27,9 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@types/adm-zip": "^0.5.5",
     "@types/bytes": "^3.1.4",
     "@types/node": "^18.19.26",
-    "@types/adm-zip": "^0.5.5",
     "@types/semver": "^7.5.8",
     "@types/yargs": "^17.0.32",
     "bun": "^1.0.35",

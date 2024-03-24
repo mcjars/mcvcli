@@ -13,6 +13,7 @@ import profileDelete from "src/commands/profile/delete"
 import profileUse from "src/commands/profile/use"
 import profileCreate from "src/commands/profile/create"
 import lookup from "src/commands/lookup"
+import mods from "src/commands/mods"
 
 yargs(hideBin(process.argv))
   .command('version', 'get the currently installed version', (yargs) => yargs
@@ -67,6 +68,8 @@ yargs(hideBin(process.argv))
       demandOption: true
     }),
   (rg) => lookup(rg))
+  .command('mods', 'list installed mods', (yargs) => yargs,
+  (rg) => mods(rg))
   .strictCommands()
   .demandCommand(1)
   .parse()

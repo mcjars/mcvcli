@@ -12,6 +12,8 @@ export const fetchOptions: RequestInit = {
 	}
 }
 
+export * as modrinth from "src/api/modrinth"
+
 export const supportedProjects = ['paper', 'purpur', 'fabric', 'quilt', 'folia', 'velocity', 'waterfall', 'bungeecord', 'vanilla'] as const
 export type SupportedProject = typeof supportedProjects[number]
 
