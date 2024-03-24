@@ -3,7 +3,14 @@ import path from "path"
 import fs from "fs"
 import doDownload from "src/utils/download"
 import { Config } from "src/utils/config"
+import { version } from "../../package.json"
 import chalk from "chalk"
+
+export const fetchOptions: RequestInit = {
+	headers: {
+		'User-Agent': `github.com/0x7d8/mccli v${version} (https://rjansen.dev)`
+	}
+}
 
 export const supportedProjects = ['paper', 'purpur', 'fabric', 'quilt', 'folia', 'velocity', 'waterfall', 'bungeecord', 'vanilla'] as const
 export type SupportedProject = typeof supportedProjects[number]
@@ -30,7 +37,7 @@ export async function latest(project: SupportedProject | 'unknown', mc: string):
 		}
 	}
 
-	const res = await fetch(`https://mc.rjns.dev/api/v1/builds/${project}`).then((res) => res.json()) as {
+	const res = await fetch(`https://mc.rjns.dev/api/v1/builds/${project}`, fetchOptions).then((res) => res.json()) as {
 		success: true
 		versions: Record<string, {
 			latest: {
@@ -48,7 +55,7 @@ export async function latest(project: SupportedProject | 'unknown', mc: string):
 }
 
 export async function versions(project: SupportedProject): Promise<string[]> {
-	const res = await fetch(`https://mc.rjns.dev/api/v1/builds/${project}`).then((res) => res.json()) as {
+	const res = await fetch(`https://mc.rjns.dev/api/v1/builds/${project}`, fetchOptions).then((res) => res.json()) as {
 		success: true
 		versions: Record<string, unknown>
 	}
@@ -65,7 +72,7 @@ export async function builds(project: SupportedProject, mc: string): Promise<{
 		zip: string | null
 	}
 }[]> {
-	const res = await fetch(`https://mc.rjns.dev/api/v1/builds/${project}/${mc}`).then((res) => res.json()) as {
+	const res = await fetch(`https://mc.rjns.dev/api/v1/builds/${project}/${mc}`, fetchOptions).then((res) => res.json()) as {
 		success: true
 		builds: {
 			buildNumber: number
@@ -110,6 +117,23 @@ export async function install(download: {
 			await doDownload('server.jar', download.jar, path.join(path.dirname(config.data.jarFile), 'server.jar'))
 		}
 	}
+}
+
+export async function searchModpacks(query: string) {
+	const res = await fetch(`https://api.modrinth.com/v2/search?query=${encodeURIComponent(query)}&facets=[["project_type:modpack"],["server_side:required","server_side:optional"]]`, fetchOptions).then((res) => res.json()) as{
+		hits: {
+			title: string
+			id: string
+			slug: string
+			versions: string[]
+		}[]
+	}
+
+	return res.hits.map((hit) => ({
+		title: hit.title,
+		slug: hit.slug ?? hit.id,
+		versions: hit.versions
+	}))
 }
 
 export async function installModpack(slug: string, oldVersionId: string | null, versionId: string, config: Config) {
@@ -182,18 +206,18 @@ export async function installModpack(slug: string, oldVersionId: string | null, 
 		if (overrides?.isDirectory) {
 			archive.extractEntryTo(overrides, path.dirname(config.data.jarFile), false, true)
 		}
-
-		await fs.promises.rm(path.join(path.dirname(config.data.jarFile), 'modpack.mrpack'))
 	} catch {
 		console.log('unsupported loader or game version!')
 		process.exit(1)
+	} finally {
+		await fs.promises.rm(path.join(path.dirname(config.data.jarFile), 'modpack.mrpack'))
 	}
 }
 
 export async function latestModpack(slug: string): Promise<{
 	latestVersion: string
 }> {
-	const res = await fetch(`https://api.modrinth.com/v2/project/${slug}/version`).then((res) => res.json()) as {
+	const res = await fetch(`https://api.modrinth.com/v2/project/${slug}/version`, fetchOptions).then((res) => res.json()) as {
 		version_number: string
 	}[]
 
@@ -203,7 +227,7 @@ export async function latestModpack(slug: string): Promise<{
 }
 
 export async function modpackVersions(slug: string) {
-	const res = await fetch(`https://api.modrinth.com/v2/project/${slug}/version`).then((res) => res.json()) as {
+	const res = await fetch(`https://api.modrinth.com/v2/project/${slug}/version`, fetchOptions).then((res) => res.json()) as {
 		id: string
 		name: string
 		game_versions: string[]
@@ -226,8 +250,9 @@ export async function modpackVersions(slug: string) {
 }
 
 export async function modpackInfos(slug: string) {
-	const res = await fetch(`https://api.modrinth.com/v2/project/${slug}`).then((res) => res.json()) as {
+	const res = await fetch(`https://api.modrinth.com/v2/project/${slug}`, fetchOptions).then((res) => res.json()) as {
 		title: string
+		server_side: 'required' | 'optional' | 'unsupported'
 		license: {
 			id: string
 		}

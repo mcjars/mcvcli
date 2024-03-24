@@ -1,6 +1,7 @@
 import enquirer from "enquirer"
 import * as api from "../api"
 import getConfig from "../utils/config"
+import chalk from "chalk"
 
 export type Args = {}
 
@@ -55,13 +56,27 @@ export default async function install(args: Args) {
 		}
 
 		case "Install Modpack": {
+			const initialPacks = await api.searchModpacks('')
+
 			const { modpackSlug } = await enquirer.prompt<{
 				modpackSlug: string
 			}>({
-				type: 'input',
-				message: 'Modpack Slug',
-				name: 'modpackSlug'
+				type: 'autocomplete',
+				message: 'Modrinth Modpack',
+				name: 'modpackSlug',
+				choices: initialPacks.map((pack) => ({ name: pack.title, value: pack.slug })),
+				// @ts-ignore
+				async suggest(input: string) {
+					const packs = await api.searchModpacks(input)
+					return packs.map((pack) => ({ name: pack.title, value: pack.slug }))
+				}
 			})
+
+			const data = await api.modpackInfos(modpackSlug)
+
+			console.log('modpack found:')
+			console.log('  title:', chalk.cyan(data.title))
+			console.log('  license:', chalk.cyan(data.license.id))
 
 			const modpackVersions = await api.modpackVersions(modpackSlug)
 

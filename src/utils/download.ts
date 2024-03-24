@@ -2,9 +2,10 @@ import { number } from "@rjweb/utils"
 import chalk from "chalk"
 import fs from "fs"
 import bytes from "bytes"
+import { fetchOptions } from "src/api"
 
 export default async function download(display: string, url: string, dest: string, overrideSize?: number | null) {
-	const request = await fetch(url)
+	const request = await fetch(url, fetchOptions)
 
 	if (!request.body) throw new Error('no body')
 

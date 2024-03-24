@@ -98,38 +98,23 @@ export default async function init(args: Args, profileName?: string) {
 		}
 
 		case "Install New (Modpack)": {
+			const initialPacks = await api.searchModpacks('')
+
 			const { modpackSlug } = await enquirer.prompt<{
 				modpackSlug: string
 			}>({
-				type: 'input',
-				message: 'Modpack Slug',
-				name: 'modpackSlug'
+				type: 'autocomplete',
+				message: 'Modrinth Modpack',
+				name: 'modpackSlug',
+				choices: initialPacks.map((pack) => pack.title),
+				// @ts-ignore
+				async suggest(input: string) {
+					const packs = await api.searchModpacks(input)
+					return packs.map((pack) => ({ message: pack.title, value: pack.slug }))
+				}
 			})
 
-			const response = await fetch(`https://api.modrinth.com/v2/project/${modpackSlug}`)
-			if (!response.ok) {
-				console.log('modpack not found!')
-				process.exit(1)
-			}
-
-			const data = await response.json() as {
-				server_side: 'required' | 'optional' | 'unsupported'
-				project_type: 'modpack' | 'mod' | 'unknown'
-				title: string
-				license: {
-					id: string
-				}
-			}
-
-			if (data.server_side === 'unsupported') {
-				console.log('modpack does not support server-side installation!')
-				process.exit(1)
-			}
-
-			if (data.project_type !== 'modpack') {
-				console.log('project is not a modpack!')
-				process.exit(1)
-			}
+			const data = await api.modpackInfos(modpackSlug)
 
 			console.log('modpack found:')
 			console.log('  title:', chalk.cyan(data.title))
