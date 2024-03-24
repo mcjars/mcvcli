@@ -169,10 +169,10 @@ export async function installModpack(slug: string, oldVersionId: string | null, 
 				console.log('removed', chalk.cyan(filePath), 'from old version')
 			}
 		}
-
-		await fs.promises.rm(path.join(path.dirname(config.data.jarFile), 'modpack.mrpack'))
 	} catch {
 		console.log('error reading old version! you may have to manually remove the old files.')
+	} finally {
+		await fs.promises.rm(path.join(path.dirname(config.data.jarFile), 'modpack.mrpack'))
 	}
 
 	try {
