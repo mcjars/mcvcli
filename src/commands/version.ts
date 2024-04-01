@@ -47,7 +47,8 @@ export default async function version(args: Args) {
 			getJarVersion(path.resolve(config.data.jarFile), cache)
 		])
 
-		const version = versions.find(v => v.id === modpackVersion)
+		const version = versions.find(v => v.id === modpackVersion),
+			latestJar = await api.latest(jar.type, jar.minecraftVersion!)
 
 		console.log('installed modpack:')
 		console.log('  title:', chalk.cyan(infos.title))
@@ -56,8 +57,8 @@ export default async function version(args: Args) {
 		console.log('installed jar location:', chalk.cyan(config.data.jarFile))
 		console.log('installed jar version:')
 		console.log('  type:', chalk.cyan(jar.type))
-		if (jar.minecraftVersion) console.log('  minecraft version:', chalk.cyan(jar.minecraftVersion), latestVersion === jar.minecraftVersion ? chalk.green('(latest)') : chalk.red('(outdated)'))
-		if (jar.jarVersion) console.log('  jar version:', chalk.cyan(jar.jarVersion), latestVersion === jar.jarVersion ? chalk.green('(latest)') : chalk.red('(outdated)'))
+		if (jar.minecraftVersion) console.log('  minecraft version:', chalk.cyan(jar.minecraftVersion), latestJar.latestMc === jar.minecraftVersion ? chalk.green('(latest)') : chalk.red('(outdated)'))
+		if (jar.jarVersion) console.log('  jar version:', chalk.cyan(jar.jarVersion), latestJar.latestJar === jar.jarVersion ? chalk.green('(latest)') : chalk.red('(outdated)'))
 	}
 
 	if (args.profile) process.chdir('../..')

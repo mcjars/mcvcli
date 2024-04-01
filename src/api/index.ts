@@ -52,7 +52,7 @@ export async function latest(project: SupportedProject | 'unknown', mc: string):
 
 	return {
 		latestJar: res.versions[mc].latest.buildNumber === 1 ? res.versions[mc].latest.projectVersionId ?? res.versions[mc].latest.buildNumber.toString() : res.versions[mc].latest.buildNumber.toString(),
-		latestMc: Object.values(res.versions).at(-1)?.latest.versionId ?? Object.values(res.versions).at(-1)?.latest.projectVersionId ?? 'unknown'
+		latestMc: Object.values(res.versions)[0]?.latest.versionId ?? Object.values(res.versions)[0]?.latest.projectVersionId ?? 'unknown'
 	}
 }
 
