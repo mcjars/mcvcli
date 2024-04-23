@@ -14,7 +14,7 @@ export const fetchOptions: RequestInit = {
 
 export * as modrinth from "src/api/modrinth"
 
-export const supportedProjects = ['paper', 'purpur', 'fabric', 'quilt', 'folia', 'velocity', 'waterfall', 'bungeecord', 'vanilla'] as const
+export const supportedProjects = ['paper', 'purpur', 'fabric', 'quilt', 'folia', 'velocity', 'waterfall', 'bungeecord', 'vanilla', 'forge'] as const
 export type SupportedProject = typeof supportedProjects[number]
 
 export async function player(identifier: string): Promise<{
@@ -116,7 +116,14 @@ export async function install(download: {
 		config.write()
 
 		if (download.jar) {
-			await doDownload('server.jar', download.jar, path.join(path.dirname(config.data.jarFile), 'server.jar'))
+			if (fs.existsSync(path.join(path.dirname(config.data.jarFile), '.mcvapi.jarUrl.txt'))) {
+				const fileName = await fs.promises.readFile(path.join(path.dirname(config.data.jarFile), '.mcvapi.jarUrl.txt'), 'utf-8')
+				await fs.promises.unlink(path.join(path.dirname(config.data.jarFile), '.mcvapi.jarUrl.txt'))
+
+				await doDownload('server.jar', download.jar, path.join(path.dirname(config.data.jarFile), fileName))
+			} else {
+				await doDownload('server.jar', download.jar, path.join(path.dirname(config.data.jarFile), 'server.jar'))
+			}
 		}
 	}
 }
