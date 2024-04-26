@@ -20,6 +20,10 @@ import modsInstall from "src/commands/mods/install"
 import modsUninstall from "src/commands/mods/uninstall"
 import cacheView from "src/commands/cache/view"
 import cacheClear from "src/commands/cache/clear"
+import backupCreate from "src/commands/backup/create"
+import backupList from "src/commands/backup/list"
+import backupRestore from "src/commands/backup/restore"
+import backupDelete from "src/commands/backup/delete"
 
 yargs(hideBin(process.argv))
   .version(pckgVersion)
@@ -83,6 +87,50 @@ yargs(hideBin(process.argv))
     (rg) => cacheView(rg))
     .command('clear', 'clear the cache', (yargs) => yargs,
     (rg) => cacheClear(rg))
+  )
+  .command('backup', 'manage backups', (yargs) => yargs
+    .command('create <name>', 'create a backup', (yargs) => yargs
+      .positional('name', {
+        type: 'string',
+        describe: 'the name of the backup',
+        demandOption: true
+      })
+      .option('method', {
+        type: 'string',
+        describe: 'the method to use to create the backup',
+        choices: ['tar', 'folder'],
+        alias: 'm',
+        demandOption: true
+      })
+      .option('override', {
+        type: 'boolean',
+        describe: 'override an existing backup',
+        alias: 'o',
+        default: false
+      }),
+    (rg) => backupCreate(rg))
+    .command('list', 'list all backups', (yargs) => yargs,
+    (rg) => backupList(rg))
+    .command('restore <name>', 'restore a backup', (yargs) => yargs
+      .positional('name', {
+        type: 'string',
+        describe: 'the name of the backup to restore',
+        demandOption: true
+      })
+      .option('clean', {
+        type: 'boolean',
+        describe: 'clean the current directory before restoring',
+        alias: 'c',
+        default: false
+      }),
+    (rg) => backupRestore(rg))
+    .command('delete <name>', 'delete a backup', (yargs) => yargs
+      .positional('name', {
+        type: 'string',
+        describe: 'the name of the backup to delete',
+        demandOption: true
+      }),
+    (rg) => backupDelete(rg))
   )
   .command('lookup <player>', 'lookup a player', (yargs) => yargs
     .positional('player', {

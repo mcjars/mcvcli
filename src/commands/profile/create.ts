@@ -30,5 +30,5 @@ export default async function profileCreate(args: Args) {
 	await init({ directory: '.' }, args.name)
 
 	process.chdir('../..')
-	console.log('profile created! switch to it using', chalk.cyan(`mccli profile use ${args.name}`))
+	console.log('profile created! switch to it using', chalk.cyan(`mcvcli profile use ${args.name}`))
 }
