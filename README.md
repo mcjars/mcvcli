@@ -8,7 +8,7 @@ mcvcli is a command-line tool for managing Minecraft server versions. It allows 
 - List available server versions
 - Switch between installed server versions
 - Automatically handle server configuration files
-- Automatically handles java installation
+- Automatically handle java installation
 
 ## Installation
 

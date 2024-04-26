@@ -64,7 +64,7 @@ export class Cache {
 	}
 }
 
-export default function getCache(directory: string = path.join(os.userInfo().homedir, '.mccli', 'cache')) {
+export default function getCache(directory: string = path.join(os.userInfo().homedir, '.mcvcli', 'cache')) {
 	if (!fs.existsSync(directory)) {
 		fs.mkdirSync(directory, { recursive: true })
 	}

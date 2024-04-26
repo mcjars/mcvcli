@@ -7,8 +7,8 @@ export type Args = {}
 
 export default async function profileList(args: Args) {
 	const config = getConfig(),
-		profiles = new Set((await fs.promises.readdir('.mccli.profiles').catch(() => []))
-			.filter((profile) => fs.existsSync(path.join('.mccli.profiles', profile, '.mccli.json'))))
+		profiles = new Set((await fs.promises.readdir('.mcvcli.profiles').catch(() => []))
+			.filter((profile) => fs.existsSync(path.join('.mcvcli.profiles', profile, '.mcvcli.json'))))
 
 	profiles.add(config.data.profileName)
 

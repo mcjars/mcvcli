@@ -19,7 +19,7 @@ export default async function init(args: Args, profileName?: string) {
 	const previousCwd = process.cwd()
 	process.chdir(args.directory)
 
-	if (fs.existsSync('.mccli.json')) {
+	if (fs.existsSync('.mcvcli.json')) {
 		console.log('mccli is already initialized!')
 		console.log('use', chalk.cyan('mccli version'), 'to get the currently installed version')
 
@@ -96,7 +96,7 @@ export default async function init(args: Args, profileName?: string) {
 
 			const config = new Config({
 				configVersion: 3,
-				__README: 'This file is used to store the configuration for the mccli tool. Do not modify this file unless you know what you are doing.',
+				__README: 'This file is used to store the configuration for the mcvcli tool. Do not modify this file unless you know what you are doing.',
 				jarFile: 'server.jar',
 				javaVersion: parseInt(javaVersion),
 				profileName: profileName ?? 'default',
@@ -158,7 +158,7 @@ export default async function init(args: Args, profileName?: string) {
 
 			const config = new Config({
 				configVersion: 3,
-				__README: 'This file is used to store the configuration for the mccli tool. Do not modify this file unless you know what you are doing.',
+				__README: 'This file is used to store the configuration for the mcvcli tool. Do not modify this file unless you know what you are doing.',
 				jarFile: 'server.jar',
 				javaVersion: parseInt(javaVersion),
 				profileName: profileName ?? 'default',
@@ -231,7 +231,7 @@ export default async function init(args: Args, profileName?: string) {
 
 			const config = new Config({
 				configVersion: 3,
-				__README: 'This file is used to store the configuration for the mccli tool. Do not modify this file unless you know what you are doing.',
+				__README: 'This file is used to store the configuration for the mcvcli tool. Do not modify this file unless you know what you are doing.',
 				jarFile,
 				javaVersion: parseInt(javaVersion),
 				profileName: profileName ?? 'default',
@@ -246,7 +246,7 @@ export default async function init(args: Args, profileName?: string) {
 		}
 	}
 
-	if (!profileName) fs.mkdirSync(path.join('.mccli.profiles', 'default'), { recursive: true })
+	if (!profileName) fs.mkdirSync(path.join('.mcvcli.profiles', 'default'), { recursive: true })
 	process.chdir(previousCwd)
 	console.log('mccli initialized!')
 }

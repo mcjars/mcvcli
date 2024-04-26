@@ -6,7 +6,7 @@ import download from "src/utils/download"
 import AdmZip from "adm-zip"
 import * as tar from "tar"
 
-const location = path.join(os.userInfo().homedir, '.mccli', 'java')
+const location = path.join(os.userInfo().homedir, '.mcvcli', 'java')
 
 export function installed(): number[] {
 	const out: number[] = []

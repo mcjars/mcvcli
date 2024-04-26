@@ -12,7 +12,7 @@ export default async function profileDelete(args: Args) {
 
 	const config = getConfig()
 
-	if (!fs.existsSync(path.join('.mccli.profiles', args.profile))) {
+	if (!fs.existsSync(path.join('.mcvcli.profiles', args.profile))) {
 		console.log('profile not found!')
 		process.exit(1)
 	}
@@ -22,7 +22,7 @@ export default async function profileDelete(args: Args) {
 		process.exit(1)
 	}
 
-	await fs.promises.rm(path.join('.mccli.profiles', args.profile), { recursive: true })
+	await fs.promises.rm(path.join('.mcvcli.profiles', args.profile), { recursive: true })
 
 	console.log('profile deleted!')
 }

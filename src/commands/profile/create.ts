@@ -19,13 +19,13 @@ export default async function profileCreate(args: Args) {
 		process.exit(1)
 	}
 
-	if (fs.existsSync(path.join('.mccli.profiles', args.name, '.mccli.json'))) {
+	if (fs.existsSync(path.join('.mcvcli.profiles', args.name, '.mcvcli.json'))) {
 		console.log('profile already exists!')
 		process.exit(1)
 	}
 
-	await fs.promises.mkdir(path.join('.mccli.profiles', args.name), { recursive: true })
-	process.chdir(path.join('.mccli.profiles', args.name))
+	await fs.promises.mkdir(path.join('.mcvcli.profiles', args.name), { recursive: true })
+	process.chdir(path.join('.mcvcli.profiles', args.name))
 
 	await init({ directory: '.' }, args.name)
 

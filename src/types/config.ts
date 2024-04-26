@@ -8,7 +8,7 @@ export const configVersions = z.union([
 
 export const configSchema = z.object({
 	configVersion: configVersions,
-	__README: z.literal('This file is used to store the configuration for the mccli tool. Do not modify this file unless you know what you are doing.'),
+	__README: z.literal('This file is used to store the configuration for the mcvcli tool. Do not modify this file unless you know what you are doing.'),
 	jarFile: z.string(),
 	javaVersion: z.number(),
 	profileName: z.string(),

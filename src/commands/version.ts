@@ -12,12 +12,12 @@ export type Args = {
 
 export default async function version(args: Args) {
 	if (args.profile) {
-		if (!fs.existsSync(path.join('.mccli.profiles', args.profile))) {
+		if (!fs.existsSync(path.join('.mcvcli.profiles', args.profile))) {
 			console.log('profile not found!')
 			process.exit(1)
 		}
 
-		process.chdir(path.join('.mccli.profiles', args.profile))
+		process.chdir(path.join('.mcvcli.profiles', args.profile))
 
 		console.log('checking installed version in profile...')
 	} else {

@@ -24,7 +24,7 @@ export default async function lookup(args: Args) {
 		} catch {}
 	}
 
-	if (fs.existsSync('.mccli.json') && fs.existsSync('world') && fs.existsSync('world/playerdata') && fs.existsSync(`world/playerdata/${player.uuid}.dat`)) {
+	if (fs.existsSync('.mcvcli.json') && fs.existsSync('world') && fs.existsSync('world/playerdata') && fs.existsSync(`world/playerdata/${player.uuid}.dat`)) {
 		try {
 			const nbt: any = await parse(fs.readFileSync(`world/playerdata/${player.uuid}.dat`))
 
