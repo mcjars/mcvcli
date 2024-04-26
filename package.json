@@ -1,22 +1,29 @@
 {
   "version": "1.0.0",
-  "name": "mccli",
+  "name": "mcvcli",
   "license": "MIT",
   "type": "module",
-  "homepage": "https://github.com/0x7d8/mccli",
+  "homepage": "https://github.com/0x7d8/mcvcli",
   "scripts": {
     "dev": "bun ../src/index.ts",
-    "bundle": "bun build src/index.ts --target node --bundle --minify --outfile lib/mccli.js",
+    "bundle": "rm -rf lib/* && bun build src/index.ts --target node --bundle --minify --outfile lib/mcvcli.js",
     "install:dev": "bun run bundle && npm i -g . --install-links"
   },
   "bin": {
-    "mccli": "./lib/mccli.js"
+    "mcvcli": "./lib/mcvcli.js"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/0x7d8/mccli.git"
+    "url": "https://github.com/0x7d8/mcvcli.git"
   },
-  "dependencies": {
+  "devDependencies": {
+    "@types/adm-zip": "^0.5.5",
+    "@types/bytes": "^3.1.4",
+    "@types/node": "^18.19.31",
+    "@types/semver": "^7.5.8",
+    "@types/yargs": "^17.0.32",
+    "bun": "^1.1.5",
+    "typescript": "^5.4.5",
     "@rjweb/utils": "^1.12.12",
     "adm-zip": "^0.5.12",
     "bytes": "^3.1.2",
@@ -26,14 +33,5 @@
     "tar": "^7.0.1",
     "yargs": "^17.7.2",
     "zod": "^3.23.4"
-  },
-  "devDependencies": {
-    "@types/adm-zip": "^0.5.5",
-    "@types/bytes": "^3.1.4",
-    "@types/node": "^18.19.31",
-    "@types/semver": "^7.5.8",
-    "@types/yargs": "^17.0.32",
-    "bun": "^1.1.5",
-    "typescript": "^5.4.5"
   }
 }

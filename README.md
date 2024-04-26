@@ -1,6 +1,6 @@
-# mccli - Minecraft Server Version Manager
+# mcvcli - Minecraft Server Version Manager
 
-mccli is a command-line tool for managing Minecraft server versions. It allows you to easily download, install, and switch between different versions of the Minecraft server software.
+mcvcli is a command-line tool for managing Minecraft server versions. It allows you to easily download, install, and switch between different versions of the Minecraft server software.
 
 ## Features
 
@@ -8,14 +8,15 @@ mccli is a command-line tool for managing Minecraft server versions. It allows y
 - List available server versions
 - Switch between installed server versions
 - Automatically handle server configuration files
+- Automatically handles java installation
 
 ## Installation
 
 1. Make sure you have [Node.js](https://nodejs.org) installed on your system.
-2. Install mccli globally by running the following command:
+2. Install mcvcli globally by running the following command:
 
 ```bash
-npm install -g mccli
+npm install -g mcvcli
 ```
 
 ## Usage
@@ -25,19 +26,19 @@ npm install -g mccli
 To setup your Minecraft server version, use the `init` command
 
 ```bash
-mccli init ./server
+mcvcli init ./server
 
 cd server
 
-mccli version # view installed version, auto updates with your jar
-mccli update # update build or minecraft version of your jar (only newer)
-mccli install # force install any other version
-mccli lookup {user} # lookup a user on your server or globally
-mccli start # start the server
-mccli profile list # list server profiles
-mccli profile create {name} # create a new profile
-mccli profile use {name} # switch to another profile
-mccli profile delete {name} # nuke a profile from existance
+mcvcli version # view installed version, auto updates with your jar
+mcvcli update # update build or minecraft version of your jar (only newer)
+mcvcli install # force install any other version
+mcvcli lookup {user} # lookup a user on your server or globally
+mcvcli start # start the server
+mcvcli profile list # list server profiles
+mcvcli profile create {name} # create a new profile
+mcvcli profile use {name} # switch to another profile
+mcvcli profile delete {name} # nuke a profile from existance
 ```
 
 ## Developing
@@ -45,15 +46,15 @@ mccli profile delete {name} # nuke a profile from existance
 To Develop on this tool, you need to install all required dependencies
 
 ```bash
-git clone https://github.com/0x7d8/mccli
+git clone https://github.com/0x7d8/mcvcli
 
-cd mccli
+cd mcvcli
 
 # make sure to have nodejs installed already
 npm i -g pnpm
 pnpm i
 pnpm install:dev
 
-# mccli is now globally available
-mccli
+# mcvcli is now globally available
+mcvcli
 ```
