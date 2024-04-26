@@ -13,6 +13,7 @@ export const fetchOptions: RequestInit = {
 }
 
 export * as modrinth from "src/api/modrinth"
+export * as adoptium from "src/api/adoptium"
 
 export const supportedProjects = ['paper', 'purpur', 'fabric', 'quilt', 'folia', 'velocity', 'waterfall', 'bungeecord', 'vanilla', 'forge'] as const
 export type SupportedProject = typeof supportedProjects[number]
@@ -52,7 +53,7 @@ export async function latest(project: SupportedProject | 'unknown', mc: string):
 
 	return {
 		latestJar: res.versions[mc].latest.buildNumber === 1 ? res.versions[mc].latest.projectVersionId ?? res.versions[mc].latest.buildNumber.toString() : res.versions[mc].latest.buildNumber.toString(),
-		latestMc: Object.values(res.versions)[0]?.latest.versionId ?? Object.values(res.versions)[0]?.latest.projectVersionId ?? 'unknown'
+		latestMc: Object.values(res.versions).at(-1)?.latest.versionId ?? Object.values(res.versions).at(-1)?.latest.projectVersionId ?? 'unknown'
 	}
 }
 

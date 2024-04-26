@@ -3,13 +3,15 @@ import cp from "child_process"
 import path from "path"
 import getConfig from "src/utils/config"
 import enquirer from "enquirer"
+import { binary } from "src/utils/java"
 
 export type Args = {}
 
 export default async function start(args: Args) {
 	const config = getConfig()
 
-	const eula = await fs.promises.readFile('eula.txt', 'utf8').catch(() => '').then((eula) => eula.includes('eula=true'))
+	const binaryLocation = await binary(config.data.javaVersion),
+		eula = await fs.promises.readFile('eula.txt', 'utf8').catch(() => '').then((eula) => eula.includes('eula=true'))
 
 	if (eula) {
 		console.log('eula already accepted!')
@@ -31,9 +33,9 @@ export default async function start(args: Args) {
 	}
 
 	console.log('starting server...')
-	console.log(`java -Xmx${config.data.ramMB}M -jar ${config.data.jarFile} nogui`)
+	console.log(`${binaryLocation} -Xmx${config.data.ramMB}M -jar ${config.data.jarFile} nogui`)
 
-	const child = cp.spawn('java', [`-Xmx${config.data.ramMB}M`, '-jar', config.data.jarFile, 'nogui'], {
+	const child = cp.spawn(binaryLocation, [`-Xmx${config.data.ramMB}M`, '-jar', config.data.jarFile, 'nogui'], {
 		cwd: path.dirname(config.data.jarFile)
 	})
 

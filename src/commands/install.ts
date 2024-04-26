@@ -48,7 +48,22 @@ export default async function install(args: Args) {
 			console.log('checking latest build...')
 		
 			const builds = await api.builds(type, version),
+				javaVersions = await api.adoptium.versions(),
 				latest = builds[0]
+
+			const { javaVersion } = await enquirer.prompt<{
+				javaVersion: string
+			}>({
+				type: 'autocomplete',
+				message: 'Java Version',
+				name: 'javaVersion',
+				choices: javaVersions.map((version) => version.toString()),
+				// @ts-ignore
+				limit: 5
+			})
+
+			config.data.javaVersion = parseInt(javaVersion)
+			config.write()
 		
 			await api.install(latest.download, config)
 		
@@ -97,10 +112,23 @@ export default async function install(args: Args) {
 				limit: 10
 			})
 
-			const modpackVersion = modpackVersions.find((v) => v.title === version)
+			const modpackVersion = modpackVersions.find((v) => v.title === version),
+				javaVersions = await api.adoptium.versions()
+
+			const { javaVersion } = await enquirer.prompt<{
+				javaVersion: string
+			}>({
+				type: 'autocomplete',
+				message: 'Java Version',
+				name: 'javaVersion',
+				choices: javaVersions.map((version) => version.toString()),
+				// @ts-ignore
+				limit: 5
+			})
 
 			await api.installModpack(modpackSlug, config.data.modpackVersion, modpackVersion!.id, config)
 			config.data.modpackSlug = modpackSlug
+			config.data.javaVersion = parseInt(javaVersion)
 			config.write()
 
 			console.log('server installed!')

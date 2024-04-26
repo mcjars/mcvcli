@@ -61,5 +61,7 @@ export default async function version(args: Args) {
 		if (jar.jarVersion) console.log('  jar version:', chalk.cyan(jar.jarVersion), latestJar.latestJar === jar.jarVersion ? chalk.green('(latest)') : chalk.red('(outdated)'))
 	}
 
+	console.log('installed java version:', chalk.cyan(config.data.javaVersion))
+
 	if (args.profile) process.chdir('../..')
 }

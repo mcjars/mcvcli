@@ -5,17 +5,32 @@ import { configSchema, configVersions } from "src/types/config"
 import { z } from "zod"
 
 function upgradeConfig(config: any) {
-	if (!config.configVersion) {
-		config = {
-			configVersion: 2,
-			__README: 'This file is used to store the configuration for the mccli tool. Do not modify this file unless you know what you are doing.',
-			jarFile: config.jarFile,
-			profileName: config.profileName,
-			modpackSlug: null,
-			modpackVersion: null,
-			ramMB: config.ramMB
+	const previousVersion = config.configVersion
+
+	switch (config.configVersion) {
+		case undefined: {
+			config = {
+				configVersion: 2,
+				__README: 'This file is used to store the configuration for the mccli tool. Do not modify this file unless you know what you are doing.',
+				jarFile: config.jarFile,
+				profileName: config.profileName,
+				modpackSlug: null,
+				modpackVersion: null,
+				ramMB: config.ramMB
+			}
+
+			break
 		}
 
+		case 2: {
+			config.configVersion = 3
+			config.javaVersion = 21
+
+			break
+		}
+	}
+
+	if (config.configVersion !== previousVersion) {
 		console.log('upgraded config to version', chalk.cyan(config.configVersion))
 		fs.writeFileSync('.mccli.json', JSON.stringify(config, null, 2))
 	}

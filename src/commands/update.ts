@@ -113,7 +113,22 @@ export default async function update(args: Args) {
 			})
 
 			const builds = await api.builds(version.type, serverVersion),
+				javaVersions = await api.adoptium.versions(),
 				latest = builds[0]
+
+			const { javaVersion } = await enquirer.prompt<{
+				javaVersion: string
+			}>({
+				type: 'autocomplete',
+				message: 'Java Version',
+				name: 'javaVersion',
+				choices: javaVersions.map((version) => version.toString()),
+				// @ts-ignore
+				limit: 5
+			})
+
+			config.data.javaVersion = parseInt(javaVersion)
+			config.write()
 
 			await api.install(latest.download, config)
 			break

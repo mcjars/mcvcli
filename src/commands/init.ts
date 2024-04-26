@@ -70,22 +70,35 @@ export default async function init(args: Args, profileName?: string) {
 			console.log('checking latest build...')
 
 			const builds = await api.builds(type, version),
+				javaVersions = await api.adoptium.versions(),
 				latest = builds[0]
 
-			const { ramMB } = await enquirer.prompt<{
+			const { ramMB, javaVersion } = await enquirer.prompt<{
 				ramMB: number
-			}>({
-				type: 'numeral',
-				message: 'Server RAM (MB)',
-				name: 'ramMB',
-				min: 1024,
-				initial: 4096
-			})
+				javaVersion: string
+			}>([
+				{
+					type: 'numeral',
+					message: 'Server RAM (MB)',
+					name: 'ramMB',
+					min: 1024,
+					initial: 4096
+				},
+				{
+					type: 'autocomplete',
+					message: 'Java Version',
+					name: 'javaVersion',
+					choices: javaVersions.map((version) => version.toString()),
+					// @ts-ignore
+					limit: 5
+				}
+			])
 
 			const config = new Config({
-				configVersion: 2,
+				configVersion: 3,
 				__README: 'This file is used to store the configuration for the mccli tool. Do not modify this file unless you know what you are doing.',
 				jarFile: 'server.jar',
+				javaVersion: parseInt(javaVersion),
 				profileName: profileName ?? 'default',
 				modpackSlug: null,
 				modpackVersion: null,
@@ -115,26 +128,39 @@ export default async function init(args: Args, profileName?: string) {
 				}
 			})
 
-			const data = await api.modpackInfos(modpackSlug)
+			const data = await api.modpackInfos(modpackSlug),
+				javaVersions = await api.adoptium.versions()
 
 			console.log('modpack found:')
 			console.log('  title:', chalk.cyan(data.title))
 			console.log('  license:', chalk.cyan(data.license.id))
 
-			const { ramMB } = await enquirer.prompt<{
+			const { ramMB, javaVersion } = await enquirer.prompt<{
 				ramMB: number
-			}>({
-				type: 'numeral',
-				message: 'Server RAM (MB)',
-				name: 'ramMB',
-				min: 1024,
-				initial: 4096
-			})
+				javaVersion: string
+			}>([
+				{
+					type: 'numeral',
+					message: 'Server RAM (MB)',
+					name: 'ramMB',
+					min: 1024,
+					initial: 4096
+				},
+				{
+					type: 'autocomplete',
+					message: 'Java Version',
+					name: 'javaVersion',
+					choices: javaVersions.map((version) => version.toString()),
+					// @ts-ignore
+					limit: 5
+				}
+			])
 
 			const config = new Config({
-				configVersion: 2,
+				configVersion: 3,
 				__README: 'This file is used to store the configuration for the mccli tool. Do not modify this file unless you know what you are doing.',
 				jarFile: 'server.jar',
+				javaVersion: parseInt(javaVersion),
 				profileName: profileName ?? 'default',
 				modpackSlug,
 				modpackVersion: null,
@@ -173,7 +199,8 @@ export default async function init(args: Args, profileName?: string) {
 
 			const version = await getJarVersion(path.resolve(jarFile), cache)
 
-			const { latestJar, latestMc } = await api.latest(version.type, version.minecraftVersion!)
+			const { latestJar, latestMc } = await api.latest(version.type, version.minecraftVersion!),
+				javaVersions = await api.adoptium.versions()
 
 			console.log('installed jar location:', chalk.cyan(jarFile))
 			console.log('installed jar version:')
@@ -181,20 +208,32 @@ export default async function init(args: Args, profileName?: string) {
 			if (version.minecraftVersion) console.log('  minecraft version:', chalk.cyan(version.minecraftVersion), latestMc === version.minecraftVersion ? chalk.green('(latest)') : chalk.red('(outdated)'))
 			if (version.jarVersion) console.log('  jar version:', chalk.cyan(version.jarVersion), latestJar === version.jarVersion ? chalk.green('(latest)') : chalk.red('(outdated)'))
 
-			const { ramMB } = await enquirer.prompt<{
+			const { ramMB, javaVersion } = await enquirer.prompt<{
 				ramMB: number
-			}>({
-				type: 'numeral',
-				message: 'Server RAM (MB)',
-				name: 'ramMB',
-				min: 1024,
-				initial: 4096
-			})
+				javaVersion: string
+			}>([
+				{
+					type: 'numeral',
+					message: 'Server RAM (MB)',
+					name: 'ramMB',
+					min: 1024,
+					initial: 4096
+				},
+				{
+					type: 'autocomplete',
+					message: 'Java Version',
+					name: 'javaVersion',
+					choices: javaVersions.map((version) => version.toString()),
+					// @ts-ignore
+					limit: 5
+				}
+			])
 
 			const config = new Config({
-				configVersion: 2,
+				configVersion: 3,
 				__README: 'This file is used to store the configuration for the mccli tool. Do not modify this file unless you know what you are doing.',
 				jarFile,
+				javaVersion: parseInt(javaVersion),
 				profileName: profileName ?? 'default',
 				modpackSlug: null,
 				modpackVersion: null,
