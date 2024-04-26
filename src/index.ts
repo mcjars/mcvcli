@@ -2,6 +2,7 @@
 
 import yargs from "yargs/yargs"
 import { hideBin } from "yargs/helpers"
+import { version as pckgVersion } from "../package.json"
 
 import init from "src/commands/init"
 import version from "src/commands/version"
@@ -21,6 +22,7 @@ import cacheView from "src/commands/cache/view"
 import cacheClear from "src/commands/cache/clear"
 
 yargs(hideBin(process.argv))
+  .version(pckgVersion)
   .command('version', 'get the currently installed version', (yargs) => yargs
     .option('profile', {
       type: 'string',
