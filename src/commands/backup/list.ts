@@ -9,14 +9,14 @@ export type Args = {}
 export default async function backupList(args: Args) {
 	const backups: [name: string, type: string, size: number][] = []
 
-	for (const file of filesystem.walk('.mcvcli.backups')) {
+	if (fs.existsSync('.mcvcli.backups')) for (const file of filesystem.walk('.mcvcli.backups')) {
 		if (file.isFile() && file.name.endsWith('.tar.gz')) {
 			backups.push([file.name.slice(0, -7), 'tar', fs.statSync(path.join(file.path, file.name)).size])
 		} else {
 			let size = 0
 
 			for (const backupFile of filesystem.walk(path.join(file.path, file.name), { recursive: true })) {
-				if (file.isFile()) size += fs.statSync(path.join(backupFile.path, backupFile.name)).size
+				if (backupFile.isFile()) size += fs.statSync(path.join(backupFile.path, backupFile.name)).size
 			}
 
 			backups.push([file.name, 'folder', size])
