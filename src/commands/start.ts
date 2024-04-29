@@ -4,6 +4,7 @@ import path from "path"
 import getConfig from "src/utils/config"
 import enquirer from "enquirer"
 import { binary } from "src/utils/java"
+import chalk from "chalk"
 
 export type Args = {}
 
@@ -47,15 +48,21 @@ export default async function start(args: Args) {
 	child.stderr.pipe(process.stderr)
 	process.stdin.pipe(child.stdin)
 
-	let isNuke = false
+	let isNuke = false, nukeInterval: NodeJS.Timeout
 	child.on('exit', (code) => {
 		if (!isNuke) console.log('server stopped with code', code)
+		if (nukeInterval) clearTimeout(nukeInterval)
 	})
 
 	process.on('SIGINT', () => {
 		child.stdout.unpipe(process.stdout)
 		child.kill('SIGINT')
-		console.log('server killed. please use exit if possible.')
+		console.log('server asked to stop. please use "stop" or "end" to stop the server.')
+		console.log(chalk.yellow('if the server does not stop in 10 seconds, it will be SIGKILLed!'))
 		isNuke = true
+
+		if (!nukeInterval) nukeInterval = setTimeout(() => {
+			child.kill('SIGKILL')
+		}, 10000)
 	})
 }
