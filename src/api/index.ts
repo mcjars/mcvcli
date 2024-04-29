@@ -100,6 +100,8 @@ export async function install(download: {
 	jar: string | null
 	zip: string | null
 }, config: Config) {
+	if (fs.existsSync(path.join(path.dirname(config.data.jarFile), 'libraries'))) await fs.promises.rm(path.join(path.dirname(config.data.jarFile), 'libraries'), { recursive: true })
+
 	if (download.jar && !download.zip) {
 		await doDownload('server.jar', download.jar, config.data.jarFile)
 	} else if (download.zip) {

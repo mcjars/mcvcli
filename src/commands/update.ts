@@ -40,19 +40,19 @@ export default async function update(args: Args) {
 
 	if (!config.data.modpackSlug && version.type === 'unknown') {
 		console.log('server type is unknown, unable to update!')
-		console.log('use', chalk.cyan('mccli install'), 'to install a new version.')
+		console.log('use', chalk.cyan('mcvcli install'), 'to install a new version.')
 		process.exit(1)
 	}
 
 	if (config.data.modpackSlug && latestVersion === modpackVersion?.version_number) {
 		console.log('server is already up to date!')
-		console.log('use', chalk.cyan('mccli install'), 'to install a new version.')
+		console.log('use', chalk.cyan('mcvcli install'), 'to install a new version.')
 		process.exit(0)
 	}
 
 	if (!config.data.modpackSlug && latestJar === version.jarVersion && latestMc === version.minecraftVersion) {
 		console.log('server is already up to date!')
-		console.log('use', chalk.cyan('mccli install'), 'to install a new version.')
+		console.log('use', chalk.cyan('mcvcli install'), 'to install a new version.')
 		process.exit(0)
 	}
 
