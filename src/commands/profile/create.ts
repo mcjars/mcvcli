@@ -27,7 +27,7 @@ export default async function profileCreate(args: Args) {
 	await fs.promises.mkdir(path.join('.mcvcli.profiles', args.name), { recursive: true })
 	process.chdir(path.join('.mcvcli.profiles', args.name))
 
-	await init({ directory: '.' }, args.name)
+	await init({ directory: '.' }, args.name, false)
 
 	process.chdir('../..')
 	console.log('profile created! switch to it using', chalk.cyan(`mcvcli profile use ${args.name}`))

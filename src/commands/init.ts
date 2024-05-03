@@ -11,7 +11,7 @@ export type Args = {
 	directory: string
 }
 
-export default async function init(args: Args, profileName?: string) {
+export default async function init(args: Args, profileName?: string, showJars = true) {
 	if (!fs.existsSync(args.directory)) {
 		fs.mkdirSync(args.directory)
 	}
@@ -27,7 +27,7 @@ export default async function init(args: Args, profileName?: string) {
 		process.exit(1)
 	}
 
-	const files = fs.readdirSync('.')
+	const files = showJars ? fs.readdirSync('.') : []
 	
 	const { jarFile } = await enquirer.prompt<{
 		jarFile: string

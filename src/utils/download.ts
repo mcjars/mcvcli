@@ -12,12 +12,16 @@ export default async function download(display: string, url: string, dest: strin
 	const size = overrideSize ?? request.headers.has('content-length') ? parseInt(request.headers.get('content-length') ?? '0') : null,
 		file = fs.createWriteStream(dest)
 
-	let progress = 0
+	let progress = 0, realSpeed = 0
+	const startTime = Date.now()
+
 	for await (const chunk of request.body) {
 		progress += chunk.length
-		const percent = number.limit(Math.round(progress / (size ?? chunk.length) * 100), 99)
+		realSpeed = progress / ((Date.now() - startTime) / 1000)
 
-		process.stdout.write(`\rdownloading ${chalk.cyan(display)} ${percent}% ${size ? `(${bytes(progress)} / ${bytes(size ?? 0)})` : ''}      `)
+		const percent = Math.min(Math.round(progress / (size ?? chunk.length) * 100), 99)
+
+		process.stdout.write(`\rdownloading ${chalk.cyan(display)} ${percent}% ${size ? `(${bytes(progress)} / ${bytes(size ?? 0)})` : ''} ${chalk.gray(`(${bytes(realSpeed)}/s)`)}      `)
 
 		await new Promise<void>((resolve) => {
 			file.write(chunk, () => resolve())
