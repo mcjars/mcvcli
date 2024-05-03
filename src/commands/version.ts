@@ -18,19 +18,19 @@ export default async function version(args: Args) {
 		}
 
 		process.chdir(path.join('.mcvcli.profiles', args.profile))
-
-		console.log('checking installed version in profile...')
-	} else {
-		console.log('checking currently installed version...')
 	}
+
+	console.log('checking installed version...')
+	const start = performance.now()
 
 	const config = getConfig(),
 		cache = getCache()
 
 	if (!config.data.modpackSlug && !config.data.modpackVersion) {
-		const version = await getJarVersion(path.resolve(config.data.jarFile), cache)
+		const version = await getJarVersion(path.resolve(config.data.jarFile), cache),
+			{ latestJar, latestMc } = await api.latest(version.type, version.minecraftVersion!)
 
-		const { latestJar, latestMc } = await api.latest(version.type, version.minecraftVersion!)
+		console.log('checking installed version... done', chalk.gray(`(${(performance.now() - start).toFixed(2)}ms)`), '\n')
 
 		console.log('installed jar location:', chalk.cyan(config.data.jarFile))
 		console.log('installed jar version:')
@@ -49,6 +49,8 @@ export default async function version(args: Args) {
 
 		const version = versions.find(v => v.id === modpackVersion),
 			latestJar = await api.latest(jar.type, jar.minecraftVersion!)
+
+		console.log('checking installed version... done', chalk.gray(`(${(performance.now() - start).toFixed(2)}ms)`), '\n')
 
 		console.log('installed modpack:')
 		console.log('  title:', chalk.cyan(infos.title))

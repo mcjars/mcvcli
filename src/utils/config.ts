@@ -46,8 +46,10 @@ export class Config {
 	}
 }
 
-export default function getConfig() {
-	if (!fs.existsSync('.mcvcli.json')) {
+export default function getConfig(profile?: string) {
+	const file = profile ? `.mcvcli.profiles/${profile}/.mcvcli.json` : '.mcvcli.json'
+
+	if (!fs.existsSync(file)) {
 		console.log('no', chalk.yellow('.mcvcli.json'), 'file found!')
 		console.log('initialize using', chalk.cyan('mcvcli init .'))
 
@@ -55,7 +57,7 @@ export default function getConfig() {
 	}
 
 	try {
-		const config = JSON.parse(fs.readFileSync('.mcvcli.json', 'utf-8'))
+		const config = JSON.parse(fs.readFileSync(file, 'utf-8'))
 
 		return new Config(configSchema.parse(upgradeConfig(config)))
 	} catch {

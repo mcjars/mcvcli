@@ -1,5 +1,5 @@
 {
-  "version": "1.1.4",
+  "version": "1.2.0",
   "name": "mcvcli",
   "license": "MIT",
   "type": "module",
@@ -17,21 +17,21 @@
     "url": "https://github.com/0x7d8/mcvcli.git"
   },
   "devDependencies": {
+    "@rjweb/utils": "^1.12.12",
     "@types/adm-zip": "^0.5.5",
     "@types/bytes": "^3.1.4",
     "@types/node": "^18.19.31",
     "@types/semver": "^7.5.8",
     "@types/yargs": "^17.0.32",
-    "bun": "^1.1.5",
-    "typescript": "^5.4.5",
-    "@rjweb/utils": "^1.12.12",
     "adm-zip": "^0.5.12",
+    "bun": "^1.1.7",
     "bytes": "^3.1.2",
     "chalk": "^5.3.0",
     "enquirer": "^2.4.1",
     "prismarine-nbt": "^2.5.0",
     "tar": "^7.0.1",
+    "typescript": "^5.4.5",
     "yargs": "^17.7.2",
-    "zod": "^3.23.4"
+    "zod": "^3.23.6"
   }
 }

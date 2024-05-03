@@ -10,6 +10,7 @@ export type Args = {}
 
 export default async function update(args: Args) {
 	console.log('checking currently installed version...')
+	const start = performance.now()
 
 	const config = getConfig(),
 		cache = getCache(),
@@ -26,10 +27,14 @@ export default async function update(args: Args) {
 	if (config.data.modpackSlug && config.data.modpackVersion) {
 		const infos = await api.modpackInfos(config.data.modpackSlug)
 
+		console.log('checking currently installed version... done', chalk.gray(`(${(performance.now() - start).toFixed(2)}ms)`), '\n')
+
 		console.log('installed modpack:')
 		console.log('  title:', chalk.cyan(infos.title))
 		console.log('  license:', chalk.cyan(infos.license.id))
 		console.log('  version:', chalk.cyan(modpackVersion?.version_number ?? 'unknown'), latestVersion === modpackVersion?.version_number ? chalk.green('(latest)') : chalk.red('(outdated)'))
+	} else {
+		console.log('checking currently installed version... done', chalk.gray(`(${(performance.now() - start).toFixed(2)}ms)`), '\n')
 	}
 
 	console.log('currently installed jar location:', chalk.cyan(config.data.jarFile))
