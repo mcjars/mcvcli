@@ -15,7 +15,7 @@ export const fetchOptions: RequestInit = {
 export * as modrinth from "src/api/modrinth"
 export * as adoptium from "src/api/adoptium"
 
-export const supportedProjects = ['paper', 'purpur', 'fabric', 'quilt', 'folia', 'velocity', 'waterfall', 'bungeecord', 'vanilla', 'forge'] as const
+export const supportedProjects = ['paper', 'purpur', 'fabric', 'quilt', 'folia', 'velocity', 'waterfall', 'bungeecord', 'vanilla', 'forge', 'neoforge'] as const
 export type SupportedProject = typeof supportedProjects[number]
 
 export async function player(identifier: string): Promise<{

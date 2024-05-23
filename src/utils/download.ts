@@ -1,4 +1,3 @@
-import { number } from "@rjweb/utils"
 import chalk from "chalk"
 import fs from "fs"
 import bytes from "bytes"
