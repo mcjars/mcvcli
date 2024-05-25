@@ -73,6 +73,7 @@ export async function builds(project: SupportedProject, mc: string): Promise<{
 	download: {
 		jar: string | null
 		zip: string | null
+		jarLocation: string | null
 	}
 }[]> {
 	const res = await fetch(`https://mc.rjns.dev/api/v1/builds/${project}/${mc}`, fetchOptions).then((res) => res.json()) as {
@@ -82,6 +83,7 @@ export async function builds(project: SupportedProject, mc: string): Promise<{
 			versionId: string | null
 			projectVersionId: string | null
 			jarUrl: string | null
+			jarLocation: string | null
 			zipUrl: string | null
 		}[]
 	}
@@ -91,7 +93,8 @@ export async function builds(project: SupportedProject, mc: string): Promise<{
 		mcVersion: build.versionId ?? 'unknown',
 		download: {
 			jar: build.jarUrl,
-			zip: build.zipUrl
+			zip: build.zipUrl,
+			jarLocation: build.jarLocation
 		}
 	}))
 }
@@ -99,6 +102,7 @@ export async function builds(project: SupportedProject, mc: string): Promise<{
 export async function install(download: {
 	jar: string | null
 	zip: string | null
+	jarLocation: string | null
 }, config: Config) {
 	if (fs.existsSync(path.join(path.dirname(config.data.jarFile), 'libraries'))) await fs.promises.rm(path.join(path.dirname(config.data.jarFile), 'libraries'), { recursive: true })
 
@@ -119,14 +123,7 @@ export async function install(download: {
 		config.write()
 
 		if (download.jar) {
-			if (fs.existsSync(path.join(path.dirname(config.data.jarFile), '.mcvapi.jarUrl.txt'))) {
-				const fileName = await fs.promises.readFile(path.join(path.dirname(config.data.jarFile), '.mcvapi.jarUrl.txt'), 'utf-8')
-				await fs.promises.unlink(path.join(path.dirname(config.data.jarFile), '.mcvapi.jarUrl.txt'))
-
-				await doDownload('server.jar', download.jar, path.join(path.dirname(config.data.jarFile), fileName))
-			} else {
-				await doDownload('server.jar', download.jar, path.join(path.dirname(config.data.jarFile), 'server.jar'))
-			}
+			await doDownload('server.jar', download.jar, path.join(path.dirname(config.data.jarFile), download.jarLocation ?? 'server.jar'))
 		}
 	}
 }
