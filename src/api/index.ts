@@ -8,14 +8,14 @@ import chalk from "chalk"
 
 export const fetchOptions: RequestInit = {
 	headers: {
-		'User-Agent': `github.com/0x7d8/mccli v${version} (https://rjansen.dev)`
+		'User-Agent': `github.com/0x7d8/mcvcli v${version} (https://rjansen.dev)`
 	}
 }
 
 export * as modrinth from "src/api/modrinth"
 export * as adoptium from "src/api/adoptium"
 
-export const supportedProjects = ['paper', 'purpur', 'fabric', 'quilt', 'folia', 'velocity', 'waterfall', 'bungeecord', 'vanilla', 'forge', 'neoforge'] as const
+export const supportedProjects = ['paper', 'purpur', 'fabric', 'quilt', 'folia', 'velocity', 'waterfall', 'bungeecord', 'vanilla', 'forge', 'neoforge', 'mohist', 'banner'] as const
 export type SupportedProject = typeof supportedProjects[number]
 
 export async function player(identifier: string): Promise<{
@@ -106,13 +106,12 @@ export async function install(download: {
 }, config: Config) {
 	if (fs.existsSync(path.join(path.dirname(config.data.jarFile), 'libraries'))) await fs.promises.rm(path.join(path.dirname(config.data.jarFile), 'libraries'), { recursive: true })
 
-	if (download.jar && !download.zip) {
-		await doDownload('server.jar', download.jar, config.data.jarFile)
-	} else if (download.zip) {
+	if (download.jar) await doDownload('server.jar', download.jar, download.jarLocation ?? config.data.jarFile)
+	if (download.zip) {
 		const zipName = download.zip.split('/').pop()?.slice(0, -4)!,
 			fileName = `${zipName}.zip`
 
-		await doDownload(fileName, download.zip, path.join(path.dirname(config.data.jarFile), fileName))
+		await doDownload('version.zip', download.zip, path.join(path.dirname(config.data.jarFile), fileName))
 
 		const archive = new AdmZip(path.join(path.dirname(config.data.jarFile), fileName))
 		archive.extractAllTo(path.dirname(config.data.jarFile), true)
@@ -121,10 +120,6 @@ export async function install(download: {
 
 		config.data.jarFile = zipName
 		config.write()
-
-		if (download.jar) {
-			await doDownload('server.jar', download.jar, path.join(path.dirname(config.data.jarFile), download.jarLocation ?? 'server.jar'))
-		}
 	}
 }
 

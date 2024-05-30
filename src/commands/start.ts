@@ -5,6 +5,7 @@ import getConfig from "src/utils/config"
 import enquirer from "enquirer"
 import { binary } from "src/utils/java"
 import chalk from "chalk"
+import { time } from "@rjweb/utils"
 
 export type Args = {}
 
@@ -55,14 +56,14 @@ export default async function start(args: Args) {
 	})
 
 	process.on('SIGINT', () => {
-		child.stdout.unpipe(process.stdout)
 		child.kill('SIGINT')
-		console.log('server asked to stop. please use "stop" or "end" to stop the server.')
+		console.log('server asked to stop. please use', chalk.cyan('stop'), 'or', chalk.cyan('end'), 'to stop the server.')
 		console.log(chalk.yellow('if the server does not stop in 10 seconds, it will be SIGKILLed!'))
 		isNuke = true
 
 		if (!nukeInterval) nukeInterval = setTimeout(() => {
 			child.kill('SIGKILL')
-		}, 10000)
+			console.log(chalk.red('server did not stop in time, SIGKILLed!'))
+		}, time(10).s())
 	})
 }

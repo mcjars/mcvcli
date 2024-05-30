@@ -1,6 +1,6 @@
 import { filesystem, time } from "@rjweb/utils"
 import { existsSync } from "fs"
-import { SupportedProject } from "src/api"
+import { SupportedProject, fetchOptions } from "src/api"
 import { Cache } from "src/utils/cache"
 
 type APIResponse = {
@@ -13,7 +13,6 @@ type APIResponse = {
     type: Uppercase<SupportedProject>
     versionId: string | null
     projectVersionId: string | null
-    created: string
   }
 }
 
@@ -39,7 +38,7 @@ export default async function jarVersion(jar: string, cache: Cache): Promise<{
   if (cached) return cached
 
   try {
-    const build = await fetch(`https://mc.rjns.dev/api/v1/build/${hash}`).then((res) => res.json()) as APIResponse
+    const build = await fetch(`https://mc.rjns.dev/api/v1/build/${hash}`, fetchOptions).then((res) => res.json()) as APIResponse
 
     if (!build.success) {
       return {
