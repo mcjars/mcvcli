@@ -26,8 +26,8 @@ export async function packagedUrl(version: number): Promise<[name: string, url: 
 			}
 		}[]
 
-	const packaged = res.find((asset) => asset.binary.image_type === 'jre' && (asset.binary.package.name.endsWith('.zip') || asset.binary.package.name.endsWith('.tar.gz')))
-	if (!packaged) throw new Error(`No JRE found for ${version}`)
+	const packaged = res.find((asset) => asset.binary.image_type === 'jdk' && (asset.binary.package.name.endsWith('.zip') || asset.binary.package.name.endsWith('.tar.gz')))
+	if (!packaged) throw new Error(`No JDK found for ${version}`)
 
 	return [packaged.binary.package.name, packaged.binary.package.link]
 }

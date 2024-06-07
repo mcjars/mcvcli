@@ -20,8 +20,8 @@ export default async function init(args: Args, profileName?: string, showJars = 
 	process.chdir(args.directory)
 
 	if (fs.existsSync('.mcvcli.json')) {
-		console.log('mccli is already initialized!')
-		console.log('use', chalk.cyan('mccli version'), 'to get the currently installed version')
+		console.log('mcvcli is already initialized!')
+		console.log('use', chalk.cyan('mcvcli version'), 'to get the currently installed version')
 
 		process.chdir(previousCwd)
 		process.exit(1)
@@ -124,6 +124,7 @@ export default async function init(args: Args, profileName?: string, showJars = 
 				// @ts-ignore
 				async suggest(input: string) {
 					const packs = await api.searchModpacks(input)
+
 					return packs.map((pack) => ({ message: pack.title, value: pack.slug }))
 				}
 			})
@@ -248,5 +249,5 @@ export default async function init(args: Args, profileName?: string, showJars = 
 
 	if (!profileName) fs.mkdirSync(path.join('.mcvcli.profiles', 'default'), { recursive: true })
 	process.chdir(previousCwd)
-	console.log('mccli initialized!')
+	console.log('mcvcli initialized!')
 }

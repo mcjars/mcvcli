@@ -18,15 +18,33 @@ export * as adoptium from "src/api/adoptium"
 export const supportedProjects = ['paper', 'purpur', 'fabric', 'quilt', 'folia', 'velocity', 'waterfall', 'bungeecord', 'vanilla', 'forge', 'neoforge', 'mohist', 'banner'] as const
 export type SupportedProject = typeof supportedProjects[number]
 
+function formatUUID(uuid: string) {
+	return `${uuid.slice(0, 8)}-${uuid.slice(8, 12)}-${uuid.slice(12, 16)}-${uuid.slice(16, 20)}-${uuid.slice(20)}`
+}
+
 export async function player(identifier: string): Promise<{
 	uuid: string
 	username: string
-	created_at: string
 } | null> {
-	const res = await fetch(`https://api.ashcon.app/mojang/v2/user/${identifier}`)
-	if (res.status === 404) return null
+	if (identifier.length === 36) {
+		const res = await fetch(`https://sessionserver.mojang.com/session/minecraft/profile/${identifier}`, fetchOptions)
+		if (!res.ok) return null
 
-	return res.json() as any
+		const data = await res.json() as { id: string, name: string }
+		return {
+			uuid: formatUUID(data.id),
+			username: data.name
+		}
+	} else {
+		const res = await fetch(`https://api.mojang.com/users/profiles/minecraft/${identifier}`, fetchOptions)
+		if (!res.ok) return null
+
+		const data = await res.json() as { id: string, name: string }
+		return {
+			uuid: formatUUID(data.id),
+			username: data.name
+		}
+	}
 }
 
 export async function latest(project: SupportedProject | 'unknown', mc: string): Promise<{
