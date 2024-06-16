@@ -38,7 +38,18 @@ export default async function jarVersion(jar: string, cache: Cache): Promise<{
   if (cached) return cached
 
   try {
-    const build = await fetch(`https://mc.rjns.dev/api/v1/build/${hash}`, fetchOptions).then((res) => res.json()) as APIResponse
+    const build = await fetch('https://mc.rjns.dev/api/v2/build', {
+      ...fetchOptions,
+      method: 'POST',
+      body: JSON.stringify({
+        hash: {
+          sha256: hash
+        }
+      }), headers: {
+        ...fetchOptions.headers,
+        'Content-Type': 'application/json'
+      }
+    }).then((res) => res.json()) as APIResponse
 
     if (!build.success) {
       return {

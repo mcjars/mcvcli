@@ -104,7 +104,7 @@ export default async function update(args: Args) {
 			if (version.type === 'unknown') process.exit(1)
 
 			const versions = await api.versions(version.type),
-				index = versions.indexOf(version.minecraftVersion!)
+				index = versions.findIndex((v) => v.version === version.minecraftVersion)
 
 			const { serverVersion } = await enquirer.prompt<{
 				serverVersion: string
@@ -112,27 +112,16 @@ export default async function update(args: Args) {
 				type: 'select',
 				message: 'Server Version',
 				name: 'serverVersion',
-				choices: versions.filter((_, i) => i > index).reverse(),
+				choices: versions.filter((_, i) => i > index).reverse().map((v) => v.version),
 				// @ts-ignore
 				limit: 10
 			})
 
 			const builds = await api.builds(version.type, serverVersion),
-				javaVersions = await api.adoptium.versions(),
+				java = versions.find((v) => v.version === serverVersion)?.java ?? 21,
 				latest = builds[0]
 
-			const { javaVersion } = await enquirer.prompt<{
-				javaVersion: string
-			}>({
-				type: 'autocomplete',
-				message: 'Java Version',
-				name: 'javaVersion',
-				choices: javaVersions.map((version) => version.toString()),
-				// @ts-ignore
-				limit: 5
-			})
-
-			config.data.javaVersion = parseInt(javaVersion)
+			config.data.javaVersion = java
 			config.write()
 
 			await api.install(latest.download, config)

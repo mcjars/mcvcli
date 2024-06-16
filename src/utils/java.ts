@@ -40,7 +40,13 @@ export async function binary(version: number): Promise<string> {
 	const [ name, url ] = await api.adoptium.packagedUrl(version),
 		dest = path.join(location, version.toString(), 'java.zip')
 
-	await download(name, url, dest)
+	await download([
+		{
+			display: name,
+			dest, url
+		}
+	])
+
 	if (name.endsWith('.zip')) {
 		new AdmZip(dest).extractAllTo(path.join(location, version.toString()), true)
 		await fs.promises.rm(dest)

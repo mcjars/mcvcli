@@ -49,7 +49,13 @@ export default async function modsUpdate(args: Args) {
 			const file = mod.latest.files.find((file) => file.primary) ?? mod.latest.files[0]
 
 			await fs.promises.rm(path.join(path.dirname(config.data.jarFile), 'mods', mod.file))
-			await download(file.filename, file.url, path.join(path.dirname(config.data.jarFile), 'mods', file.filename))
+			await download([
+				{
+					display: `mods/${file.filename}`,
+					url: file.url,
+					dest: path.join(path.dirname(config.data.jarFile), 'mods', file.filename)
+				}
+			])
 		}
 
 		console.log('finished updating all mods!')
@@ -73,7 +79,13 @@ export default async function modsUpdate(args: Args) {
 			const file = mod.latest.files.find((file) => file.primary) ?? mod.latest.files[0]
 
 			await fs.promises.rm(path.join(path.dirname(config.data.jarFile), 'mods', mod.file))
-			await download(file.filename, file.url, path.join(path.dirname(config.data.jarFile), 'mods', file.filename))
+			await download([
+				{
+					display: `mods/${file.filename}`,
+					url: file.url,
+					dest: path.join(path.dirname(config.data.jarFile), 'mods', file.filename)
+				}
+			])
 		}
 
 		console.log('finished updating selected mods!')

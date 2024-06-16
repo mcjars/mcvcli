@@ -62,7 +62,7 @@ export default async function init(args: Args, profileName?: string, showJars = 
 					type: 'autocomplete',
 					message: 'Server Version',
 					name: 'version',
-					choices: versions.reverse(),
+					choices: versions.reverse().map((v) => v.version),
 					// @ts-ignore
 					limit: 10
 				})
@@ -70,12 +70,11 @@ export default async function init(args: Args, profileName?: string, showJars = 
 			console.log('checking latest build...')
 
 			const builds = await api.builds(type, version),
-				javaVersions = await api.adoptium.versions(),
-				latest = builds[0]
+				java = versions.find((v) => v.version === version)?.java ?? 21
 
-			const { ramMB, javaVersion } = await enquirer.prompt<{
+			const { ramMB, build } = await enquirer.prompt<{
 				ramMB: number
-				javaVersion: string
+				build: string
 			}>([
 				{
 					type: 'numeral',
@@ -86,11 +85,11 @@ export default async function init(args: Args, profileName?: string, showJars = 
 				},
 				{
 					type: 'autocomplete',
-					message: 'Java Version',
-					name: 'javaVersion',
-					choices: javaVersions.map((version) => version.toString()),
+					message: 'Server Build',
+					name: 'build',
+					choices: builds.map((b) => b.jarVersion),
 					// @ts-ignore
-					limit: 5
+					limit: 10
 				}
 			])
 
@@ -98,14 +97,14 @@ export default async function init(args: Args, profileName?: string, showJars = 
 				configVersion: 3,
 				__README: 'This file is used to store the configuration for the mcvcli tool. Do not modify this file unless you know what you are doing.',
 				jarFile: 'server.jar',
-				javaVersion: parseInt(javaVersion),
+				javaVersion: java,
 				profileName: profileName ?? 'default',
 				modpackSlug: null,
 				modpackVersion: null,
 				ramMB
 			})
 
-			await api.install(latest.download, config)
+			await api.install(builds.find((b) => b.jarVersion === build)!.download, config)
 			config.write()
 
 			break

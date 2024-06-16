@@ -1,7 +1,7 @@
 import AdmZip from "adm-zip"
 import path from "path"
 import fs from "fs"
-import doDownload from "src/utils/download"
+import doDownload, { Download } from "src/utils/download"
 import { Config } from "src/utils/config"
 import { version } from "../../package.json"
 import chalk from "chalk"
@@ -15,7 +15,24 @@ export const fetchOptions: RequestInit = {
 export * as modrinth from "src/api/modrinth"
 export * as adoptium from "src/api/adoptium"
 
-export const supportedProjects = ['paper', 'purpur', 'fabric', 'quilt', 'folia', 'velocity', 'waterfall', 'bungeecord', 'vanilla', 'forge', 'neoforge', 'mohist', 'banner'] as const
+export type InstallationStep = {
+	type: 'download'
+
+	file: string
+	url: string
+	size: number
+} | {
+	type: 'unzip'
+
+	file: string
+	location: string
+} | {
+	type: 'remove'
+
+	location: string
+}
+
+export const supportedProjects = ['paper', 'purpur', 'fabric', 'quilt', 'folia', 'velocity', 'waterfall', 'bungeecord', 'sponge', 'leaves', 'vanilla', 'forge', 'neoforge', 'mohist', 'banner'] as const
 export type SupportedProject = typeof supportedProjects[number]
 
 function formatUUID(uuid: string) {
@@ -58,9 +75,9 @@ export async function latest(project: SupportedProject | 'unknown', mc: string):
 		}
 	}
 
-	const res = await fetch(`https://mc.rjns.dev/api/v1/builds/${project}`, fetchOptions).then((res) => res.json()) as {
+	const res = await fetch(`https://versions.mcjars.app/api/v2/builds/${project}`, fetchOptions).then((res) => res.json()) as {
 		success: true
-		versions: Record<string, {
+		builds: Record<string, {
 			latest: {
 				versionId: string | null
 				projectVersionId: string | null
@@ -70,75 +87,82 @@ export async function latest(project: SupportedProject | 'unknown', mc: string):
 	}
 
 	return {
-		latestJar: res.versions[mc].latest.buildNumber === 1 ? res.versions[mc].latest.projectVersionId ?? res.versions[mc].latest.buildNumber.toString() : res.versions[mc].latest.buildNumber.toString(),
-		latestMc: Object.values(res.versions).at(-1)?.latest.versionId ?? Object.values(res.versions).at(-1)?.latest.projectVersionId ?? 'unknown'
+		latestJar: res.builds[mc].latest.buildNumber === 1 ? res.builds[mc].latest.projectVersionId ?? res.builds[mc].latest.buildNumber.toString() : res.builds[mc].latest.buildNumber.toString(),
+		latestMc: Object.values(res.builds).at(-1)?.latest.versionId ?? Object.values(res.builds).at(-1)?.latest.projectVersionId ?? 'unknown'
 	}
 }
 
-export async function versions(project: SupportedProject): Promise<string[]> {
-	const res = await fetch(`https://mc.rjns.dev/api/v1/builds/${project}`, fetchOptions).then((res) => res.json()) as {
+export async function versions(project: SupportedProject): Promise<{ version: string, java: number }[]> {
+	const res = await fetch(`https://versions.mcjars.app/api/v2/builds/${project}`, fetchOptions).then((res) => res.json()) as {
 		success: true
-		versions: Record<string, unknown>
+		builds: Record<string, {
+			java?: number
+		}>
 	}
 
-	return Object.keys(res.versions)
+	return Object.entries(res.builds).map(([version, build]) => ({ version, java: build.java ?? 21 }))
 }
 
 export async function builds(project: SupportedProject, mc: string): Promise<{
+	id: number
 	jarVersion: string
 	mcVersion: string
 
-	download: {
-		jar: string | null
-		zip: string | null
-		jarLocation: string | null
-	}
+	download: InstallationStep[][]
 }[]> {
-	const res = await fetch(`https://mc.rjns.dev/api/v1/builds/${project}/${mc}`, fetchOptions).then((res) => res.json()) as {
+	const res = await fetch(`https://versions.mcjars.app/api/v2/builds/${project}/${mc}`, fetchOptions).then((res) => res.json()) as {
 		success: true
 		builds: {
+			id: number
 			buildNumber: number
 			versionId: string | null
 			projectVersionId: string | null
-			jarUrl: string | null
-			jarLocation: string | null
-			zipUrl: string | null
+			installation: InstallationStep[][]
 		}[]
 	}
 
 	return res.builds.map((build) => ({
+		id: build.id,
 		jarVersion: build.projectVersionId ?? build.buildNumber.toString(),
 		mcVersion: build.versionId ?? 'unknown',
-		download: {
-			jar: build.jarUrl,
-			zip: build.zipUrl,
-			jarLocation: build.jarLocation
-		}
+		download: build.installation
 	}))
 }
 
-export async function install(download: {
-	jar: string | null
-	zip: string | null
-	jarLocation: string | null
-}, config: Config) {
-	if (fs.existsSync(path.join(path.dirname(config.data.jarFile), 'libraries'))) await fs.promises.rm(path.join(path.dirname(config.data.jarFile), 'libraries'), { recursive: true })
+export async function install(steps: InstallationStep[][], config: Config) {
+	for (const segment of steps) {
+		const promises: any[] = [],
+			downloads: Download[] = []
 
-	if (download.jar) await doDownload('server.jar', download.jar, download.jarLocation ?? config.data.jarFile)
-	if (download.zip) {
-		const zipName = download.zip.split('/').pop()?.slice(0, -4)!,
-			fileName = `${zipName}.zip`
+		for (const step of segment) {
+			if (step.type === 'download') {
+				downloads.push({
+					display: step.file,
+					url: step.url,
+					dest: path.join(path.dirname(config.data.jarFile), step.file)
+				})
+			} else if (step.type === 'unzip') {
+				const archive = new AdmZip(path.join(path.dirname(config.data.jarFile), step.file))
 
-		await doDownload('version.zip', download.zip, path.join(path.dirname(config.data.jarFile), fileName))
+				archive.extractAllTo(path.join(path.dirname(config.data.jarFile), step.location), true)
+			} else if (step.type === 'remove') {
+				promises.push(fs.promises.rm(path.join(path.dirname(config.data.jarFile), step.location), { recursive: true }))
+			}
+		}
 
-		const archive = new AdmZip(path.join(path.dirname(config.data.jarFile), fileName))
-		archive.extractAllTo(path.dirname(config.data.jarFile), true)
+		await doDownload(downloads)
 
-		await fs.promises.unlink(path.join(path.dirname(config.data.jarFile), fileName))
+		const ranSegments = segment.filter((step) => step.type !== 'download').map((step) => step.type)
+		if (ranSegments.length === 0) continue
 
-		config.data.jarFile = zipName
-		config.write()
+		const start = performance.now()
+		console.log('running', ranSegments.join(', '), '...')
+		await Promise.all(promises)
+		console.log('running', ranSegments.join(', '), '...', chalk.gray(`(${(performance.now() - start).toFixed(2)}ms)`), chalk.green('done'))
 	}
+
+	config.data.jarFile = 'server.jar'
+	config.write()
 }
 
 export async function searchModpacks(query: string) {
@@ -166,7 +190,13 @@ export async function installModpack(slug: string, oldVersionId: string | null, 
 	config.data.modpackVersion = version.id
 
 	if (oldVersion) try {
-		await doDownload('old_modpack.mrpack', oldVersion.files.find((file) => file.primary)?.url ?? oldVersion.files[0].url, path.join(path.dirname(config.data.jarFile), 'modpack.mrpack'))
+		await doDownload([
+			{
+				display: 'old_modpack.mrpack',
+				url: oldVersion.files.find((file) => file.primary)?.url ?? oldVersion.files[0].url,
+				dest: path.join(path.dirname(config.data.jarFile), 'modpack.mrpack')
+			}
+		])
 
 		const archive = new AdmZip(path.join(path.dirname(config.data.jarFile), 'modpack.mrpack')),
 			index = JSON.parse(archive.readAsText('modrinth.index.json')) as {
@@ -196,7 +226,13 @@ export async function installModpack(slug: string, oldVersionId: string | null, 
 	}
 
 	try {
-		await doDownload('modpack.mrpack', version.files.find((file) => file.primary)?.url ?? version.files[0].url, path.join(path.dirname(config.data.jarFile), 'modpack.mrpack'))
+		await doDownload([
+			{
+				display: 'old_modpack.mrpack',
+				url: version.files.find((file) => file.primary)?.url ?? version.files[0].url,
+				dest: path.join(path.dirname(config.data.jarFile), 'modpack.mrpack')
+			}
+		])
 
 		const archive = new AdmZip(path.join(path.dirname(config.data.jarFile), 'modpack.mrpack')),
 			index = JSON.parse(archive.readAsText('modrinth.index.json')) as {
@@ -217,11 +253,19 @@ export async function installModpack(slug: string, oldVersionId: string | null, 
 
 		await install(jar.download, config)
 
-		for (const file of index.files) {
-			if (file.env?.server !== 'unsupported') {
-				await fs.promises.mkdir(path.dirname(path.join(path.dirname(config.data.jarFile), file.path)), { recursive: true })
-				await doDownload(file.path, file.downloads[0], path.join(path.dirname(config.data.jarFile), file.path))
+		const chunkSize = 5
+		for (let i = 0; i < index.files.length; i += chunkSize) {
+			const chunk = index.files.slice(i, i + chunkSize)
+
+			for (const c of chunk) {
+				await fs.promises.mkdir(path.dirname(path.join(path.dirname(config.data.jarFile), c.path)),{ recursive: true })
 			}
+
+			await doDownload(chunk.map((c) => ({
+				display: c.path,
+				url: c.downloads[0],
+				dest: path.join(path.dirname(config.data.jarFile), c.path)
+			})))
 		}
 
 		const overrides = archive.getEntry('overrides')

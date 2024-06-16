@@ -77,7 +77,14 @@ export default async function modsInstall(args: Args) {
 
 	const file = latest.files.find((file) => file.primary) ?? latest.files[0]
 
-	await download(`mods/${file.filename}`, file.url, path.join(path.dirname(config.data.jarFile), 'mods', file.filename))
+	await download([
+		{
+			display: `mods/${file.filename}`,
+			url: file.url,
+			dest: path.join(path.dirname(config.data.jarFile), 'mods', file.filename)
+		}
+	])
+
 	const hash = await filesystem.hash(path.join(path.dirname(config.data.jarFile), 'mods', file.filename), { algorithm: 'sha1' })
 
 	cache.set(`mods_${hash}`, {
@@ -112,7 +119,14 @@ export default async function modsInstall(args: Args) {
 
 			const depFile = depVersion.files.find((file) => file.primary) ?? depVersion.files[0]
 
-			await download(`mods/${depFile.filename}`, depFile.url, path.join(path.dirname(config.data.jarFile), 'mods', depFile.filename))
+			await download([
+				{
+					display: `mods/${depFile.filename}`,
+					url: depFile.url,
+					dest: path.join(path.dirname(config.data.jarFile), 'mods', depFile.filename)
+				}
+			])
+
 			const depHash = await filesystem.hash(path.join(path.dirname(config.data.jarFile), 'mods', depFile.filename), { algorithm: 'sha1' })
 
 			cache.set(`mods_${depHash}`, {
@@ -132,7 +146,13 @@ export default async function modsInstall(args: Args) {
 
 			const depFile = depLatest.files.find((file) => file.primary) ?? depLatest.files[0]
 
-			await download(`mods/${depFile.filename}`, depFile.url, path.join(path.dirname(config.data.jarFile), 'mods', depFile.filename))
+			await download([
+				{
+					display: `mods/${depFile.filename}`,
+					url: depFile.url,
+					dest: path.join(path.dirname(config.data.jarFile), 'mods', depFile.filename)
+				}
+			])
 		}
 	}
 

@@ -6,7 +6,6 @@ import { getMods } from "src/utils/mods"
 import enquirer from "enquirer"
 import chalk from "chalk"
 import getJarVersion from "src/utils/jar"
-import download from "src/utils/download"
 
 export type Args = {}
 

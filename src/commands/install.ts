@@ -25,10 +25,12 @@ export default async function install(args: Args) {
 			const { type } = await enquirer.prompt<{
 				type: api.SupportedProject
 			}>({
-				type: 'select',
+				type: 'autocomplete',
 				message: 'Server Type',
 				name: 'type',
-				choices: [...api.supportedProjects]
+				choices: [...api.supportedProjects],
+				// @ts-ignore
+				limit: 10
 			})
 		
 			console.log('checking versions...')
@@ -40,34 +42,34 @@ export default async function install(args: Args) {
 					type: 'autocomplete',
 					message: 'Server Version',
 					name: 'version',
-					choices: versions.reverse(),
+					choices: versions.reverse().map((v) => v.version),
 					// @ts-ignore
 					limit: 10
 				})
 		
-			console.log('checking latest build...')
+			console.log('checking builds...')
 		
 			const builds = await api.builds(type, version),
-				javaVersions = await api.adoptium.versions(),
-				latest = builds[0]
+				java = versions.find((v) => v.version === version)?.java ?? 21
 
-			const { javaVersion } = await enquirer.prompt<{
-				javaVersion: string
+			config.data.javaVersion = java
+			config.write()
+
+			const { build } = await enquirer.prompt<{
+				build: string
 			}>({
 				type: 'autocomplete',
-				message: 'Java Version',
-				name: 'javaVersion',
-				choices: javaVersions.map((version) => version.toString()),
+				message: 'Server Build',
+				name: 'build',
+				choices: builds.map((b) => b.jarVersion),
 				// @ts-ignore
-				limit: 5
+				limit: 10
 			})
 
-			config.data.javaVersion = parseInt(javaVersion)
-			config.write()
-		
-			await api.install(latest.download, config)
-		
+			console.log('installing server...')
+			await api.install(builds.find((b) => b.jarVersion === build)!.download, config)
 			console.log('server installed!')
+
 			break
 		}
 
