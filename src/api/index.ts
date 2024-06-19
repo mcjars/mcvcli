@@ -136,6 +136,8 @@ export async function install(steps: InstallationStep[][], config: Config) {
 
 		for (const step of segment) {
 			if (step.type === 'download') {
+				await fs.promises.mkdir(path.dirname(path.join(path.dirname(config.data.jarFile), step.file)), { recursive: true })
+
 				downloads.push({
 					display: step.file,
 					url: step.url,
