@@ -32,7 +32,7 @@ export type InstallationStep = {
 	location: string
 }
 
-export const supportedProjects = ['paper', 'pufferfish', 'purpur', 'fabric', 'quilt', 'folia', 'velocity', 'waterfall', 'bungeecord', 'sponge', 'leaves', 'vanilla', 'forge', 'neoforge', 'mohist', 'banner'] as const
+export const supportedProjects = ['paper', 'pufferfish', 'purpur', 'fabric', 'quilt', 'folia', 'velocity', 'waterfall', 'bungeecord', 'sponge', 'leaves', 'vanilla', 'forge', 'neoforge', 'mohist', 'arclight'] as const
 export type SupportedProject = typeof supportedProjects[number]
 
 function formatUUID(uuid: string) {

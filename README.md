@@ -39,6 +39,16 @@ mcvcli profile list # list server profiles
 mcvcli profile create {name} # create a new profile
 mcvcli profile use {name} # switch to another profile
 mcvcli profile delete {name} # nuke a profile from existance
+mcvcli backup list # list created server backups
+mcvcli backup create # create a new server backup
+mcvcli backup delete # delete a server backup
+mcvcli backup restore # restore a previously created server backup
+mcvcli mods list # list installed mods
+mcvcli mods update # update installed mods
+mcvcli mods install # install a new mod
+mcvcli mods uninstall # remove installed mods
+mcvcli cache view # get mcvcli cache size
+mcvcli cache clear # clear mcvcli kv cache
 ```
 
 ## Developing
