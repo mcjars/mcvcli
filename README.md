@@ -68,3 +68,6 @@ pnpm install:dev
 # mcvcli is now globally available
 mcvcli
 ```
+
+> [!NOTE]
+> NOT AN OFFICIAL MINECRAFT SERVICE. NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT.
