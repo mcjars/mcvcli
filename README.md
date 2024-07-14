@@ -56,9 +56,9 @@ mcvcli cache clear # clear mcvcli kv cache
 To Develop on this tool, you need to install all required dependencies
 
 ```bash
-git clone https://github.com/0x7d8/mcvcli
+git clone https://github.com/mcjars/mcvcli.git mcjars-mcvcli
 
-cd mcvcli
+cd mcjars-mcvcli
 
 # make sure to have nodejs installed already
 npm i -g pnpm
