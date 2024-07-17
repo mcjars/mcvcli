@@ -159,7 +159,7 @@ export async function install(steps: InstallationStep[][], config: Config) {
 
 		const start = performance.now()
 		console.log('running', ranSegments.join(', '), '...')
-		await Promise.all(promises)
+		await Promise.allSettled(promises)
 		console.log('running', ranSegments.join(', '), '...', chalk.gray(`(${(performance.now() - start).toFixed(2)}ms)`), chalk.green('done'))
 	}
 
