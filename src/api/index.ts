@@ -148,7 +148,7 @@ export async function install(steps: InstallationStep[][], config: Config) {
 
 				archive.extractAllTo(path.join(path.dirname(config.data.jarFile), step.location), true)
 			} else if (step.type === 'remove') {
-				promises.push(fs.promises.rm(path.join(path.dirname(config.data.jarFile), step.location), { recursive: true }))
+				promises.push(fs.promises.rm(path.join(path.dirname(config.data.jarFile), step.location), { recursive: true }).catch(() => {}))
 			}
 		}
 
