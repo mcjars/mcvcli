@@ -94,14 +94,16 @@ export default async function init(args: Args, profileName?: string, showJars = 
 			])
 
 			const config = new Config({
-				configVersion: 3,
+				configVersion: 4,
 				__README: 'This file is used to store the configuration for the mcvcli tool. Do not modify this file unless you know what you are doing.',
 				jarFile: 'server.jar',
 				javaVersion: java,
 				profileName: profileName ?? 'default',
 				modpackSlug: null,
 				modpackVersion: null,
-				ramMB
+				ramMB,
+				extraFlags: [],
+				extraArgs: []
 			})
 
 			await api.install(builds.find((b) => b.jarVersion === build)!.download, config)
@@ -157,14 +159,16 @@ export default async function init(args: Args, profileName?: string, showJars = 
 			])
 
 			const config = new Config({
-				configVersion: 3,
+				configVersion: 4,
 				__README: 'This file is used to store the configuration for the mcvcli tool. Do not modify this file unless you know what you are doing.',
 				jarFile: 'server.jar',
 				javaVersion: parseInt(javaVersion),
 				profileName: profileName ?? 'default',
 				modpackSlug,
 				modpackVersion: null,
-				ramMB
+				ramMB,
+				extraFlags: [],
+				extraArgs: []
 			})
 
 			const versions = await api.modpackVersions(modpackSlug)
@@ -230,14 +234,16 @@ export default async function init(args: Args, profileName?: string, showJars = 
 			])
 
 			const config = new Config({
-				configVersion: 3,
+				configVersion: 4,
 				__README: 'This file is used to store the configuration for the mcvcli tool. Do not modify this file unless you know what you are doing.',
 				jarFile,
 				javaVersion: parseInt(javaVersion),
 				profileName: profileName ?? 'default',
 				modpackSlug: null,
 				modpackVersion: null,
-				ramMB
+				ramMB,
+				extraFlags: [],
+				extraArgs: []
 			})
 
 			config.write()
