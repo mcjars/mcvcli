@@ -27,6 +27,14 @@ function upgradeConfig(config: any) {
 
 			break
 		}
+
+		case 3: {
+			config.configVersion = 4
+			config.extraFlags = []
+			config.extraArgs = []
+
+			break
+		}
 	}
 
 	if (config.configVersion !== previousVersion) {

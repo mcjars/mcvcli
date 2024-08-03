@@ -3,7 +3,8 @@ import { z } from "zod"
 export const configVersions = z.union([
 	z.literal(1),
 	z.literal(2),
-	z.literal(3)
+	z.literal(3),
+	z.literal(4)
 ])
 
 export const configSchema = z.object({
@@ -14,5 +15,7 @@ export const configSchema = z.object({
 	profileName: z.string(),
 	modpackSlug: z.string().nullable(),
 	modpackVersion: z.string().nullable(),
+	extraFlags: z.string().array(),
+	extraArgs: z.string().array(),
 	ramMB: z.number()
 })

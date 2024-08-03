@@ -35,7 +35,7 @@ export default async function start(args: Args) {
 	}
 
 	console.log('starting server...')
-	console.log(`${binaryLocation} -Xmx${config.data.ramMB}M -jar ${config.data.jarFile} nogui`)
+	console.log(`${binaryLocation} ${config.data.extraFlags.join(' ')} -Xmx${config.data.ramMB}M -jar ${config.data.jarFile} nogui ${config.data.extraArgs.join(' ')}`)
 
 	const child = cp.spawn(binaryLocation, [`-Xmx${config.data.ramMB}M`, '-jar', config.data.jarFile, 'nogui'], {
 		cwd: path.dirname(config.data.jarFile),
