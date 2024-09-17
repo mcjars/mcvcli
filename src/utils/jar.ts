@@ -1,5 +1,6 @@
 import { filesystem, time } from "@rjweb/utils"
 import { existsSync } from "fs"
+import { readdir } from "fs/promises"
 import { SupportedProject, fetchOptions } from "src/api"
 import { Cache } from "src/utils/cache"
 
@@ -21,13 +22,37 @@ export default async function jarVersion(jar: string, cache: Cache): Promise<{
   minecraftVersion: string
   jarVersion: string
 }> {
-  if (!existsSync(jar)) return {
+  let hash: string | undefined
+
+  if (existsSync('libraries/net/minecraftforge/forge')) {
+    const [ version ] = await readdir('libraries/net/minecraftforge/forge')
+
+    if (version) {
+      const files = await readdir(`libraries/net/minecraftforge/forge/${version}`),
+        file = files.find((file) => file.endsWith('-server.jar') || file.endsWith('-universal.jar'))
+
+      hash = await filesystem.hash(`libraries/net/minecraftforge/forge/${version}/${file}`, { algorithm: 'sha256' })
+    }
+  }
+
+  if (existsSync('libraries/net/neoforged/neoforge')) {
+    const [ version ] = await readdir('libraries/net/neoforged/neoforge')
+
+    if (version) {
+      const files = await readdir(`libraries/net/neoforged/neoforge/${version}`),
+        file = files.find((file) => file.endsWith('-server.jar') || file.endsWith('-universal.jar'))
+
+      hash = await filesystem.hash(`libraries/net/neoforged/neoforge/${version}/${file}`, { algorithm: 'sha256' })
+    }
+  }
+
+  if (!hash && existsSync(jar)) hash = await filesystem.hash(jar, { algorithm: 'sha256' })
+
+  if (!hash) return {
     type: 'unknown',
     minecraftVersion: 'unknown',
     jarVersion: 'unknown'
   }
-
-  const hash = await filesystem.hash(jar, { algorithm: 'sha256' })
 
   const cached = cache.get<{
     type: SupportedProject
@@ -38,7 +63,7 @@ export default async function jarVersion(jar: string, cache: Cache): Promise<{
   if (cached) return cached
 
   try {
-    const build = await fetch('https://mc.rjns.dev/api/v2/build', {
+    const build = await fetch('https://versions.mcjars.app/api/v2/build', {
       ...fetchOptions,
       method: 'POST',
       body: JSON.stringify({

@@ -5,7 +5,7 @@ import getConfig from "src/utils/config"
 import enquirer from "enquirer"
 import { binary } from "src/utils/java"
 import chalk from "chalk"
-import { time } from "@rjweb/utils"
+import { network, time } from "@rjweb/utils"
 
 export type Args = {}
 
@@ -31,6 +31,29 @@ export default async function start(args: Args) {
 			process.exit(1)
 		} else {
 			await fs.promises.writeFile('eula.txt', 'eula=true')
+		}
+	}
+
+	if (!fs.existsSync(config.data.jarFile)) {
+		if (fs.existsSync('libraries/net/minecraftforge/forge')) {
+			console.log(chalk.yellow('forge detected! downloading wrapper jar...'))
+
+			await network.download('https://s3.mcjars.app/forge/ForgeServerJAR.jar', config.data.jarFile)
+
+			console.log(chalk.green('forge wrapper jar downloaded!'))
+		}
+
+		if (fs.existsSync('libraries/net/neoforged/neoforge') || fs.existsSync('libraries/net/neoforged/forge')) {
+			console.log(chalk.yellow('neoforge detected! downloading wrapper jar...'))
+
+			await network.download('https://s3.mcjars.app/neoforge/NeoForgeServerJAR.jar', config.data.jarFile)
+
+			console.log(chalk.green('neoforge wrapper jar downloaded!'))
+		}
+
+		if (!fs.existsSync(config.data.jarFile)) {
+			console.log(chalk.red('no jar file found!'))
+			process.exit(1)
 		}
 	}
 
