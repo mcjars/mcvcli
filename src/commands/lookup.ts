@@ -18,6 +18,7 @@ export default async function lookup(args: Args) {
 
 	const ops: string[] = [],
 		opsExist = fs.existsSync('ops.json')
+
 	if (opsExist) {
 		try {
 			ops.push(...JSON.parse(fs.readFileSync('ops.json', 'utf8')).map((op: { uuid: string }) => op.uuid))

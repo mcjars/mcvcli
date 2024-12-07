@@ -6,9 +6,11 @@ import { Config } from "src/utils/config"
 import { version } from "../../package.json"
 import chalk from "chalk"
 
+export const mcjarsBaseUrl = process.env.MCJARS_BASE ?? 'https://versions.mcjars.app'
+
 export const fetchOptions: RequestInit = {
 	headers: {
-		'User-Agent': `github.com/0x7d8/mcvcli v${version} (https://rjansen.dev)`
+		'User-Agent': `github.com/mcjars/mcvcli v${version} (https://mcjars.app)`
 	}
 }
 
@@ -32,7 +34,14 @@ export type InstallationStep = {
 	location: string
 }
 
-export const supportedProjects = ['paper', 'pufferfish', 'purpur', 'fabric', 'quilt', 'folia', 'velocity', 'waterfall', 'bungeecord', 'sponge', 'leaves', 'vanilla', 'forge', 'neoforge', 'mohist', 'arclight'] as const
+export const supportedProjects = [
+	'paper', 'pufferfish', 'purpur', 'fabric',
+	'quilt', 'folia', 'velocity', 'waterfall',
+	'bungeecord', 'sponge', 'leaves', 'vanilla',
+	'forge', 'neoforge', 'mohist', 'arclight',
+	'leaves', 'canvas'
+] as const
+
 export type SupportedProject = typeof supportedProjects[number]
 
 function formatUUID(uuid: string) {
@@ -75,11 +84,10 @@ export async function latest(project: SupportedProject | 'unknown', mc: string):
 		}
 	}
 
-	const res = await fetch(`https://versions.mcjars.app/api/v2/builds/${project}`, fetchOptions).then((res) => res.json()) as {
+	const res = await fetch(`${mcjarsBaseUrl}/api/v2/builds/${project}?fields=projectVersionId,buildNumber`, fetchOptions).then((res) => res.json()) as {
 		success: true
 		builds: Record<string, {
 			latest: {
-				versionId: string | null
 				projectVersionId: string | null
 				buildNumber: number
 			}
@@ -88,19 +96,19 @@ export async function latest(project: SupportedProject | 'unknown', mc: string):
 
 	return {
 		latestJar: res.builds[mc].latest.buildNumber === 1 ? res.builds[mc].latest.projectVersionId ?? res.builds[mc].latest.buildNumber.toString() : res.builds[mc].latest.buildNumber.toString(),
-		latestMc: Object.values(res.builds).at(-1)?.latest.versionId ?? Object.values(res.builds).at(-1)?.latest.projectVersionId ?? 'unknown'
+		latestMc: Object.keys(res.builds).at(-1) ?? 'unknown'
 	}
 }
 
 export async function versions(project: SupportedProject): Promise<{ version: string, java: number }[]> {
-	const res = await fetch(`https://versions.mcjars.app/api/v2/builds/${project}`, fetchOptions).then((res) => res.json()) as {
+	const res = await fetch(`${mcjarsBaseUrl}/api/v2/builds/${project}?fields=_`, fetchOptions).then((res) => res.json()) as {
 		success: true
 		builds: Record<string, {
-			java?: number
+			java: number
 		}>
 	}
 
-	return Object.entries(res.builds).map(([version, build]) => ({ version, java: build.java ?? 21 }))
+	return Object.entries(res.builds).map(([version, build]) => ({ version, java: build.java }))
 }
 
 export async function builds(project: SupportedProject, mc: string): Promise<{
@@ -110,7 +118,7 @@ export async function builds(project: SupportedProject, mc: string): Promise<{
 
 	download: InstallationStep[][]
 }[]> {
-	const res = await fetch(`https://versions.mcjars.app/api/v2/builds/${project}/${mc}`, fetchOptions).then((res) => res.json()) as {
+	const res = await fetch(`${mcjarsBaseUrl}/api/v2/builds/${project}/${mc}?fields=id,buildNumber,versionId,projectVersionId,installation`).then((res) => res.json()) as {
 		success: true
 		builds: {
 			id: number
@@ -230,7 +238,7 @@ export async function installModpack(slug: string, oldVersionId: string | null, 
 	try {
 		await doDownload([
 			{
-				display: 'old_modpack.mrpack',
+				display: 'modpack.mrpack',
 				url: version.files.find((file) => file.primary)?.url ?? version.files[0].url,
 				dest: path.join(path.dirname(config.data.jarFile), 'modpack.mrpack')
 			}
