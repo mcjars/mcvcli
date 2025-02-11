@@ -1,7 +1,11 @@
 [package]
-name = "mcvcli-rust"
+name = "mcvcli"
+description = "A command line interface for managing Minecraft servers."
 version = "2.0.0"
 edition = "2021"
+license = "MIT"
+homepage = "https://github.com/mcjars/mcvcli"
+repository = "https://github.com/mcjars/mcvcli.git"
 
 [dependencies]
 clap = { version = "4.5.28", features = ["derive"] }

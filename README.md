@@ -29,8 +29,6 @@ cargo install mcvcli
 
 ```bash
 # Example for Linux
-```bash
-# Example for Linux
 wget https://github.com/mcjars/mcvcli/releases/latest/download/mcvcli-linux-x64.tar.gz
 tar -xzf mcvcli-linux-x64.tar.gz
 export PATH=$PATH:$(pwd)/mcvcli-linux-x64
