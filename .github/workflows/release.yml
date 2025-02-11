@@ -70,7 +70,7 @@ jobs:
 
       - name: Install OpenSSL Toolchain (arm64)
         if: matrix.build == 'aarch64-linux'
-        run: sudo apt-get install -y libssl-dev
+        run: sudo apt-get install -y libssl-dev libssl-dev:arm64
 
       - name: Run cargo test
         uses: actions-rs/cargo@v1
