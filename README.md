@@ -41,7 +41,7 @@ mcvcli --version
 
 Invoke-WebRequest -Uri "https://github.com/mcjars/mcvcli/releases/latest/download/mcvcli-x86_64-windows.zip" -OutFile "mcvcli-x86_64-windows.zip"
 Expand-Archive -Path "mcvcli-x86_64-windows.zip" -DestinationPath "."
-$env:Path += ";$(Get-Location)\mcvcli-86_64-windows"
+$env:Path += ";$(Get-Location)\mcvcli-x86_64-windows"
 
 mcvcli --version
 ```
