@@ -7,16 +7,45 @@ mcvcli is a command-line tool for managing Minecraft server versions. It allows 
 - Download and install Minecraft server versions with a single command
 - List available server versions
 - Switch between installed server versions
-- Automatically handle server configuration files
 - Automatically handle java installation
 
 ## Installation
 
-1. Make sure you have [Node.js](https://nodejs.org) installed on your system.
+### Using Cargo
+
+1. Make sure you have [Cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html) installed.
 2. Install mcvcli globally by running the following command:
 
 ```bash
-npm install -g mcvcli
+cargo install mcvcli
+```
+
+### Using a Pre-built Binary
+
+1. Download the latest release from the [releases page](https://github.com/mcjars/mcvcli/releases).
+2. Extract the downloaded archive.
+3. Add the extracted directory to your `PATH` (or put it in a folder that is already in `PATH`).
+4. Run `mcvcli` in your terminal to verify that the installation was successful.
+
+```bash
+# Example for Linux
+```bash
+# Example for Linux
+wget https://github.com/mcjars/mcvcli/releases/latest/download/mcvcli-linux-x64.tar.gz
+tar -xzf mcvcli-linux-x64.tar.gz
+export PATH=$PATH:$(pwd)/mcvcli-linux-x64
+
+mcvcli --version
+```
+
+```powershell
+# Example for Windows
+
+Invoke-WebRequest -Uri "https://github.com/mcjars/mcvcli/releases/latest/download/mcvcli-windows-x64.zip" -OutFile "mcvcli-windows-x64.zip"
+Expand-Archive -Path "mcvcli-windows-x64.zip" -DestinationPath "mcvcli-windows-x64"
+$env:Path += ";$(Get-Location)\mcvcli-windows-x64"
+
+mcvcli --version
 ```
 
 ## Usage
@@ -43,12 +72,6 @@ mcvcli backup list # list created server backups
 mcvcli backup create # create a new server backup
 mcvcli backup delete # delete a server backup
 mcvcli backup restore # restore a previously created server backup
-mcvcli mods list # list installed mods
-mcvcli mods update # update installed mods
-mcvcli mods install # install a new mod
-mcvcli mods uninstall # remove installed mods
-mcvcli cache view # get mcvcli cache size
-mcvcli cache clear # clear mcvcli kv cache
 ```
 
 ## Developing
@@ -60,13 +83,14 @@ git clone https://github.com/mcjars/mcvcli.git mcjars-mcvcli
 
 cd mcjars-mcvcli
 
-# make sure to have nodejs installed already
-npm i -g pnpm
-pnpm i
-pnpm install:dev
+# make sure to have cargo installed already
+cargo build
 
-# mcvcli is now globally available
-mcvcli
+# install binary globally
+cargo install --path .
+
+# run the binary temporarily
+cargo run -- --version
 ```
 
 > [!NOTE]
