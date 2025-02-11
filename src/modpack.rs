@@ -3,10 +3,10 @@ use crate::{
     jar,
 };
 
-use std::{fs::File, io::Write, path::Path};
 use colored::Colorize;
 use human_bytes::human_bytes;
 use serde::Deserialize;
+use std::{fs::File, io::Write, path::Path};
 use zip::ZipArchive;
 
 #[derive(Debug, Deserialize)]

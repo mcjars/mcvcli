@@ -1,7 +1,8 @@
 use crate::api::mcjars::{Build, InstallationStep, McjarsApi, Version};
-use crate::api::modrinth::{Project, ModrinthApi};
+use crate::api::modrinth::{ModrinthApi, Project};
 use crate::api::Progress;
 use crate::config::Config;
+
 use colored::Colorize;
 use human_bytes::human_bytes;
 use indexmap::IndexMap;
