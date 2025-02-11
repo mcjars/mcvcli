@@ -28,20 +28,20 @@ cargo install mcvcli
 4. Run `mcvcli` in your terminal to verify that the installation was successful.
 
 ```bash
-# Example for Linux
-wget https://github.com/mcjars/mcvcli/releases/latest/download/mcvcli-linux-x64.tar.gz
-tar -xzf mcvcli-linux-x64.tar.gz
-export PATH=$PATH:$(pwd)/mcvcli-linux-x64
+# Basic Example for Linux
+wget https://github.com/mcjars/mcvcli/releases/latest/download/mcvcli-x86_x64-linux.tar.xz
+tar -xzf mcvcli-x86_x64-linux.tar.xz -C .
+export PATH=$PATH:$(pwd)/mcvcli-x86_x64-linux
 
 mcvcli --version
 ```
 
 ```powershell
-# Example for Windows
+# Basic Example for Windows
 
-Invoke-WebRequest -Uri "https://github.com/mcjars/mcvcli/releases/latest/download/mcvcli-windows-x64.zip" -OutFile "mcvcli-windows-x64.zip"
-Expand-Archive -Path "mcvcli-windows-x64.zip" -DestinationPath "mcvcli-windows-x64"
-$env:Path += ";$(Get-Location)\mcvcli-windows-x64"
+Invoke-WebRequest -Uri "https://github.com/mcjars/mcvcli/releases/latest/download/mcvcli-x86_x64-windows.zip" -OutFile "mcvcli-x86_x64-windows.zip"
+Expand-Archive -Path "mcvcli-x86_x64-windows.zip" -DestinationPath "."
+$env:Path += ";$(Get-Location)\mcvcli-x86_x64-windows"
 
 mcvcli --version
 ```

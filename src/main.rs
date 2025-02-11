@@ -12,7 +12,7 @@ use clap::{Arg, Command};
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 fn cli() -> Command {
-    return Command::new("mcvcli")
+    Command::new("mcvcli")
         .about("A simple CLI for interacting with Minecraft servers")
         .subcommand_required(true)
         .arg_required_else_help(true)
@@ -191,7 +191,7 @@ fn cli() -> Command {
                 )
                 .arg_required_else_help(true)
                 .subcommand_required(true),
-        );
+        )
 }
 
 #[tokio::main]

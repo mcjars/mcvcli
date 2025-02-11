@@ -43,7 +43,7 @@ pub async fn init(
                 }
             }
 
-            return None;
+            None
         })
         .collect::<Vec<String>>();
 
@@ -230,12 +230,12 @@ pub async fn init(
             );
 
             let versions = modrinth_api
-                .versions(&project.project_id.as_ref().unwrap())
+                .versions(project.project_id.as_ref().unwrap())
                 .await
                 .unwrap();
             let versions = versions
                 .iter()
-                .filter(|v| v.files.len() > 0)
+                .filter(|v| !v.files.is_empty())
                 .filter(|v| v.name.is_some() || v.version_number.is_some())
                 .collect::<Vec<&api::modrinth::Version>>();
 
@@ -295,7 +295,7 @@ pub async fn init(
                 "...".bright_black()
             );
 
-            modpack::install(&directory, &api, modpack_version).await;
+            modpack::install(directory, &api, modpack_version).await;
 
             let mut config = config::Config::new(&format!("{}/.mcvcli.json", directory), true);
             config.profile_name = profile_name.unwrap_or("default").to_string();
@@ -375,5 +375,5 @@ pub async fn init(
         }
     }
 
-    return 0;
+    0
 }

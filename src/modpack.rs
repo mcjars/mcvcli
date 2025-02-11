@@ -113,7 +113,7 @@ pub async fn install(directory: &str, api: &McjarsApi, version: &Version) {
             let file = file.unwrap();
             let file_path = file.path();
             let new_path =
-                Path::new(directory).join(&file_path.file_name().unwrap().to_str().unwrap());
+                Path::new(directory).join(file_path.file_name().unwrap().to_str().unwrap());
 
             if new_path.exists() {
                 if new_path.is_dir() {
@@ -146,7 +146,7 @@ pub async fn install(directory: &str, api: &McjarsApi, version: &Version) {
         let file_name = file_path.display().to_string();
 
         if !file_path.parent().unwrap().exists() {
-            std::fs::create_dir_all(&file_path.parent().unwrap()).unwrap();
+            std::fs::create_dir_all(file_path.parent().unwrap()).unwrap();
         }
 
         println!(

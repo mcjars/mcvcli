@@ -36,7 +36,7 @@ pub fn list() -> Vec<Backup> {
         }
     }
 
-    return backups;
+    backups
 }
 
 fn recursive_add_directory(

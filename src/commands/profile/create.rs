@@ -45,5 +45,5 @@ pub async fn create(matches: &ArgMatches) -> i32 {
         "DONE".green().bold()
     );
 
-    return 0;
+    0
 }

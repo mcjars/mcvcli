@@ -76,5 +76,5 @@ pub async fn restore(matches: &ArgMatches) -> i32 {
         "DONE".green().bold()
     );
 
-    return 0;
+    0
 }

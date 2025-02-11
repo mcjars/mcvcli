@@ -137,7 +137,7 @@ pub async fn install(build: &Build, directory: &str, spaces: usize) -> Result<()
         }
     }
 
-    return Ok(());
+    Ok(())
 }
 
 pub async fn detect(
@@ -235,5 +235,5 @@ pub async fn detect(
         return Some(([build, latest], versions, Some(modpack)));
     }
 
-    return Some(([build, latest], versions, None));
+    Some(([build, latest], versions, None))
 }

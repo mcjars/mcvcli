@@ -40,11 +40,11 @@ impl ModrinthApi {
     pub fn new() -> Self {
         let client = ClientBuilder::new().user_agent(format!("mcvcli-rust/{}", VERSION));
 
-        return Self {
+        Self {
             url: std::env::var("MODRINTH_API_URL")
                 .unwrap_or("https://api.modrinth.com".to_string()),
             client: client.build().unwrap(),
-        };
+        }
     }
 
     pub async fn projects(
@@ -64,7 +64,7 @@ impl ModrinthApi {
             hits: Vec<Project>,
         }
 
-        return Ok(data.hits);
+        Ok(data.hits)
     }
 
     pub async fn project(&self, project_id: &str) -> Result<Project, reqwest::Error> {
@@ -72,7 +72,7 @@ impl ModrinthApi {
         let response = self.client.get(&url).send().await?;
         let data = response.json::<Project>().await?;
 
-        return Ok(data);
+        Ok(data)
     }
 
     pub async fn versions(&self, project_id: &str) -> Result<Vec<Version>, reqwest::Error> {
@@ -80,6 +80,6 @@ impl ModrinthApi {
         let response = self.client.get(&url).send().await?;
         let data = response.json::<Vec<Version>>().await?;
 
-        return Ok(data);
+        Ok(data)
     }
 }

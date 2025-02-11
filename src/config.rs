@@ -75,7 +75,7 @@ impl Config {
 
         config.path = path.to_string();
 
-        return config;
+        config
     }
 
     pub fn save(&self) {

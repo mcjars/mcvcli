@@ -174,5 +174,5 @@ pub async fn list(matches: &ArgMatches) -> i32 {
         }
     }
 
-    return 0;
+    0
 }

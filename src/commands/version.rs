@@ -126,5 +126,5 @@ pub async fn version(matches: &ArgMatches) -> i32 {
         config.java_version.to_string().cyan()
     );
 
-    return 0;
+    0
 }

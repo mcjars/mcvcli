@@ -18,5 +18,5 @@ pub fn list() -> Vec<String> {
         }
     }
 
-    return profiles;
+    profiles
 }

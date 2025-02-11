@@ -70,7 +70,7 @@ pub async fn lookup(matches: &ArgMatches) -> i32 {
         api.get_profile_name(player).await
     };
 
-    if !player.is_ok() {
+    if player.is_err() {
         println!(
             "{} {}",
             "looking up player...".bright_black(),
@@ -124,8 +124,8 @@ pub async fn lookup(matches: &ArgMatches) -> i32 {
         api.format_uuid(&player.id).unwrap()
     ))
     .ok();
-    let player_stats: Option<PlayerStats> = if player_stats.is_some() {
-        serde_json::from_reader(player_stats.unwrap()).ok()
+    let player_stats: Option<PlayerStats> = if let Some(player_stats) = player_stats {
+        serde_json::from_reader(player_stats).ok()
     } else {
         None
     };
@@ -250,5 +250,5 @@ pub async fn lookup(matches: &ArgMatches) -> i32 {
         }
     }
 
-    return 0;
+    0
 }

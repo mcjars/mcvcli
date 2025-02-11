@@ -218,12 +218,12 @@ pub async fn install(matches: &ArgMatches) -> i32 {
             );
 
             let versions = modrinth_api
-                .versions(&project.project_id.as_ref().unwrap())
+                .versions(project.project_id.as_ref().unwrap())
                 .await
                 .unwrap();
             let versions = versions
                 .iter()
-                .filter(|v| v.files.len() > 0)
+                .filter(|v| !v.files.is_empty())
                 .filter(|v| v.name.is_some() || v.version_number.is_some())
                 .collect::<Vec<&api::modrinth::Version>>();
 
@@ -344,5 +344,5 @@ pub async fn install(matches: &ArgMatches) -> i32 {
         _ => unreachable!(),
     }
 
-    return 0;
+    0
 }

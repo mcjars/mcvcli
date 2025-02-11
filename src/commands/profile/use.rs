@@ -82,5 +82,5 @@ pub async fn r#use(matches: &ArgMatches) -> i32 {
         "DONE".green().bold()
     );
 
-    return 0;
+    0
 }

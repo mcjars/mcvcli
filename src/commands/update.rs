@@ -277,7 +277,7 @@ pub async fn update(matches: &ArgMatches) -> i32 {
             "...".bright_black()
         );
 
-        modpack::install(&directory, &api, &modpack_version).await;
+        modpack::install(&directory, &api, modpack_version).await;
 
         config.modpack_version = Some(modpack_version.id.clone());
         config.save();
@@ -295,5 +295,5 @@ pub async fn update(matches: &ArgMatches) -> i32 {
         );
     }
 
-    return 0;
+    0
 }

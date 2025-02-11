@@ -34,10 +34,10 @@ impl Java {
         let location = format!("{}/.mcvcli/java", home_dir().unwrap().to_str().unwrap());
         let client = ClientBuilder::new().user_agent(format!("mcvcli/{}", VERSION));
 
-        return Self {
+        Self {
             location,
             client: client.build().unwrap(),
-        };
+        }
     }
 
     pub fn installed(&self) -> Vec<u8> {
@@ -62,7 +62,7 @@ impl Java {
             }
         }
 
-        return installed;
+        installed
     }
 
     pub async fn binary(&self, version: u8) -> [String; 2] {
@@ -102,10 +102,10 @@ impl Java {
             "DONE".green().bold()
         );
 
-        return [
+        [
             format!("{}/{}/bin/java", self.location, version),
             format!("{}/{}", self.location, version),
-        ];
+        ]
     }
 
     pub async fn install(&self, version: u8) {
@@ -271,6 +271,6 @@ impl Java {
             available_releases: Vec<u8>,
         }
 
-        return data.available_releases;
+        data.available_releases
     }
 }

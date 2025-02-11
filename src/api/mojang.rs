@@ -17,9 +17,9 @@ impl MojangApi {
     pub fn new() -> Self {
         let client = ClientBuilder::new().user_agent(format!("mcvcli-rust/{}", VERSION));
 
-        return Self {
+        Self {
             client: client.build().unwrap(),
-        };
+        }
     }
 
     pub fn format_uuid(&self, raw_uuid: &str) -> Option<String> {
@@ -29,18 +29,18 @@ impl MojangApi {
             return None;
         }
 
-        return Some(format!(
+        Some(format!(
             "{}-{}-{}-{}-{}",
             &uuid[0..8],
             &uuid[8..12],
             &uuid[12..16],
             &uuid[16..20],
             &uuid[20..32]
-        ));
+        ))
     }
 
     pub async fn get_profile_uuid(&self, raw_uuid: &str) -> Result<Profile, reqwest::Error> {
-        let uuid = self.format_uuid(raw_uuid).unwrap_or(String::new());
+        let uuid = self.format_uuid(raw_uuid).unwrap_or_default();
 
         let res = self
             .client
@@ -51,7 +51,7 @@ impl MojangApi {
             .send()
             .await?;
 
-        return res.json::<Profile>().await;
+        res.json::<Profile>().await
     }
 
     pub async fn get_profile_name(&self, name: &str) -> Result<Profile, reqwest::Error> {
@@ -64,6 +64,6 @@ impl MojangApi {
             .send()
             .await?;
 
-        return res.json::<Profile>().await;
+        res.json::<Profile>().await
     }
 }

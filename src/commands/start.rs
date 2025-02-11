@@ -201,5 +201,5 @@ pub async fn start(matches: &ArgMatches) -> i32 {
         code.code().unwrap_or(0)
     );
 
-    return 0;
+    0
 }

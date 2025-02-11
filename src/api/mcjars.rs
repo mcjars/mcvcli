@@ -81,11 +81,11 @@ impl McjarsApi {
     pub fn new() -> Self {
         let client = ClientBuilder::new().user_agent(format!("mcvcli-rust/{}", VERSION));
 
-        return Self {
+        Self {
             url: std::env::var("MCJARS_URL").unwrap_or("https://versions.mcjars.app".to_string()),
             fields: "id,type,versionId,projectVersionId,name,installation,changes".to_string(),
             client: client.build().unwrap(),
-        };
+        }
     }
 
     pub async fn lookup(
@@ -151,7 +151,7 @@ impl McjarsApi {
             }
         }
 
-        return Ok(types);
+        Ok(types)
     }
 
     pub async fn versions(
@@ -173,7 +173,7 @@ impl McjarsApi {
             builds: IndexMap<String, Version>,
         }
 
-        return Ok(data.builds);
+        Ok(data.builds)
     }
 
     pub async fn builds(
@@ -196,6 +196,6 @@ impl McjarsApi {
             builds: Vec<Build>,
         }
 
-        return Ok(data.builds);
+        Ok(data.builds)
     }
 }

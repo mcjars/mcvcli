@@ -46,5 +46,5 @@ pub async fn list(_matches: &ArgMatches) -> i32 {
         println!("{}", "no backups found".red());
     }
 
-    return 0;
+    0
 }
