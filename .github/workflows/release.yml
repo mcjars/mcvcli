@@ -86,14 +86,14 @@ jobs:
         if: matrix.build == 'x86_64-linux' || matrix.build == 'x86_64-macos'
         run: strip "target/${{ matrix.target }}/release/$BIN_NAME"
 
-      - name: Strip release binary (arm)
-        if: matrix.build == 'aarch64-linux'
-        run: |
-          docker run --rm -v \
-            "$PWD/target:/target:Z" \
-            rustembedded/cross:${{ matrix.target }} \
-            aarch64-linux-gnu-strip \
-            /target/${{ matrix.target }}/release/$BIN_NAME
+      # - name: Strip release binary (arm)
+      #   if: matrix.build == 'aarch64-linux'
+      #   run: |
+      #     docker run --rm -v \
+      #       "$PWD/target:/target:Z" \
+      #       rustembedded/cross:${{ matrix.target }} \
+      #       aarch64-linux-gnu-strip \
+      #       /target/${{ matrix.target }}/release/$BIN_NAME
 
       - name: Build archive
         shell: bash
@@ -154,19 +154,18 @@ jobs:
               fi
           done
 
+      - name: Get cli version from Cargo.toml
+        id: version
+        run: echo ::set-output name=val::$(cargo metadata --format-version=1 --no-deps | jq '.packages[0].version')
+
       - name: Upload binaries to release
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: dist/*
           file_glob: true
-          tag: ${{ steps.tagname.outputs.val }}
+          tag: ${{ steps.version.outputs.val }}
           overwrite: true
-
-      - name: Extract version
-        id: extract-version
-        run: |
-          printf "::set-output name=%s::%s\n" tag-name "${GITHUB_REF#refs/tags/}"
 
         #
         # you can use this initial file in your homebrew-tap if you don't have an initial formula:
