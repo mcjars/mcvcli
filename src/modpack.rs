@@ -1,9 +1,9 @@
-use std::{fs::File, io::Write, path::Path};
-
 use crate::{
     api::{mcjars::McjarsApi, modrinth::Version, Progress},
     jar,
 };
+
+use std::{fs::File, io::Write, path::Path};
 use colored::Colorize;
 use human_bytes::human_bytes;
 use serde::Deserialize;
@@ -205,7 +205,7 @@ pub async fn install(directory: &str, api: &McjarsApi, version: &Version) {
 
         let build = builds
             .iter()
-            .find(|build| build.project_version_id.clone().unwrap() == fabric_loader)
+            .find(|build| build.project_version_id.as_ref().unwrap() == &fabric_loader)
             .unwrap();
 
         println!(
@@ -230,7 +230,7 @@ pub async fn install(directory: &str, api: &McjarsApi, version: &Version) {
 
         let build = builds
             .iter()
-            .find(|build| build.project_version_id.clone().unwrap() == quilt_loader)
+            .find(|build| build.project_version_id.as_ref().unwrap() == &quilt_loader)
             .unwrap();
 
         println!(
@@ -255,7 +255,7 @@ pub async fn install(directory: &str, api: &McjarsApi, version: &Version) {
 
         let build = builds
             .iter()
-            .find(|build| build.project_version_id.clone().unwrap() == forge)
+            .find(|build| build.project_version_id.as_ref().unwrap() == &forge)
             .unwrap();
 
         println!(
@@ -280,7 +280,7 @@ pub async fn install(directory: &str, api: &McjarsApi, version: &Version) {
 
         let build = builds
             .iter()
-            .find(|build| build.project_version_id.clone().unwrap() == neoforge)
+            .find(|build| build.project_version_id.as_ref().unwrap() == &neoforge)
             .unwrap();
 
         println!(

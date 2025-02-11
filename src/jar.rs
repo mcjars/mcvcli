@@ -1,5 +1,5 @@
 use crate::api::mcjars::{Build, InstallationStep, McjarsApi, Version};
-use crate::api::modrinth::Project;
+use crate::api::modrinth::{Project, ModrinthApi};
 use crate::api::Progress;
 use crate::config::Config;
 use colored::Colorize;
@@ -226,9 +226,9 @@ pub async fn detect(
     let ([build, latest], versions) = detected.unwrap();
 
     if config.modpack_slug.is_some() && config.modpack_version.is_some() {
-        let modrinth_api = crate::api::modrinth::ModrinthApi::new();
+        let modrinth_api = ModrinthApi::new();
         let modpack = modrinth_api
-            .project(&config.modpack_slug.clone().unwrap())
+            .project(config.modpack_slug.as_ref().unwrap())
             .await
             .unwrap();
 

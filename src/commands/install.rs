@@ -33,12 +33,7 @@ pub async fn install(matches: &ArgMatches) -> i32 {
             let server_type = FuzzySelect::with_theme(&ColorfulTheme::default())
                 .with_prompt("Server Jar File")
                 .default(0)
-                .items(
-                    &types
-                        .values()
-                        .map(|t| t.name.clone())
-                        .collect::<Vec<String>>(),
-                )
+                .items(&types.values().map(|t| &t.name).collect::<Vec<&String>>())
                 .max_length(10)
                 .interact()
                 .unwrap();
@@ -90,12 +85,7 @@ pub async fn install(matches: &ArgMatches) -> i32 {
             let server_build = FuzzySelect::with_theme(&ColorfulTheme::default())
                 .with_prompt("Jar Build")
                 .default(0)
-                .items(
-                    &builds
-                        .iter()
-                        .map(|b| b.name.clone())
-                        .collect::<Vec<String>>(),
-                )
+                .items(&builds.iter().map(|b| &b.name).collect::<Vec<&String>>())
                 .max_length(10)
                 .interact()
                 .unwrap();
@@ -177,12 +167,7 @@ pub async fn install(matches: &ArgMatches) -> i32 {
                     .with_prompt("Modpack?")
                     .default(0)
                     .item("Search")
-                    .items(
-                        &projects
-                            .iter()
-                            .map(|p| p.title.clone())
-                            .collect::<Vec<String>>(),
-                    )
+                    .items(&projects.iter().map(|p| &p.title).collect::<Vec<&String>>())
                     .max_length(10)
                     .interact()
                     .unwrap();
@@ -260,8 +245,12 @@ pub async fn install(matches: &ArgMatches) -> i32 {
                 .items(
                     &versions
                         .iter()
-                        .map(|v| v.name.clone().unwrap_or(v.version_number.clone().unwrap()))
-                        .collect::<Vec<String>>(),
+                        .map(|v| {
+                            v.name
+                                .as_ref()
+                                .unwrap_or(v.version_number.as_ref().unwrap())
+                        })
+                        .collect::<Vec<&String>>(),
                 )
                 .max_length(5)
                 .interact()

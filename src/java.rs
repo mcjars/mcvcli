@@ -1,3 +1,5 @@
+use crate::api::Progress;
+
 use colored::Colorize;
 use dirs::home_dir;
 use flate2::read::GzDecoder;
@@ -7,8 +9,6 @@ use serde::Deserialize;
 use std::{fs::File, io::Write, path::Path};
 use tar::Archive as TarArchive;
 use zip::ZipArchive;
-
-use crate::api::Progress;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 

@@ -18,7 +18,8 @@ pub async fn list(_matches: &ArgMatches) -> i32 {
     );
     println!();
 
-    for backup in list.clone() {
+    let last_name = list.last().unwrap().name.as_ref();
+    for backup in &list {
         println!("{}", backup.name.cyan().bold());
 
         println!("  {} {}", "path:   ".bright_black(), backup.path.cyan());
@@ -37,7 +38,7 @@ pub async fn list(_matches: &ArgMatches) -> i32 {
                 .cyan()
         );
 
-        if backup.name != list.last().unwrap().name {
+        if backup.name != last_name {
             println!();
         }
     }

@@ -63,10 +63,10 @@ pub async fn start(matches: &ArgMatches) -> i32 {
     let command = format!(
         "{} {} -Xmx{}M -jar {} nogui {}",
         binary,
-        config.extra_flags.clone().join(" "),
+        config.extra_flags.join(" "),
         config.ram_mb,
         config.jar_file,
-        config.extra_args.clone().join(" ")
+        config.extra_args.join(" ")
     );
 
     if !Path::new(&config.jar_file).exists() {

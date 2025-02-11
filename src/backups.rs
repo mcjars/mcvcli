@@ -1,4 +1,5 @@
 use crate::api::Progress;
+
 use chrono::{DateTime, Local};
 use colored::Colorize;
 use std::{fs::File, io::Write, path::Path};

@@ -16,8 +16,8 @@ pub async fn list(matches: &ArgMatches) -> i32 {
     let mut futures = Vec::new();
 
     if *include_version {
-        for profile in list.clone() {
-            let directory = if profile != config.profile_name {
+        for profile in &list {
+            let directory = if *profile != config.profile_name {
                 format!(".mcvcli.profiles/{}", profile)
             } else {
                 String::from(".")
@@ -29,7 +29,7 @@ pub async fn list(matches: &ArgMatches) -> i32 {
                     false,
                 );
 
-                jar::detect(directory.clone(), &profile_config).await
+                jar::detect(directory, &profile_config).await
             });
         }
     }
@@ -42,10 +42,10 @@ pub async fn list(matches: &ArgMatches) -> i32 {
         "DONE".green().bold()
     );
 
-    for profile in list.clone() {
+    for profile in &list {
         println!();
 
-        let directory = if profile != config.profile_name {
+        let directory = if *profile != config.profile_name {
             format!(".mcvcli.profiles/{}", profile)
         } else {
             String::from(".")
@@ -59,7 +59,7 @@ pub async fn list(matches: &ArgMatches) -> i32 {
         println!(
             "{} {}",
             profile.cyan().bold(),
-            if profile == config.profile_name {
+            if *profile == config.profile_name {
                 "(current)".green()
             } else {
                 String::new().green()
@@ -84,7 +84,7 @@ pub async fn list(matches: &ArgMatches) -> i32 {
 
         if *include_version {
             let detected = results
-                .get(list.iter().position(|x| x == &profile).unwrap())
+                .get(list.iter().position(|x| x == profile).unwrap())
                 .unwrap()
                 .as_ref();
 
@@ -97,21 +97,21 @@ pub async fn list(matches: &ArgMatches) -> i32 {
                     "    {} {} {}",
                     "version:".bright_black(),
                     build
-                        .clone()
                         .version_id
+                        .as_ref()
                         .unwrap_or(
                             build
-                                .clone()
                                 .project_version_id
-                                .unwrap_or("unknown".to_string())
+                                .as_ref()
+                                .unwrap_or(&"unknown".to_string())
                         )
                         .cyan(),
-                    if *versions.keys().next_back().unwrap_or(&String::new())
-                        == build.clone().version_id.unwrap_or(
+                    if versions.keys().next_back().unwrap_or(&String::new())
+                        == build.version_id.as_ref().unwrap_or(
                             build
-                                .clone()
                                 .project_version_id
-                                .unwrap_or("Unknown".to_string())
+                                .as_ref()
+                                .unwrap_or(&"unknown".to_string())
                         )
                     {
                         "(latest)".green()
@@ -152,9 +152,9 @@ pub async fn list(matches: &ArgMatches) -> i32 {
                     println!(
                         "    {} {} {}",
                         "version id: ".bright_black(),
-                        config.clone().modpack_version.unwrap().cyan(),
-                        if *modpack.versions.last().unwrap()
-                            == config.clone().modpack_version.unwrap()
+                        config.modpack_version.as_ref().unwrap().cyan(),
+                        if modpack.versions.last().unwrap()
+                            == config.modpack_version.as_ref().unwrap()
                         {
                             "(latest)".green()
                         } else {

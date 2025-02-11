@@ -60,19 +60,19 @@ pub async fn update(matches: &ArgMatches) -> i32 {
     let ([build, latest], versions, modpack) = detected.unwrap();
     let mut items: Vec<&str> = Vec::new();
 
-    if *versions.keys().next_back().unwrap_or(&String::new())
-        != build.clone().version_id.unwrap_or(
+    if versions.keys().next_back().unwrap_or(&String::new())
+        != build.version_id.as_ref().unwrap_or(
             build
-                .clone()
                 .project_version_id
-                .unwrap_or("unknown".to_string()),
+                .as_ref()
+                .unwrap_or(&"unknown".to_string()),
         )
         && config.modpack_slug.is_none()
     {
         items.push("Update Version");
     }
 
-    if build.clone().id != latest.id {
+    if build.id != latest.id {
         items.push("Update Build");
     }
 
@@ -80,11 +80,11 @@ pub async fn update(matches: &ArgMatches) -> i32 {
     if modpack.is_some() {
         let modrinth_api = api::modrinth::ModrinthApi::new();
         modpack_versions = modrinth_api
-            .versions(&config.modpack_slug.clone().unwrap())
+            .versions(config.modpack_slug.as_ref().unwrap())
             .await
             .unwrap();
 
-        if modpack_versions[0].id != config.modpack_version.clone().unwrap() {
+        if &modpack_versions[0].id != config.modpack_version.as_ref().unwrap() {
             items.push("Update Modpack");
         }
     }
@@ -110,14 +110,14 @@ pub async fn update(matches: &ArgMatches) -> i32 {
             .position(|v| {
                 v.as_str()
                     == build
-                        .clone()
                         .version_id
-                        .unwrap_or(build.clone().project_version_id.unwrap_or(String::new()))
+                        .as_ref()
+                        .unwrap_or(build.project_version_id.as_ref().unwrap_or(&String::new()))
                         .as_str()
             })
             .unwrap();
-        let versions_java: HashMap<String, u8> =
-            versions.iter().map(|(k, v)| (k.clone(), v.java)).collect();
+        let versions_java: HashMap<&String, u8> =
+            versions.iter().map(|(k, v)| (k, v.java)).collect();
         let versions: Vec<&String> = versions.keys().skip(version_index + 1).rev().collect();
 
         let server_version = FuzzySelect::with_theme(&ColorfulTheme::default())
@@ -148,12 +148,7 @@ pub async fn update(matches: &ArgMatches) -> i32 {
         let server_build = FuzzySelect::with_theme(&ColorfulTheme::default())
             .with_prompt("Jar Build")
             .default(0)
-            .items(
-                &builds
-                    .iter()
-                    .map(|b| b.name.clone())
-                    .collect::<Vec<String>>(),
-            )
+            .items(&builds.iter().map(|b| &b.name).collect::<Vec<&String>>())
             .max_length(10)
             .interact()
             .unwrap();
@@ -209,12 +204,7 @@ pub async fn update(matches: &ArgMatches) -> i32 {
         let server_build = FuzzySelect::with_theme(&ColorfulTheme::default())
             .with_prompt("Jar Build")
             .default(0)
-            .items(
-                &builds
-                    .iter()
-                    .map(|b| b.name.clone())
-                    .collect::<Vec<String>>(),
-            )
+            .items(&builds.iter().map(|b| &b.name).collect::<Vec<&String>>())
             .max_length(10)
             .interact()
             .unwrap();
@@ -248,7 +238,7 @@ pub async fn update(matches: &ArgMatches) -> i32 {
 
         let version_index = modpack_versions
             .iter()
-            .position(|v| v.id == config.modpack_version.clone().unwrap())
+            .position(|v| &v.id == config.modpack_version.as_ref().unwrap())
             .unwrap();
         let versions: Vec<&&api::modrinth::Version> = modpack_versions
             .iter()
@@ -262,8 +252,12 @@ pub async fn update(matches: &ArgMatches) -> i32 {
             .items(
                 &versions
                     .iter()
-                    .map(|v| v.name.clone().unwrap_or(v.version_number.clone().unwrap()))
-                    .collect::<Vec<String>>(),
+                    .map(|v| {
+                        v.name
+                            .as_ref()
+                            .unwrap_or(v.version_number.as_ref().unwrap())
+                    })
+                    .collect::<Vec<&String>>(),
             )
             .max_length(5)
             .interact()
@@ -287,8 +281,8 @@ pub async fn update(matches: &ArgMatches) -> i32 {
             "updating to".bright_black(),
             modpack_version
                 .name
-                .clone()
-                .unwrap_or(modpack_version.version_number.clone().unwrap())
+                .as_ref()
+                .unwrap_or(modpack_version.version_number.as_ref().unwrap())
                 .cyan(),
             "...".bright_black(),
             "DONE".green().bold()

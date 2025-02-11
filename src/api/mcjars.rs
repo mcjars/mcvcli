@@ -10,26 +10,17 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Type {
     pub name: String,
-
-    pub builds: u32,
-    pub color: String,
-
-    pub deprecated: bool,
-    pub experimental: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Version {
     pub r#type: String,
-    pub supported: bool,
     pub java: u8,
 
-    pub created: String,
-    pub builds: u32,
     pub latest: Build,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Build {
     pub id: u32,
     pub r#type: String,
@@ -41,10 +32,9 @@ pub struct Build {
     pub project_version_id: Option<String>,
 
     pub installation: Vec<Vec<InstallationStep>>,
-    pub changes: Vec<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum InstallationStep {
     #[serde(rename = "download")]
@@ -55,18 +45,18 @@ pub enum InstallationStep {
     Remove(InstallationStepRemove),
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct InstallationStepDownload {
     pub url: String,
     pub file: String,
     pub size: u64,
 }
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct InstallationStepUnzip {
     pub file: String,
     pub location: String,
 }
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct InstallationStepRemove {
     pub location: String,
 }
@@ -124,10 +114,8 @@ impl McjarsApi {
             latest: Build,
         }
 
-        return Ok((
-            [data.build.clone(), data.latest],
-            self.versions(&data.build.r#type).await.unwrap(),
-        ));
+        let versions = self.versions(&data.build.r#type).await.unwrap();
+        Ok(([data.build, data.latest], versions))
     }
 
     pub async fn types(&self) -> Result<IndexMap<String, Type>, reqwest::Error> {

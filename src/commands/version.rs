@@ -50,12 +50,12 @@ pub async fn version(matches: &ArgMatches) -> i32 {
             "version:".bright_black(),
             build
                 .version_id
-                .clone()
+                .as_ref()
                 .unwrap_or(
                     build
                         .project_version_id
-                        .clone()
-                        .unwrap_or("Unknown".to_string())
+                        .as_ref()
+                        .unwrap_or(&"unknown".to_string())
                 )
                 .cyan(),
             if *versions.keys().next_back().unwrap_or(&String::new())
@@ -101,8 +101,8 @@ pub async fn version(matches: &ArgMatches) -> i32 {
             println!(
                 "  {} {} {}",
                 "version id: ".bright_black(),
-                config.modpack_version.clone().unwrap().cyan(),
-                if *modpack.versions.last().unwrap() == config.modpack_version.unwrap() {
+                config.modpack_version.as_ref().unwrap().cyan(),
+                if modpack.versions.last().unwrap() == &config.modpack_version.unwrap() {
                     "(latest)".green()
                 } else {
                     "(outdated)".red()
