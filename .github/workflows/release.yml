@@ -68,6 +68,10 @@ jobs:
           target: ${{ matrix.target }}
           override: true
 
+      - name: Install OpenSSL Toolchain (arm64)
+        if: matrix.build == 'aarch64-linux'
+        run: sudo apt-get install -y libssl-dev
+
       - name: Run cargo test
         uses: actions-rs/cargo@v1
         with:
@@ -120,7 +124,7 @@ jobs:
         with:
           submodules: false
 
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v4
         # with:
         #   path: dist
       # - run: ls -al ./dist
