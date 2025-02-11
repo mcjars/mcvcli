@@ -29,9 +29,9 @@ cargo install mcvcli
 
 ```bash
 # Basic Example for Linux
-wget https://github.com/mcjars/mcvcli/releases/latest/download/mcvcli-x86_x64-linux.tar.xz
-tar -xzf mcvcli-x86_x64-linux.tar.xz -C .
-export PATH=$PATH:$(pwd)/mcvcli-x86_x64-linux
+wget https://github.com/mcjars/mcvcli/releases/latest/download/mcvcli-x86_64-linux.tar.xz
+tar -xf mcvcli-x86_64-linux.tar.xz -C .
+export PATH=$PATH:$(pwd)/mcvcli-x86_64-linux
 
 mcvcli --version
 ```
@@ -39,9 +39,9 @@ mcvcli --version
 ```powershell
 # Basic Example for Windows
 
-Invoke-WebRequest -Uri "https://github.com/mcjars/mcvcli/releases/latest/download/mcvcli-x86_x64-windows.zip" -OutFile "mcvcli-x86_x64-windows.zip"
-Expand-Archive -Path "mcvcli-x86_x64-windows.zip" -DestinationPath "."
-$env:Path += ";$(Get-Location)\mcvcli-x86_x64-windows"
+Invoke-WebRequest -Uri "https://github.com/mcjars/mcvcli/releases/latest/download/mcvcli-x86_64-windows.zip" -OutFile "mcvcli-x86_64-windows.zip"
+Expand-Archive -Path "mcvcli-x86_64-windows.zip" -DestinationPath "."
+$env:Path += ";$(Get-Location)\mcvcli-86_64-windows"
 
 mcvcli --version
 ```

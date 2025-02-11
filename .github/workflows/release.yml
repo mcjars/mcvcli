@@ -158,7 +158,7 @@ jobs:
 
       - name: Get cli version from Cargo.toml
         id: version
-        run: echo "val=$(cargo metadata --format-version=1 --no-deps | jq '.packages[0].version')" >> $GITHUB_OUTPUT
+        run: echo "val=$(cargo metadata --format-version=1 --no-deps | jq '.packages[0].version' -r)" >> $GITHUB_OUTPUT
 
       - name: Upload binaries to release
         uses: svenstaro/upload-release-action@v2
