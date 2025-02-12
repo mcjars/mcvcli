@@ -5,7 +5,7 @@ use colored::Colorize;
 use std::{fs::File, io::Write, path::Path};
 use zip::{write::SimpleFileOptions, ZipArchive, ZipWriter};
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Backup {
     pub name: String,
     pub path: String,

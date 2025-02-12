@@ -1,7 +1,7 @@
-use reqwest::{Client, ClientBuilder};
-use serde::Deserialize;
+use crate::api;
 
-const VERSION: &str = env!("CARGO_PKG_VERSION");
+use reqwest::Client;
+use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 pub struct Project {
@@ -39,12 +39,10 @@ pub struct ModrinthApi {
 
 impl ModrinthApi {
     pub fn new() -> Self {
-        let client = ClientBuilder::new().user_agent(format!("mcvcli-rust/{}", VERSION));
-
         Self {
             url: std::env::var("MODRINTH_API_URL")
                 .unwrap_or("https://api.modrinth.com".to_string()),
-            client: client.build().unwrap(),
+            client: api::client(),
         }
     }
 

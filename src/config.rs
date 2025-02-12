@@ -4,7 +4,7 @@ use std::{fs::File, path::Path};
 
 const CONFIG_VERSION: u8 = 4;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
     #[serde(skip)]
     path: String,

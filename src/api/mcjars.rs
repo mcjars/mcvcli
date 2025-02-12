@@ -1,11 +1,11 @@
+use crate::api;
+
 use indexmap::IndexMap;
-use reqwest::{Client, ClientBuilder};
+use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sha2::Digest;
 use tokio::io::AsyncReadExt;
-
-const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Type {
@@ -69,12 +69,10 @@ pub struct McjarsApi {
 
 impl McjarsApi {
     pub fn new() -> Self {
-        let client = ClientBuilder::new().user_agent(format!("mcvcli-rust/{}", VERSION));
-
         Self {
             url: std::env::var("MCJARS_URL").unwrap_or("https://versions.mcjars.app".to_string()),
             fields: "id,type,versionId,projectVersionId,name,installation,changes".to_string(),
-            client: client.build().unwrap(),
+            client: api::client(),
         }
     }
 

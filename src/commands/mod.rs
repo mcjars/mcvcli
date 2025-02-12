@@ -5,4 +5,5 @@ pub mod lookup;
 pub mod profile;
 pub mod start;
 pub mod update;
+pub mod upgrade;
 pub mod version;

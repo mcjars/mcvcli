@@ -20,6 +20,11 @@ fn cli() -> Command {
         .allow_external_subcommands(true)
         .version(VERSION)
         .subcommand(
+            Command::new("upgrade")
+                .about("Upgrades the CLI to the latest version")
+                .arg_required_else_help(false),
+        )
+        .subcommand(
             Command::new("init")
                 .about("Initializes a new Minecraft server")
                 .arg(
@@ -200,6 +205,9 @@ async fn main() {
     let matches = cli().get_matches();
 
     match matches.subcommand() {
+        Some(("upgrade", sub_matches)) => {
+            std::process::exit(commands::upgrade::upgrade(sub_matches).await)
+        }
         Some(("init", sub_matches)) => {
             std::process::exit(commands::init::init(sub_matches, None, None).await)
         }

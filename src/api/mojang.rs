@@ -1,7 +1,7 @@
-use reqwest::{Client, ClientBuilder};
-use serde::Deserialize;
+use crate::api;
 
-const VERSION: &str = env!("CARGO_PKG_VERSION");
+use reqwest::Client;
+use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 pub struct Profile {
@@ -15,10 +15,8 @@ pub struct MojangApi {
 
 impl MojangApi {
     pub fn new() -> Self {
-        let client = ClientBuilder::new().user_agent(format!("mcvcli-rust/{}", VERSION));
-
         Self {
-            client: client.build().unwrap(),
+            client: api::client(),
         }
     }
 

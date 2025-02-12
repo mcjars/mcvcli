@@ -1,7 +1,7 @@
 [package]
 name = "mcvcli"
 description = "A command line interface for managing Minecraft servers."
-version = "2.0.3"
+version = "2.0.4"
 edition = "2021"
 license = "MIT"
 homepage = "https://github.com/mcjars/mcvcli"
@@ -32,3 +32,4 @@ human_bytes = { version = "0.4.3", features = ["si-units", "fast"] }
 walkdir = "2.5.0"
 fastnbt = "2.5.0"
 term_size = "0.3.2"
+xz = "0.1.0"

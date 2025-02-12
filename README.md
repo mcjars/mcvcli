@@ -70,6 +70,8 @@ mcvcli backup list # list created server backups
 mcvcli backup create # create a new server backup
 mcvcli backup delete # delete a server backup
 mcvcli backup restore # restore a previously created server backup
+
+mcvcli upgrade # upgrade the mcvcli binary
 ```
 
 ## Developing
