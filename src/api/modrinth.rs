@@ -16,6 +16,7 @@ pub struct Project {
 #[derive(Debug, Deserialize)]
 pub struct Version {
     pub id: String,
+    pub game_versions: Vec<String>,
 
     pub name: Option<String>,
     pub version_number: Option<String>,

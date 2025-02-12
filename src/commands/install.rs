@@ -167,7 +167,22 @@ pub async fn install(matches: &ArgMatches) -> i32 {
                     .with_prompt("Modpack?")
                     .default(0)
                     .item("Search")
-                    .items(&projects.iter().map(|p| &p.title).collect::<Vec<&String>>())
+                    .items(
+                        &projects
+                            .iter()
+                            .map(|p| {
+                                format!(
+                                    "{:17} {}",
+                                    format!(
+                                        "{} - {}",
+                                        p.versions.first().unwrap(),
+                                        p.versions.last().unwrap()
+                                    ),
+                                    p.title
+                                )
+                            })
+                            .collect::<Vec<String>>(),
+                    )
                     .max_length(10)
                     .interact()
                     .unwrap();
@@ -246,11 +261,15 @@ pub async fn install(matches: &ArgMatches) -> i32 {
                     &versions
                         .iter()
                         .map(|v| {
-                            v.name
-                                .as_ref()
-                                .unwrap_or(v.version_number.as_ref().unwrap())
+                            format!(
+                                "{:8} {}",
+                                v.game_versions.first().unwrap(),
+                                v.name
+                                    .as_ref()
+                                    .unwrap_or(v.version_number.as_ref().unwrap())
+                            )
                         })
-                        .collect::<Vec<&String>>(),
+                        .collect::<Vec<String>>(),
                 )
                 .max_length(5)
                 .interact()

@@ -12,6 +12,10 @@ use std::path::Path;
 use zip::ZipArchive;
 
 pub async fn install(build: &Build, directory: &str, spaces: usize) -> Result<(), reqwest::Error> {
+    if Path::new(directory).join("libraries").exists() {
+        std::fs::remove_dir_all(Path::new(directory).join("libraries")).unwrap_or(());
+    }
+
     for group in build.installation.iter() {
         for step in group.iter() {
             match step {

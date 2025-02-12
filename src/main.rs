@@ -6,6 +6,7 @@ mod jar;
 mod java;
 mod modpack;
 mod profiles;
+mod progress;
 
 use clap::{Arg, Command};
 
