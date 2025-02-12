@@ -67,9 +67,9 @@ mcvcli profile create {name} # create a new profile
 mcvcli profile use {name} # switch to another profile
 mcvcli profile delete {name} # nuke a profile from existance
 mcvcli backup list # list created server backups
-mcvcli backup create # create a new server backup
-mcvcli backup delete # delete a server backup
-mcvcli backup restore # restore a previously created server backup
+mcvcli backup create {name} # create a new server backup
+mcvcli backup delete {name} # delete a server backup
+mcvcli backup restore {name} # restore a previously created server backup
 
 mcvcli upgrade # upgrade the mcvcli binary
 ```
