@@ -339,7 +339,7 @@ pub async fn init(
             );
         }
         _ => {
-            let jar_file = jars[server_jarfile - 2].clone();
+            let jar_file = &jars[server_jarfile - 2];
             let java = java::Java::new();
 
             println!("{}", "getting java versions...".bright_black());
@@ -376,7 +376,7 @@ pub async fn init(
 
             let mut config = config::Config::new(&format!("{}/.mcvcli.json", directory), true);
             config.profile_name = profile_name.unwrap_or("default").to_string();
-            config.jar_file = jar_file;
+            config.jar_file = jar_file.to_string();
             config.java_version = java_version;
             config.ram_mb = ram_mb;
             config.save();

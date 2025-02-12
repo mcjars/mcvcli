@@ -1,4 +1,5 @@
 use colored::Colorize;
+use rand::{distr::Alphanumeric, Rng};
 use serde::{Deserialize, Serialize};
 use std::{fs::File, path::Path};
 
@@ -35,6 +36,9 @@ pub struct Config {
 
     #[serde(rename = "extraArgs", default)]
     pub extra_args: Vec<String>,
+
+    pub pid: Option<usize>,
+    pub identifier: Option<String>,
 }
 
 impl Config {
@@ -52,6 +56,14 @@ impl Config {
                     java_version: 21,
                     extra_flags: Vec::new(),
                     extra_args: Vec::new(),
+                    pid: None,
+                    identifier: Some(
+                        rand::rng()
+                            .sample_iter(&Alphanumeric)
+                            .take(7)
+                            .map(char::from)
+                            .collect(),
+                    ),
                 };
 
                 let file = File::create(path).unwrap();

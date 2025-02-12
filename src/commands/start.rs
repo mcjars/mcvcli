@@ -1,10 +1,11 @@
 use crate::api::Progress;
-use crate::{config, java};
+use crate::{config, detached, java};
 
 use clap::ArgMatches;
 use colored::Colorize;
 use dialoguer::{theme::ColorfulTheme, Confirm};
 use human_bytes::human_bytes;
+use rand::{distr::Alphanumeric, Rng};
 use std::path::Path;
 use std::sync::Arc;
 use std::{
@@ -15,9 +16,10 @@ use tokio::sync::Mutex;
 use tokio::{process::Command, signal::ctrl_c};
 
 pub async fn start(matches: &ArgMatches) -> i32 {
-    let config = config::Config::new(".mcvcli.json", false);
-
+    let mut config = config::Config::new(".mcvcli.json", false);
     let auto_agree_eula = matches.get_one::<bool>("eula").expect("required");
+    let detached = matches.get_one::<bool>("detached").expect("required");
+
     let mut eula_file: Option<File> = File::open("eula.txt").ok();
     let mut eula_accepted = false;
 
@@ -56,6 +58,15 @@ pub async fn start(matches: &ArgMatches) -> i32 {
             .write_all("eula=true".as_bytes())
             .unwrap();
         eula_file.as_mut().unwrap().sync_all().unwrap();
+    }
+
+    if detached::status(config.pid) {
+        println!(
+            "{} {}",
+            "server is already running, use".red(),
+            "mcvcli attach".cyan()
+        );
+        return 1;
     }
 
     let java = java::Java::new();
@@ -172,34 +183,73 @@ pub async fn start(matches: &ArgMatches) -> i32 {
     println!("{}", "starting the minecraft server...".yellow());
     println!("{}", command);
 
-    let child = Arc::new(Mutex::new(
-        Command::new(binary)
-            .args(config.extra_flags)
+    if !*detached {
+        let child = Arc::new(Mutex::new(
+            Command::new(binary)
+                .args(config.extra_flags)
+                .arg(format!("-Xmx{}M", config.ram_mb))
+                .arg("-jar")
+                .arg(config.jar_file)
+                .args(config.extra_args)
+                .env("JAVA_HOME", java_home)
+                .spawn()
+                .unwrap(),
+        ));
+
+        let child_clone = Arc::clone(&child);
+        tokio::spawn(async move {
+            ctrl_c().await.unwrap();
+            let mut child = child_clone.lock().await;
+
+            child.start_kill().unwrap_or(());
+        });
+
+        let code = child.lock().await.wait().await.unwrap();
+
+        println!();
+        println!(
+            "{} {}",
+            "server has stopped with code".red(),
+            code.code().unwrap_or(0)
+        );
+    } else {
+        if std::env::consts::OS == "windows" {
+            println!(
+                "{}",
+                "detached mode is currently not supported on windows".red()
+            );
+            return 1;
+        }
+
+        config.identifier = Some(
+            rand::rng()
+                .sample_iter(&Alphanumeric)
+                .take(7)
+                .map(char::from)
+                .collect(),
+        );
+
+        let (stdin, stdout, stderr) = detached::get_pipes(config.identifier.as_ref().unwrap());
+
+        #[allow(clippy::zombie_processes)]
+        let child = std::process::Command::new(binary)
+            .args(&config.extra_flags)
             .arg(format!("-Xmx{}M", config.ram_mb))
             .arg("-jar")
-            .arg(config.jar_file)
-            .args(config.extra_args)
+            .arg(&config.jar_file)
+            .args(&config.extra_args)
             .env("JAVA_HOME", java_home)
+            .stdin(File::open(stdin.path()).unwrap())
+            .stdout(File::create(stdout.path()).unwrap())
+            .stderr(File::create(stderr.path()).unwrap())
             .spawn()
-            .unwrap(),
-    ));
+            .unwrap();
 
-    let child_clone = Arc::clone(&child);
-    tokio::spawn(async move {
-        ctrl_c().await.unwrap();
-        let mut child = child_clone.lock().await;
+        config.pid = Some(child.id() as usize);
+        config.save();
 
-        child.start_kill().unwrap_or(());
-    });
-
-    let code = child.lock().await.wait().await.unwrap();
-
-    println!();
-    println!(
-        "{} {}",
-        "server has stopped with code".red(),
-        code.code().unwrap_or(0)
-    );
+        println!("{}", "server has started in detached mode".green());
+    }
 
     0
 }

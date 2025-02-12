@@ -1,4 +1,4 @@
-use crate::{config, profiles};
+use crate::{config, detached, profiles};
 
 use clap::ArgMatches;
 use colored::Colorize;
@@ -7,6 +7,15 @@ use std::path::Path;
 pub async fn r#use(matches: &ArgMatches) -> i32 {
     let name = matches.get_one::<String>("name").unwrap();
     let config = config::Config::new(".mcvcli.json", false);
+
+    if detached::status(config.pid) {
+        println!(
+            "{} {}",
+            "server is currently running, use".red(),
+            "mcvcli stop".cyan()
+        );
+        return 1;
+    }
 
     if config.profile_name == *name {
         println!(

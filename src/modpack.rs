@@ -174,7 +174,7 @@ pub async fn install(directory: &str, api: &McjarsApi, version: &Version) {
                     std::fs::create_dir_all(file_path.parent().unwrap()).unwrap();
                 }
 
-                let mut res = reqwest::get(&download).await.unwrap();
+                let mut res = reqwest::get(download).await.unwrap();
                 let mut mod_file = File::create(&file_name).unwrap();
 
                 while let Some(chunk) = res.chunk().await.unwrap() {

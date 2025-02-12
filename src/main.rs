@@ -2,6 +2,7 @@ mod api;
 mod backups;
 mod commands;
 mod config;
+mod detached;
 mod jar;
 mod java;
 mod modpack;
@@ -62,6 +63,48 @@ fn cli() -> Command {
                         .default_value("false")
                         .required(false),
                 )
+                .arg(
+                    Arg::new("detached")
+                        .long("detached")
+                        .short('d')
+                        .help("Run the server in detached mode (background)")
+                        .num_args(0)
+                        .default_value("false")
+                        .required(false),
+                )
+                .arg_required_else_help(false),
+        )
+        .subcommand(
+            Command::new("stop")
+                .about("Stops the Minecraft server")
+                .arg_required_else_help(false),
+        )
+        .subcommand(
+            Command::new("attach")
+                .about("Starts the Minecraft server")
+                .arg(
+                    Arg::new("eula")
+                        .long("eula")
+                        .short('e')
+                        .help("Accept the Minecraft EULA automatically")
+                        .num_args(0)
+                        .default_value("false")
+                        .required(false),
+                )
+                .arg(
+                    Arg::new("detached")
+                        .long("detached")
+                        .short('d')
+                        .help("Run the server in detached mode (background)")
+                        .num_args(0)
+                        .default_value("false")
+                        .required(false),
+                )
+                .arg_required_else_help(false),
+        )
+        .subcommand(
+            Command::new("status")
+                .about("Gets the status of the Minecraft server (when detached)")
                 .arg_required_else_help(false),
         )
         .subcommand(
@@ -216,6 +259,13 @@ async fn main() {
         }
         Some(("start", sub_matches)) => {
             std::process::exit(commands::start::start(sub_matches).await)
+        }
+        Some(("stop", sub_matches)) => std::process::exit(commands::stop::stop(sub_matches).await),
+        Some(("attach", sub_matches)) => {
+            std::process::exit(commands::attach::attach(sub_matches).await)
+        }
+        Some(("status", sub_matches)) => {
+            std::process::exit(commands::status::status(sub_matches).await)
         }
         Some(("lookup", sub_matches)) => {
             std::process::exit(commands::lookup::lookup(sub_matches).await)

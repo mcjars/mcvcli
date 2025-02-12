@@ -1,14 +1,22 @@
-use std::collections::HashMap;
-
-use crate::{api, config, jar, modpack, profiles};
+use crate::{api, config, detached, jar, modpack, profiles};
 
 use clap::ArgMatches;
 use colored::Colorize;
 use dialoguer::{theme::ColorfulTheme, FuzzySelect, Select};
+use std::collections::HashMap;
 
 pub async fn update(matches: &ArgMatches) -> i32 {
     let profile = matches.get_one::<String>("profile");
     let config = config::Config::new(".mcvcli.json", false);
+
+    if detached::status(config.pid) {
+        println!(
+            "{} {}",
+            "server is currently running, use".red(),
+            "mcvcli stop".cyan()
+        );
+        return 1;
+    }
 
     if profile.is_some() && config.profile_name == *profile.unwrap() {
         println!(

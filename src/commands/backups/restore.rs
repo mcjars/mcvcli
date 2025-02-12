@@ -1,4 +1,4 @@
-use crate::{backups, config};
+use crate::{backups, config, detached};
 
 use clap::ArgMatches;
 use colored::Colorize;
@@ -6,7 +6,16 @@ use dialoguer::{theme::ColorfulTheme, Confirm};
 
 pub async fn restore(matches: &ArgMatches) -> i32 {
     let name = matches.get_one::<String>("name").unwrap();
-    let _config = config::Config::new(".mcvcli.json", false);
+    let config = config::Config::new(".mcvcli.json", false);
+
+    if detached::status(config.pid) {
+        println!(
+            "{} {}",
+            "server is currently running, use".red(),
+            "mcvcli stop".cyan()
+        );
+        return 1;
+    }
 
     if !backups::list().iter().any(|b| b.name == *name) {
         println!(

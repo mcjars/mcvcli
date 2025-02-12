@@ -1,4 +1,4 @@
-use crate::{api, config, jar, modpack};
+use crate::{api, config, detached, jar, modpack};
 
 use clap::ArgMatches;
 use colored::Colorize;
@@ -7,6 +7,15 @@ use dialoguer::{theme::ColorfulTheme, FuzzySelect, Input, Select};
 pub async fn install(matches: &ArgMatches) -> i32 {
     let mut config = config::Config::new(".mcvcli.json", false);
     let wipe = matches.get_one::<bool>("wipe").expect("required");
+
+    if detached::status(config.pid) {
+        println!(
+            "{} {}",
+            "server is currently running, use".red(),
+            "mcvcli stop".cyan()
+        );
+        return 1;
+    }
 
     let server_jarfile = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Server Jar File")

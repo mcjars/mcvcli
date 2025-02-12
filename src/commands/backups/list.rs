@@ -18,6 +18,10 @@ pub async fn list(_matches: &ArgMatches) -> i32 {
     );
     println!();
 
+    if list.is_empty() {
+        println!("{}", "no backups found".red());
+    }
+
     let last_name: &str = list.last().unwrap().name.as_ref();
     for backup in &list {
         println!("{}", backup.name.cyan().bold());
@@ -41,10 +45,6 @@ pub async fn list(_matches: &ArgMatches) -> i32 {
         if backup.name != last_name {
             println!();
         }
-    }
-
-    if list.is_empty() {
-        println!("{}", "no backups found".red());
     }
 
     0

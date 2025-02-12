@@ -7,7 +7,7 @@ use human_bytes::human_bytes;
 use serde::Deserialize;
 use std::{env::temp_dir, fs::File, io::Write, path::Path};
 use tar::Archive as TarArchive;
-use xz::read::XzDecoder;
+use xz2::read::XzDecoder;
 use zip::ZipArchive;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -52,18 +52,16 @@ pub async fn upgrade(_matches: &ArgMatches) -> i32 {
         return 0;
     }
 
-    // get path of current binary
     let binary = std::env::current_exe()
         .unwrap()
         .to_str()
         .unwrap()
         .to_string();
 
-    // check if installed through cargo
     if binary.contains(".cargo") {
         println!(
-            "{}\n{}",
-            "unable to upgrade, installed through cargo, run".red(),
+            "{} {}",
+            "unable to upgrade, installed through cargo, use".red(),
             "cargo install mcvcli".cyan()
         );
         return 1;
