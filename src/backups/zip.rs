@@ -94,7 +94,7 @@ pub fn create(name: &str) {
 }
 
 pub fn restore(path: &str) {
-    let mut archive = ZipArchive::new(File::open(&path).unwrap()).unwrap();
+    let mut archive = ZipArchive::new(File::open(path).unwrap()).unwrap();
 
     let mut progress = Progress::new(archive.len());
     progress.spinner(|progress, spinner| {

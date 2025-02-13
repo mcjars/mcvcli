@@ -42,7 +42,7 @@ impl Progress {
         let progress = Arc::clone(&self.progress);
 
         let thread = tokio::spawn(async move {
-            let spinner = vec!['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+            let spinner = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
             let mut i = 0;
 
             loop {
