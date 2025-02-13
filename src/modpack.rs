@@ -62,7 +62,7 @@ pub async fn install(directory: &str, api: &McjarsApi, version: &Version) {
     let mut progress = Progress::new(file.size as usize);
     progress.spinner(|progress, spinner| {
         format!(
-            "\r {} {} {}/{} ({}%)      ",
+            "\r  {} {} {}/{} ({}%)      ",
             "downloading...".bright_black().italic(),
             spinner.cyan(),
             human_bytes(progress.progress() as f64)
@@ -154,8 +154,8 @@ pub async fn install(directory: &str, api: &McjarsApi, version: &Version) {
             let file_path = file.path.clone();
             let mut file_display = file_path.clone();
 
-            if file_display.len() > (terminal_width / 2) - 16 {
-                file_display = format!("{}...", &file_display[..(terminal_width / 2) - 16]);
+            if file_display.len() > (terminal_width / 2) - 17 {
+                file_display = format!("{}...", &file_display[..(terminal_width / 2) - 17]);
             }
 
             let bar = progress.lock().await.bar(

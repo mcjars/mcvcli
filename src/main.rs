@@ -77,6 +77,15 @@ fn cli() -> Command {
         .subcommand(
             Command::new("stop")
                 .about("Stops the Minecraft server")
+                .arg(
+                    Arg::new("timeout")
+                        .long("timeout")
+                        .short('t')
+                        .help("The amount of time to wait for the server to stop (seconds)")
+                        .num_args(1)
+                        .default_value("20")
+                        .required(false),
+                )
                 .arg_required_else_help(false),
         )
         .subcommand(
