@@ -89,37 +89,33 @@ pub async fn start(matches: &ArgMatches) -> i32 {
                 .unwrap();
             let mut file = File::create(&config.jar_file).unwrap();
 
-            let mut progress = Progress {
-                file_count: req.content_length().unwrap(),
-                file_current: 0,
-            };
+            let mut progress = Progress::new(req.content_length().unwrap() as usize);
+            progress.spinner(|progress, spinner| {
+                format!(
+                    "\r {} {} {}/{} ({}%)      ",
+                    "downloading forge wrapper jar...".bright_black().italic(),
+                    spinner.cyan(),
+                    human_bytes(progress.progress() as f64)
+                        .to_string()
+                        .cyan()
+                        .italic(),
+                    human_bytes(progress.total as f64)
+                        .to_string()
+                        .cyan()
+                        .italic(),
+                    progress.percent().round().to_string().cyan().italic()
+                )
+            });
 
             while let Some(chunk) = req.chunk().await.unwrap() {
                 file.write_all(&chunk).unwrap();
-
-                progress.file_current += chunk.len() as u64;
-                eprint!(
-                    "\r {} {}/{} ({}%)      ",
-                    "downloading forge wrapper jar...".bright_black().italic(),
-                    human_bytes(progress.file_current as f64)
-                        .to_string()
-                        .cyan()
-                        .italic(),
-                    human_bytes(progress.file_count as f64)
-                        .to_string()
-                        .cyan()
-                        .italic(),
-                    ((progress.file_current as f64 / progress.file_count as f64) * 100.0)
-                        .round()
-                        .to_string()
-                        .cyan()
-                        .italic()
-                );
+                progress.incr(chunk.len());
             }
 
             file.sync_all().unwrap();
-
+            progress.finish();
             println!();
+
             println!(
                 "{} {}",
                 "downloading forge wrapper jar...".bright_black().italic(),
@@ -133,39 +129,36 @@ pub async fn start(matches: &ArgMatches) -> i32 {
                 .unwrap();
             let mut file = File::create(&config.jar_file).unwrap();
 
-            let mut progress = Progress {
-                file_count: req.content_length().unwrap(),
-                file_current: 0,
-            };
-
-            while let Some(chunk) = req.chunk().await.unwrap() {
-                file.write_all(&chunk).unwrap();
-
-                progress.file_current += chunk.len() as u64;
-                eprint!(
-                    "\r {} {}/{} ({}%)      ",
+            let mut progress = Progress::new(req.content_length().unwrap() as usize);
+            progress.spinner(|progress, spinner| {
+                format!(
+                    "\r {} {} {}/{} ({}%)      ",
                     "downloading neoforge wrapper jar..."
                         .bright_black()
                         .italic(),
-                    human_bytes(progress.file_current as f64)
+                    spinner.cyan(),
+                    human_bytes(progress.progress() as f64)
                         .to_string()
                         .cyan()
                         .italic(),
-                    human_bytes(progress.file_count as f64)
+                    human_bytes(progress.total as f64)
                         .to_string()
                         .cyan()
                         .italic(),
-                    ((progress.file_current as f64 / progress.file_count as f64) * 100.0)
-                        .round()
-                        .to_string()
-                        .cyan()
-                        .italic()
-                );
+                    progress.percent().round().to_string().cyan().italic()
+                )
+            });
+
+            while let Some(chunk) = req.chunk().await.unwrap() {
+                file.write_all(&chunk).unwrap();
+                progress.incr(chunk.len());
             }
 
             file.sync_all().unwrap();
 
+            progress.finish();
             println!();
+
             println!(
                 "{} {}",
                 "downloading neoforge wrapper jar..."

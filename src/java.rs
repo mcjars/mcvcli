@@ -161,35 +161,32 @@ impl Java {
             .await
             .unwrap();
         let mut file = File::create(&destination).unwrap();
-        let mut progress = Progress {
-            file_count: res.content_length().unwrap(),
-            file_current: 0,
-        };
+
+        let mut progress = Progress::new(res.content_length().unwrap() as usize);
+        progress.spinner(|progress, spinner| {
+            format!(
+                "\r {} {} {}/{} ({}%)      ",
+                "downloading...".bright_black().italic(),
+                spinner.cyan(),
+                human_bytes(progress.progress() as f64)
+                    .to_string()
+                    .cyan()
+                    .italic(),
+                human_bytes(progress.total as f64)
+                    .to_string()
+                    .cyan()
+                    .italic(),
+                progress.percent().round().to_string().cyan().italic()
+            )
+        });
 
         while let Some(chunk) = res.chunk().await.unwrap() {
             file.write_all(&chunk).unwrap();
-
-            progress.file_current += chunk.len() as u64;
-            eprint!(
-                "\r  {} {}/{} ({}%)      ",
-                "downloading...".bright_black().italic(),
-                human_bytes(progress.file_current as f64)
-                    .to_string()
-                    .cyan()
-                    .italic(),
-                human_bytes(progress.file_count as f64)
-                    .to_string()
-                    .cyan()
-                    .italic(),
-                ((progress.file_current as f64 / progress.file_count as f64) * 100.0)
-                    .round()
-                    .to_string()
-                    .cyan()
-                    .italic()
-            );
+            progress.incr(chunk.len());
         }
 
         file.sync_all().unwrap();
+        progress.finish();
         println!();
 
         println!(

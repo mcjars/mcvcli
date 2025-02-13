@@ -30,17 +30,13 @@ fn recursive_add_directory(
             zip.start_file_from_path(&path, options).unwrap();
             zip.write_all(&std::fs::read(path).unwrap()).unwrap();
 
-            progress.file_current += 1;
+            progress.incr(1usize);
             eprint!(
                 "\r{} {}/{} ({}%)      ",
                 " backing up...".bright_black().italic(),
-                progress.file_current.to_string().cyan().italic(),
-                progress.file_count.to_string().cyan().italic(),
-                ((progress.file_current as f64 / progress.file_count as f64) * 100.0)
-                    .round()
-                    .to_string()
-                    .cyan()
-                    .italic()
+                progress.progress().to_string().cyan().italic(),
+                progress.total.to_string().cyan().italic(),
+                progress.percent().round().to_string().cyan().italic()
             );
         }
     }
@@ -71,17 +67,27 @@ pub fn create(name: &str) {
         }
     }
 
+    let mut progress = Progress::new(file_count);
+    progress.spinner(|progress, spinner| {
+        format!(
+            "\r {} {} {}/{} ({}%)      ",
+            "backing up...".bright_black().italic(),
+            spinner.cyan(),
+            progress.progress().to_string().cyan().italic(),
+            progress.total.to_string().cyan().italic(),
+            progress.percent().round().to_string().cyan().italic()
+        )
+    });
+
     recursive_add_directory(
         &mut zip,
         Path::new("."),
         Path::new("."),
         options,
-        &mut Progress {
-            file_count,
-            file_current: 0,
-        },
+        &mut progress,
     );
 
+    progress.finish();
     println!();
 
     zip.finish().unwrap();
@@ -89,10 +95,18 @@ pub fn create(name: &str) {
 
 pub fn restore(path: &str) {
     let mut archive = ZipArchive::new(File::open(&path).unwrap()).unwrap();
-    let mut progress = Progress {
-        file_count: archive.len() as u64,
-        file_current: 0,
-    };
+
+    let mut progress = Progress::new(archive.len());
+    progress.spinner(|progress, spinner| {
+        format!(
+            "\r {} {} {}/{} ({}%)      ",
+            "restoring...".bright_black().italic(),
+            spinner.cyan(),
+            progress.progress().to_string().cyan().italic(),
+            progress.total.to_string().cyan().italic(),
+            progress.percent().round().to_string().cyan().italic()
+        )
+    });
 
     for i in 0..archive.len() {
         let mut file = archive.by_index(i).unwrap();
@@ -106,19 +120,9 @@ pub fn restore(path: &str) {
             std::io::copy(&mut file, &mut write_file).unwrap();
         }
 
-        progress.file_current += 1;
-        eprint!(
-            "\r{} {}/{} ({}%)      ",
-            " restoring...".bright_black().italic(),
-            progress.file_current.to_string().cyan().italic(),
-            progress.file_count.to_string().cyan().italic(),
-            ((progress.file_current as f64 / progress.file_count as f64) * 100.0)
-                .round()
-                .to_string()
-                .cyan()
-                .italic()
-        );
+        progress.incr(1usize);
     }
 
+    progress.finish();
     println!();
 }

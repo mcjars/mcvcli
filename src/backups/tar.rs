@@ -31,18 +31,7 @@ fn recursive_add_directory(
             tar.append_file(&path, &mut File::open(&path).unwrap())
                 .unwrap();
 
-            progress.file_current += 1;
-            eprint!(
-                "\r{} {}/{} ({}%)      ",
-                " backing up...".bright_black().italic(),
-                progress.file_current.to_string().cyan().italic(),
-                progress.file_count.to_string().cyan().italic(),
-                ((progress.file_current as f64 / progress.file_count as f64) * 100.0)
-                    .round()
-                    .to_string()
-                    .cyan()
-                    .italic()
-            );
+            progress.incr(1usize);
         }
     }
 }
@@ -81,16 +70,21 @@ pub fn create(name: &str, encoder: TarEncoder, extension: &str) {
         }
     }
 
-    recursive_add_directory(
-        &mut tar,
-        Path::new("."),
-        Path::new("."),
-        &mut Progress {
-            file_count,
-            file_current: 0,
-        },
-    );
+    let mut progress = Progress::new(file_count);
+    progress.spinner(|progress, spinner| {
+        format!(
+            "\r {} {} {}/{} ({}%)      ",
+            "backing up...".bright_black().italic(),
+            spinner.cyan(),
+            progress.progress().to_string().cyan().italic(),
+            progress.total.to_string().cyan().italic(),
+            progress.percent().round().to_string().cyan().italic()
+        )
+    });
 
+    recursive_add_directory(&mut tar, Path::new("."), Path::new("."), &mut progress);
+
+    progress.finish();
     println!();
 
     tar.finish().unwrap();
@@ -106,22 +100,33 @@ pub fn restore(path: &str, decoder: TarEncoder) {
         TarEncoder::Xz => Archive::new(Box::new(XzDecoder::new(file))),
     };
 
-    let mut progress = Progress {
-        file_count: 0,
-        file_current: 0,
-    };
-
-    {
+    let total = {
         let mut archive: Archive<Box<dyn std::io::Read>> = match decoder {
             TarEncoder::Tar => Archive::new(Box::new(File::open(path).unwrap())),
             TarEncoder::Gz => Archive::new(Box::new(GzDecoder::new(File::open(path).unwrap()))),
             TarEncoder::Xz => Archive::new(Box::new(XzDecoder::new(File::open(path).unwrap()))),
         };
 
-        progress.file_count = archive.entries().unwrap().count() as u64;
-    }
+        archive.entries().unwrap().count()
+    };
 
-    println!(" {} {}", "reading backup...".bright_black().italic(), "DONE".green().bold().italic());
+    println!(
+        " {} {}",
+        "reading backup...".bright_black().italic(),
+        "DONE".green().bold().italic()
+    );
+
+    let mut progress = Progress::new(total);
+    progress.spinner(|progress, spinner| {
+        format!(
+            "\r {} {} {}/{} ({}%)      ",
+            "restoring...".bright_black().italic(),
+            spinner.cyan(),
+            progress.progress().to_string().cyan().italic(),
+            progress.total.to_string().cyan().italic(),
+            progress.percent().round().to_string().cyan().italic()
+        )
+    });
 
     for file in archive.entries().unwrap() {
         let mut file = file.unwrap();
@@ -135,19 +140,9 @@ pub fn restore(path: &str, decoder: TarEncoder) {
             std::io::copy(&mut file, &mut write_file).unwrap();
         }
 
-        progress.file_current += 1;
-        eprint!(
-            "\r {} {}/{} ({}%)      ",
-            "restoring...".bright_black().italic(),
-            progress.file_current.to_string().cyan().italic(),
-            progress.file_count.to_string().cyan().italic(),
-            ((progress.file_current as f64 / progress.file_count as f64) * 100.0)
-                .round()
-                .to_string()
-                .cyan()
-                .italic()
-        );
+        progress.incr(1usize);
     }
 
+    progress.finish();
     println!();
 }

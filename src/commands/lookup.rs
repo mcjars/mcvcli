@@ -146,6 +146,7 @@ pub async fn lookup(matches: &ArgMatches) -> i32 {
         for attribute in player_data.attributes.unwrap() {
             if attribute.id == "minecraft:max_health" {
                 max_health = attribute.base;
+                break;
             }
         }
     }

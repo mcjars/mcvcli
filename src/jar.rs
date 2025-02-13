@@ -42,36 +42,34 @@ pub async fn install(build: &Build, directory: &str, spaces: usize) -> Result<()
 
                     let mut res = reqwest::get(&step.url).await?;
                     let mut file = File::create(Path::new(directory).join(&step.file)).unwrap();
-                    let mut progress = Progress {
-                        file_count: step.size,
-                        file_current: 0,
-                    };
+
+                    let mut progress = Progress::new(step.size as usize);
+                    progress.spinner(move |progress, spinner| {
+                        format!(
+                            "\r{} {} {} {}/{} ({}%)      ",
+                            " ".repeat(spaces),
+                            "downloading...".bright_black().italic(),
+                            spinner.cyan(),
+                            human_bytes(progress.progress() as f64)
+                                .to_string()
+                                .cyan()
+                                .italic(),
+                            human_bytes(progress.total as f64)
+                                .to_string()
+                                .cyan()
+                                .italic(),
+                            progress.percent().round().to_string().cyan().italic()
+                        )
+                    });
 
                     while let Some(chunk) = res.chunk().await.unwrap() {
                         file.write_all(&chunk).unwrap();
 
-                        progress.file_current += chunk.len() as u64;
-                        eprint!(
-                            "\r{} {} {}/{} ({}%)      ",
-                            " ".repeat(spaces),
-                            "downloading...".bright_black().italic(),
-                            human_bytes(progress.file_current as f64)
-                                .to_string()
-                                .cyan()
-                                .italic(),
-                            human_bytes(progress.file_count as f64)
-                                .to_string()
-                                .cyan()
-                                .italic(),
-                            ((progress.file_current as f64 / progress.file_count as f64) * 100.0)
-                                .round()
-                                .to_string()
-                                .cyan()
-                                .italic()
-                        );
+                        progress.incr(chunk.len());
                     }
 
                     file.sync_all().unwrap();
+                    progress.finish();
                     println!();
 
                     println!(
