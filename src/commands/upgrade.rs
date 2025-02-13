@@ -144,8 +144,8 @@ pub async fn upgrade(_matches: &ArgMatches) -> i32 {
     }
 
     file.sync_all().unwrap();
-    println!();
     progress.finish();
+    println!();
 
     println!(
         " {} {} {} {}",
