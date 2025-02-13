@@ -33,7 +33,7 @@ pub async fn status(_matches: &ArgMatches) -> i32 {
 
     println!(
         "{} (pid {})",
-        config.profile_name.cyan().cyan().bold(),
+        config.profile_name.cyan().cyan().bold().underline(),
         pid.as_u32()
     );
     println!(

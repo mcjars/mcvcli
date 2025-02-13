@@ -21,8 +21,6 @@ pub async fn stop(_matches: &ArgMatches) -> i32 {
     let sys = sysinfo::System::new_all();
     let process = sys.process(pid).unwrap();
 
-    process.kill_with(sysinfo::Signal::Interrupt);
-
     let (mut stdin, mut stdout, mut stderr) = detached::get_pipes(&config.identifier.unwrap());
     let mut threads = Vec::new();
 
@@ -37,6 +35,8 @@ pub async fn stop(_matches: &ArgMatches) -> i32 {
     threads.push(tokio::spawn(async move {
         std::io::copy(&mut stderr, &mut std::io::stderr()).unwrap();
     }));
+
+    process.kill_with(sysinfo::Signal::Interrupt);
 
     tokio::spawn(async move {
         loop {

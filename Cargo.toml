@@ -1,9 +1,10 @@
 [package]
 name = "mcvcli"
 description = "A command line interface for managing Minecraft servers."
-version = "2.1.0"
+version = "2.1.1"
 edition = "2021"
 license = "MIT"
+categories = ["minecraft", "cli", "server"]
 homepage = "https://github.com/mcjars/mcvcli"
 repository = "https://github.com/mcjars/mcvcli.git"
 
@@ -12,12 +13,11 @@ name = "mcvcli"
 path = "src/main.rs"
 
 [dependencies]
-clap = { version = "4.5.28", features = ["derive"] }
+clap = "4.5.28"
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json"] }
 serde = { version = "1.0.138", features = ["derive"] }
 serde_json = "1.0.138"
 tokio = { version = "1.10.0", features = ["full"] }
-clap_derive = { version = "4.0.0-rc.1" }
 dialoguer = { version = "0.11.0", features = ["fuzzy-select"] }
 colored = "3.0.0"
 dirs = "6.0.0"

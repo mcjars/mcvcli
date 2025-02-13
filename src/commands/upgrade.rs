@@ -200,9 +200,27 @@ pub async fn upgrade(_matches: &ArgMatches) -> i32 {
         "...".bright_black().italic()
     );
 
-    std::fs::remove_file(&binary).unwrap_or_default();
-    std::fs::copy(&new_binary, &binary).unwrap();
-    std::fs::remove_dir_all(new_binary.parent().unwrap()).unwrap();
+    if std::env::consts::OS == "windows" {
+        std::process::Command::new("cmd")
+            .arg("/C")
+            .arg("move")
+            .arg("/Y")
+            .arg(new_binary.to_str().unwrap())
+            .arg(&binary)
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .spawn()
+            .unwrap()
+            .wait()
+            .unwrap();
+
+        std::fs::remove_dir_all(new_binary.parent().unwrap()).unwrap();
+    } else {
+        std::fs::remove_file(&binary).unwrap_or_default();
+        std::fs::copy(&new_binary, &binary).unwrap();
+        std::fs::remove_dir_all(new_binary.parent().unwrap()).unwrap();
+    }
 
     println!(
         " {} {} {} {} {} {}",

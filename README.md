@@ -62,6 +62,7 @@ mcvcli update # update build or minecraft version of your jar (only newer)
 mcvcli install # force install any other version
 mcvcli lookup {user} # lookup a user on your server or globally
 mcvcli start # start the server
+
 mcvcli profile list # list server profiles
 mcvcli profile create {name} # create a new profile
 mcvcli profile use {name} # switch to another profile
@@ -70,6 +71,11 @@ mcvcli backup list # list created server backups
 mcvcli backup create {name} # create a new server backup
 mcvcli backup delete {name} # delete a server backup
 mcvcli backup restore {name} # restore a previously created server backup
+
+mcvcli start --detached # start the server in the background (no output)
+mcvcli attach # attach to the server console
+mcvcli stop # stop the server
+mcvcli status # check the server status
 
 mcvcli upgrade # upgrade the mcvcli binary
 ```

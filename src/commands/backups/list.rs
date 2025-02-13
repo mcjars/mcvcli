@@ -16,17 +16,23 @@ pub async fn list(_matches: &ArgMatches) -> i32 {
         "listing backups...".bright_black(),
         "DONE".green().bold()
     );
-    println!();
 
     if list.is_empty() {
+        println!();
         println!("{}", "no backups found".red());
+        return 1;
     }
 
-    let last_name: &str = list.last().unwrap().name.as_ref();
-    for backup in &list {
-        println!("{}", backup.name.cyan().bold());
+    for backup in list {
+        println!();
+        println!("{}", backup.name.cyan().bold().underline());
 
         println!("  {} {}", "path:   ".bright_black(), backup.path.cyan());
+        println!(
+            "  {} {}",
+            "format: ".bright_black(),
+            backups::extension(&backup.format).cyan()
+        );
         println!(
             "  {} {}",
             "size:   ".bright_black(),
@@ -41,10 +47,6 @@ pub async fn list(_matches: &ArgMatches) -> i32 {
                 .to_string()
                 .cyan()
         );
-
-        if backup.name != last_name {
-            println!();
-        }
     }
 
     0

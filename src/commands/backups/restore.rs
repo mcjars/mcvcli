@@ -17,7 +17,8 @@ pub async fn restore(matches: &ArgMatches) -> i32 {
         return 1;
     }
 
-    if !backups::list().iter().any(|b| b.name == *name) {
+    let list = backups::list();
+    if !list.iter().any(|b| b.name == *name) {
         println!(
             "{} {} {}",
             "backup".red(),
@@ -37,7 +38,7 @@ pub async fn restore(matches: &ArgMatches) -> i32 {
         return 1;
     }
 
-    println!("{}", "Wiping server directory...".bright_black());
+    println!("{}", "wiping server directory...".bright_black());
 
     let entries = std::fs::read_dir(".").unwrap();
     for entry in entries {
@@ -64,7 +65,7 @@ pub async fn restore(matches: &ArgMatches) -> i32 {
 
     println!(
         "{} {}",
-        "Wiping server directory...".bright_black(),
+        "wiping server directory...".bright_black(),
         "DONE".green().bold()
     );
 
@@ -75,7 +76,7 @@ pub async fn restore(matches: &ArgMatches) -> i32 {
         "...".bright_black()
     );
 
-    backups::restore(name);
+    backups::restore(list.iter().find(|b| b.name == *name).unwrap());
 
     println!(
         "{} {} {} {}",

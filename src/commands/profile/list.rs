@@ -58,7 +58,7 @@ pub async fn list(matches: &ArgMatches) -> i32 {
 
         println!(
             "{} {}",
-            profile.cyan().bold(),
+            profile.cyan().bold().underline(),
             if *profile == config.profile_name {
                 "(current)".green()
             } else {

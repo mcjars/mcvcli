@@ -209,6 +209,13 @@ fn cli() -> Command {
                                 .num_args(1)
                                 .required(true),
                         )
+                        .arg(
+                            Arg::new("format")
+                                .help("The format of the backup to create (options: zip, tar, tar.gz, tar.xz)")
+                                .num_args(1)
+                                .default_value("zip")
+                                .required(false),
+                        )
                         .arg_required_else_help(true),
                 )
                 .subcommand(

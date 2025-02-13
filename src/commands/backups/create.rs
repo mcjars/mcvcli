@@ -6,7 +6,19 @@ use dialoguer::{theme::ColorfulTheme, Confirm};
 
 pub async fn create(matches: &ArgMatches) -> i32 {
     let name = matches.get_one::<String>("name").expect("required");
+    let format = matches.get_one::<String>("format").expect("required");
+    let format: Option<backups::BackupFormat> =
+        serde_json::from_str(&format!("\"{}\"", format)).ok();
     let _config = config::Config::new(".mcvcli.json", false);
+
+    if format.is_none() {
+        println!(
+            "{} {}",
+            "invalid format, accepted values:".red(),
+            "(zip, tar, tar.gz, tar.xz)".cyan()
+        );
+        return 1;
+    }
 
     if backups::list().iter().any(|backup| backup.name == *name) {
         println!(
@@ -30,7 +42,7 @@ pub async fn create(matches: &ArgMatches) -> i32 {
 
     println!("{}", "creating backup...".bright_black());
 
-    backups::create(name);
+    backups::create(name, &format.unwrap());
 
     println!(
         "{} {}",
