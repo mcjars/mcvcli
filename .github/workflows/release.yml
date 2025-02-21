@@ -1,8 +1,5 @@
 name: Release
 on:
-  # schedule:
-  # - cron: '0 0 * * *' # midnight UTC
-
   push:
     branches:
       - main
@@ -17,9 +14,9 @@ jobs:
     name: Dist
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: false # don't fail other jobs if one fails
+      fail-fast: false
       matrix:
-        build: [x86_64-linux, x86_64-macos, x86_64-windows] #, x86_64-win-gnu, win32-msvc
+        build: [x86_64-linux, x86_64-macos, x86_64-windows]
         include:
         - build: x86_64-linux
           os: ubuntu-20.04
@@ -45,20 +42,10 @@ jobs:
           os: macos-latest
           rust: stable
           target: aarch64-apple-darwin
-        # - build: x86_64-win-gnu
-        #   os: windows-2019
-        #   rust: stable-x86_64-gnu
-        #   target: x86_64-pc-windows-gnu
-        # - build: win32-msvc
-        #   os: windows-2019
-        #   rust: stable
-        #   target: i686-pc-windows-msvc
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v2
-        with:
-          submodules: true
+        uses: actions/checkout@v4
 
       - name: Install ${{ matrix.rust }} toolchain
         uses: actions-rs/toolchain@v1
@@ -67,6 +54,11 @@ jobs:
           toolchain: ${{ matrix.rust }}
           target: ${{ matrix.target }}
           override: true
+
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          prefix-key: ${{ runner.os }}-${{ matrix.rust }}-${{ matrix.target }}
 
       - name: Run cargo test
         uses: actions-rs/cargo@v1
@@ -85,15 +77,6 @@ jobs:
       - name: Strip release binary (linux and macos)
         if: matrix.build == 'x86_64-linux' || matrix.build == 'x86_64-macos'
         run: strip "target/${{ matrix.target }}/release/$BIN_NAME"
-
-      # - name: Strip release binary (arm)
-      #   if: matrix.build == 'aarch64-linux'
-      #   run: |
-      #     docker run --rm -v \
-      #       "$PWD/target:/target:Z" \
-      #       rustembedded/cross:${{ matrix.target }} \
-      #       aarch64-linux-gnu-strip \
-      #       /target/${{ matrix.target }}/release/$BIN_NAME
 
       - name: Build archive
         shell: bash
@@ -118,14 +101,10 @@ jobs:
       contents: write
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v2
-        with:
-          submodules: false
+        uses: actions/checkout@v4
 
       - uses: actions/download-artifact@v4
-        # with:
-        #   path: dist
-      # - run: ls -al ./dist
+
       - run: ls -al bins-*
 
       - name: Build archive
@@ -168,35 +147,3 @@ jobs:
           file_glob: true
           tag: ${{ steps.version.outputs.val }}
           overwrite: true
-
-        #
-        # you can use this initial file in your homebrew-tap if you don't have an initial formula:
-        # <projectname>.rb
-        #
-        # class <Projectname capitalized> < Formula
-        #   desc "A test formula"
-        #   homepage "http://www.example.com"
-        #   url "-----"
-        #   version "-----"
-        #   sha256 "-----"
-
-        #   def install
-        #     bin.install "<bin-name>"
-        #   end
-        # end
-
-      
-      # Uncomment this section if you want to release your package to crates.io
-      # Before publishing, make sure you have filled out the following fields:
-      # license or license-file, description, homepage, documentation, repository, readme.
-      # Read more: https://doc.rust-lang.org/cargo/reference/publishing.html
-
-      # - name: Install ${{ matrix.rust }} toolchain
-      #   uses: actions-rs/toolchain@v1
-      #   with:
-      #     profile: minimal
-      #     toolchain: ${{ matrix.rust }}
-      #     target: ${{ matrix.target }}
-      # - run: cargo publish --token ${CRATES_TOKEN}
-      #  env:
-      #    CRATES_TOKEN: ${{ secrets.CRATES_TOKEN }}
