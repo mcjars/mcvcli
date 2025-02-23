@@ -2,7 +2,7 @@ use crate::api::Progress;
 
 use colored::Colorize;
 use std::{fs::File, io::Write, path::Path};
-use zip::{write::SimpleFileOptions, ZipArchive, ZipWriter};
+use zip::{ZipArchive, ZipWriter, write::SimpleFileOptions};
 
 fn recursive_add_directory(
     zip: &mut ZipWriter<std::fs::File>,

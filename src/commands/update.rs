@@ -2,7 +2,7 @@ use crate::{api, config, detached, jar, modpack, profiles};
 
 use clap::ArgMatches;
 use colored::Colorize;
-use dialoguer::{theme::ColorfulTheme, FuzzySelect, Select};
+use dialoguer::{FuzzySelect, Select, theme::ColorfulTheme};
 use std::collections::HashMap;
 
 pub async fn update(matches: &ArgMatches) -> i32 {

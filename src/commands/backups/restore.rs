@@ -2,7 +2,7 @@ use crate::{backups, config, detached};
 
 use clap::ArgMatches;
 use colored::Colorize;
-use dialoguer::{theme::ColorfulTheme, Confirm};
+use dialoguer::{Confirm, theme::ColorfulTheme};
 
 pub async fn restore(matches: &ArgMatches) -> i32 {
     let name = matches.get_one::<String>("name").unwrap();

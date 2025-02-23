@@ -124,10 +124,9 @@ pub async fn lookup(matches: &ArgMatches) -> i32 {
         api.format_uuid(&player.id).unwrap()
     ))
     .ok();
-    let player_stats: Option<PlayerStats> = if let Some(player_stats) = player_stats {
-        serde_json::from_reader(player_stats).ok()
-    } else {
-        None
+    let player_stats: Option<PlayerStats> = match player_stats {
+        Some(player_stats) => serde_json::from_reader(player_stats).ok(),
+        _ => None,
     };
 
     if player_data.is_none() {

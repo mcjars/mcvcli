@@ -322,6 +322,6 @@ async fn main() {
             }
             _ => unreachable!(),
         },
-        _ => unreachable!(),
+        _ => cli().print_help().unwrap(),
     }
 }

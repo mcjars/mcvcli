@@ -1,5 +1,5 @@
 use colored::Colorize;
-use rand::{distr::Alphanumeric, Rng};
+use rand::{Rng, distr::Alphanumeric};
 use serde::{Deserialize, Serialize};
 use std::{fs::File, path::Path};
 

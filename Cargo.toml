@@ -1,8 +1,8 @@
 [package]
 name = "mcvcli"
 description = "A command line interface for managing Minecraft servers."
-version = "2.1.4"
-edition = "2021"
+version = "2.1.5"
+edition = "2024"
 license = "MIT"
 homepage = "https://github.com/mcjars/mcvcli"
 repository = "https://github.com/mcjars/mcvcli.git"

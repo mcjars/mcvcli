@@ -2,7 +2,7 @@ use crate::{backups, config};
 
 use clap::ArgMatches;
 use colored::Colorize;
-use dialoguer::{theme::ColorfulTheme, Confirm};
+use dialoguer::{Confirm, theme::ColorfulTheme};
 
 pub async fn delete(matches: &ArgMatches) -> i32 {
     let name = matches.get_one::<String>("name").unwrap();

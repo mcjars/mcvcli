@@ -2,7 +2,7 @@ use crate::{api, config, jar, java, modpack};
 
 use clap::ArgMatches;
 use colored::Colorize;
-use dialoguer::{theme::ColorfulTheme, FuzzySelect, Input, Select};
+use dialoguer::{FuzzySelect, Input, Select, theme::ColorfulTheme};
 
 pub async fn init(
     matches: &ArgMatches,

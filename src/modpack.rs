@@ -1,5 +1,5 @@
 use crate::{
-    api::{mcjars::McjarsApi, modrinth::Version, Progress},
+    api::{Progress, mcjars::McjarsApi, modrinth::Version},
     jar,
     progress::Progress as ProgressBar,
 };

@@ -1,7 +1,7 @@
 use crate::api::Progress;
 
 use colored::Colorize;
-use flate2::{read::GzDecoder, write::GzEncoder, Compression};
+use flate2::{Compression, read::GzDecoder, write::GzEncoder};
 use std::{fs::File, io::Write, path::Path};
 use tar::{Archive, Builder};
 use xz2::{read::XzDecoder, write::XzEncoder};

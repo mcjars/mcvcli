@@ -2,7 +2,7 @@ use crate::{api, config, detached, jar, modpack};
 
 use clap::ArgMatches;
 use colored::Colorize;
-use dialoguer::{theme::ColorfulTheme, FuzzySelect, Input, Select};
+use dialoguer::{FuzzySelect, Input, Select, theme::ColorfulTheme};
 
 pub async fn install(matches: &ArgMatches) -> i32 {
     let mut config = config::Config::new(".mcvcli.json", false);

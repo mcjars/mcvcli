@@ -3,9 +3,9 @@ use crate::{config, detached, java};
 
 use clap::ArgMatches;
 use colored::Colorize;
-use dialoguer::{theme::ColorfulTheme, Confirm};
+use dialoguer::{Confirm, theme::ColorfulTheme};
 use human_bytes::human_bytes;
-use rand::{distr::Alphanumeric, Rng};
+use rand::{Rng, distr::Alphanumeric};
 use std::path::Path;
 use std::sync::Arc;
 use std::{

@@ -2,7 +2,7 @@ use crate::api::{self, Progress};
 
 use clap::ArgMatches;
 use colored::Colorize;
-use dialoguer::{theme::ColorfulTheme, Confirm};
+use dialoguer::{Confirm, theme::ColorfulTheme};
 use human_bytes::human_bytes;
 use serde::Deserialize;
 use std::{env::temp_dir, fs::File, io::Write, path::Path};
