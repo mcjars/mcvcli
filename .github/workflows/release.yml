@@ -103,6 +103,14 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v4
 
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          target: x86_64-unknown-linux-gnu
+          override: true
+
       - uses: actions/download-artifact@v4
 
       - run: ls -al bins-*
@@ -137,12 +145,7 @@ jobs:
 
       - name: Get cli version from Cargo.toml
         id: version
-        uses: actions-rs/cargo@v1
-        with:
-          command: metadata
-          args: --format-version=1 --no-deps
-      - name: Set output
-        run: echo "val=$(echo ${{ steps.version.outputs.stdout }} | jq '.packages[0].version' -r)" >> $GITHUB_ENV
+        run: echo "val=$(cargo metadata --format-version=1 --no-deps | jq '.packages[0].version' -r)" >> $GITHUB_OUTPUT
 
       - name: Upload binaries to release
         uses: svenstaro/upload-release-action@v2
