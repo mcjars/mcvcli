@@ -174,9 +174,9 @@ fn cli() -> Command {
                             Arg::new("name")
                                 .help("The name of the profile to delete")
                                 .num_args(1)
-                                .required(true),
+                                .required(false),
                         )
-                        .arg_required_else_help(true),
+                        .arg_required_else_help(false),
                 )
                 .subcommand(
                     Command::new("use")
@@ -185,9 +185,9 @@ fn cli() -> Command {
                             Arg::new("name")
                                 .help("The name of the profile to switch to")
                                 .num_args(1)
-                                .required(true),
+                                .required(false),
                         )
-                        .arg_required_else_help(true),
+                        .arg_required_else_help(false),
                 )
                 .subcommand(
                     Command::new("list")
@@ -234,9 +234,9 @@ fn cli() -> Command {
                             Arg::new("name")
                                 .help("The name of the backup to delete")
                                 .num_args(1)
-                                .required(true),
+                                .required(false),
                         )
-                        .arg_required_else_help(true),
+                        .arg_required_else_help(false),
                 )
                 .subcommand(
                     Command::new("restore")
@@ -245,13 +245,73 @@ fn cli() -> Command {
                             Arg::new("name")
                                 .help("The name of the backup to restore")
                                 .num_args(1)
-                                .required(true),
+                                .required(false),
                         )
-                        .arg_required_else_help(true),
+                        .arg_required_else_help(false),
                 )
                 .subcommand(
                     Command::new("list")
                         .about("Lists all backups")
+                        .arg_required_else_help(false),
+                )
+                .arg_required_else_help(true)
+                .subcommand_required(true),
+        )
+        .subcommand(
+            Command::new("mods")
+                .about("Manages mods")
+                .subcommand(
+                    Command::new("list")
+                        .about("Lists all mods")
+                        .arg_required_else_help(false),
+                )
+                .subcommand(
+                    Command::new("delete")
+                        .about("Deletes selected mods")
+                        .arg_required_else_help(false),
+                )
+                .arg_required_else_help(true)
+                .subcommand_required(true),
+        )
+        .subcommand(
+            Command::new("java")
+                .about("Manages Java versions")
+                .subcommand(
+                    Command::new("list")
+                        .about("Lists all Java versions")
+                        .arg_required_else_help(false),
+                )
+                .subcommand(
+                    Command::new("use")
+                        .about("Switches to a Java version")
+                        .arg(
+                            Arg::new("version")
+                                .help("The version of Java to install")
+                                .num_args(1)
+                                .required(false),
+                        )
+                        .arg_required_else_help(false),
+                )
+                .subcommand(
+                    Command::new("install")
+                        .about("Installs a new Java version")
+                        .arg(
+                            Arg::new("version")
+                                .help("The version of Java to install")
+                                .num_args(1)
+                                .required(false),
+                        )
+                        .arg_required_else_help(false),
+                )
+                .subcommand(
+                    Command::new("delete")
+                        .about("Deletes a Java version")
+                        .arg(
+                            Arg::new("version")
+                                .help("The version of Java to delete")
+                                .num_args(1)
+                                .required(false),
+                        )
                         .arg_required_else_help(false),
                 )
                 .arg_required_else_help(true)
@@ -319,6 +379,30 @@ async fn main() {
             }
             Some(("list", sub_matches)) => {
                 std::process::exit(commands::backups::list::list(sub_matches).await)
+            }
+            _ => unreachable!(),
+        },
+        Some(("mods", sub_matches)) => match sub_matches.subcommand() {
+            Some(("list", sub_matches)) => {
+                std::process::exit(commands::mods::list::list(sub_matches).await)
+            }
+            Some(("delete", sub_matches)) => {
+                std::process::exit(commands::mods::delete::delete(sub_matches).await)
+            }
+            _ => unreachable!(),
+        },
+        Some(("java", sub_matches)) => match sub_matches.subcommand() {
+            Some(("list", sub_matches)) => {
+                std::process::exit(commands::java::list::list(sub_matches).await)
+            }
+            Some(("use", sub_matches)) => {
+                std::process::exit(commands::java::r#use::r#use(sub_matches).await)
+            }
+            Some(("install", sub_matches)) => {
+                std::process::exit(commands::java::install::install(sub_matches).await)
+            }
+            Some(("delete", sub_matches)) => {
+                std::process::exit(commands::java::delete::delete(sub_matches).await)
             }
             _ => unreachable!(),
         },

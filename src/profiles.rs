@@ -18,5 +18,7 @@ pub fn list() -> Vec<String> {
         }
     }
 
+    profiles.sort();
+
     profiles
 }

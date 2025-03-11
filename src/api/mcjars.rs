@@ -1,7 +1,6 @@
 use crate::api;
 
 use indexmap::IndexMap;
-use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use sha2::Digest;
@@ -64,7 +63,6 @@ pub struct InstallationStepRemove {
 pub struct McjarsApi {
     url: String,
     fields: String,
-    client: Client,
 }
 
 impl McjarsApi {
@@ -72,7 +70,6 @@ impl McjarsApi {
         Self {
             url: std::env::var("MCJARS_URL").unwrap_or("https://versions.mcjars.app".to_string()),
             fields: "id,type,versionId,projectVersionId,name,installation,changes".to_string(),
-            client: api::client(),
         }
     }
 
@@ -94,8 +91,7 @@ impl McjarsApi {
             sha512.update(&buffer[..count]);
         }
 
-        let res = self
-            .client
+        let res = api::CLIENT
             .post(format!("{}/api/v2/build?fields={}", self.url, self.fields))
             .json(&json!({
                 "hash": {
@@ -117,8 +113,7 @@ impl McjarsApi {
     }
 
     pub async fn types(&self) -> Result<IndexMap<String, Type>, reqwest::Error> {
-        let res = self
-            .client
+        let res = api::CLIENT
             .get(format!("{}/api/v2/types", self.url))
             .send()
             .await?;
@@ -144,8 +139,7 @@ impl McjarsApi {
         &self,
         type_identifier: &str,
     ) -> Result<IndexMap<String, Version>, reqwest::Error> {
-        let res = self
-            .client
+        let res = api::CLIENT
             .get(format!(
                 "{}/api/v2/builds/{}?fields={}",
                 self.url, type_identifier, self.fields
@@ -167,8 +161,7 @@ impl McjarsApi {
         type_identifier: &str,
         version_identifier: &str,
     ) -> Result<Vec<Build>, reqwest::Error> {
-        let res = self
-            .client
+        let res = api::CLIENT
             .get(format!(
                 "{}/api/v2/builds/{}/{}?fields={}",
                 self.url, type_identifier, version_identifier, self.fields

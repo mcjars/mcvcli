@@ -79,6 +79,8 @@ pub fn list() -> Vec<Backup> {
         }
     }
 
+    backups.sort_by(|a, b| b.created.cmp(&a.created));
+
     backups
 }
 

@@ -40,8 +40,8 @@ impl Java {
         }
     }
 
-    pub fn installed(&self) -> Vec<u8> {
-        let mut installed: Vec<u8> = Vec::new();
+    pub fn installed(&self) -> Vec<(u8, String)> {
+        let mut installed: Vec<(u8, String)> = Vec::new();
 
         if !Path::new(&self.location).exists() {
             return installed;
@@ -53,16 +53,31 @@ impl Java {
             let path = entry.path();
 
             if path.is_dir() {
-                let version =
-                    str::parse::<u8>(path.file_name().unwrap().to_str().unwrap()).unwrap_or(0);
+                let version = path
+                    .file_name()
+                    .unwrap()
+                    .to_str()
+                    .unwrap()
+                    .parse()
+                    .unwrap_or(0);
 
                 if version != 0 {
-                    installed.push(version);
+                    installed.push((version, path.to_str().unwrap().to_string()));
                 }
             }
         }
 
-        installed
+        installed.sort();
+
+        installed.into_iter().rev().collect()
+    }
+
+    pub fn remove(&self, version: u8) {
+        let installed = self.installed();
+
+        if let Some((_, path)) = installed.iter().find(|(v, _)| *v == version) {
+            std::fs::remove_dir_all(path).unwrap();
+        }
     }
 
     pub async fn binary(&self, version: u8) -> [String; 2] {
@@ -75,7 +90,7 @@ impl Java {
 
         let installed = self.installed();
 
-        if !installed.contains(&version) {
+        if !installed.iter().any(|(v, _)| *v == version) {
             println!(
                 "{} {} {}",
                 "java".bright_black(),
@@ -165,7 +180,7 @@ impl Java {
         let mut progress = Progress::new(res.content_length().unwrap() as usize);
         progress.spinner(|progress, spinner| {
             format!(
-                "\r {} {} {}/{} ({}%)      ",
+                "\r  {} {} {}/{} ({}%)      ",
                 "downloading...".bright_black().italic(),
                 spinner.cyan(),
                 human_bytes(progress.progress() as f64)

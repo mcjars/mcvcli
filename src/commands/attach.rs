@@ -17,7 +17,7 @@ pub async fn attach(_matches: &ArgMatches) -> i32 {
 
     println!("{}", "attaching to server ...".bright_black());
 
-    let (mut stdin, mut stdout, mut stderr) = detached::get_pipes(&config.identifier.unwrap());
+    let [mut stdin, mut stdout, mut stderr] = detached::get_pipes(&config.identifier.unwrap());
     let mut threads = Vec::new();
 
     println!(
@@ -32,11 +32,11 @@ pub async fn attach(_matches: &ArgMatches) -> i32 {
     }));
 
     threads.push(tokio::spawn(async move {
-        std::io::copy(&mut stdout, &mut std::io::stdout()).unwrap();
+        std::io::copy(&mut stdout, &mut std::io::stdout().lock()).unwrap();
     }));
 
     threads.push(tokio::spawn(async move {
-        std::io::copy(&mut stderr, &mut std::io::stderr()).unwrap();
+        std::io::copy(&mut stderr, &mut std::io::stderr().lock()).unwrap();
     }));
 
     tokio::spawn(async move {

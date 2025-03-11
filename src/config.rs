@@ -3,15 +3,10 @@ use rand::{Rng, distr::Alphanumeric};
 use serde::{Deserialize, Serialize};
 use std::{fs::File, path::Path};
 
-const CONFIG_VERSION: u8 = 4;
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {
     #[serde(skip)]
     path: String,
-
-    #[serde(rename = "configVersion")]
-    pub config_version: u8,
 
     #[serde(rename = "jarFile")]
     pub jar_file: String,
@@ -47,7 +42,6 @@ impl Config {
             if create {
                 let config = Config {
                     path: path.to_string(),
-                    config_version: CONFIG_VERSION,
                     jar_file: "server.jar".to_string(),
                     profile_name: "default".to_string(),
                     modpack_slug: None,
@@ -88,6 +82,19 @@ impl Config {
         config.path = path.to_string();
 
         config
+    }
+
+    pub fn new_optional(path: &str) -> Option<Self> {
+        if !Path::new(path).exists() {
+            return None;
+        }
+
+        let file = File::open(path).unwrap();
+        let mut config: Config = serde_json::from_reader(file).unwrap();
+
+        config.path = path.to_string();
+
+        Some(config)
     }
 
     pub fn save(&self) {

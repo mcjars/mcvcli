@@ -8,10 +8,7 @@ use human_bytes::human_bytes;
 use rand::{Rng, distr::Alphanumeric};
 use std::path::Path;
 use std::sync::Arc;
-use std::{
-    fs::File,
-    io::{Read, Write},
-};
+use std::{fs::File, io::Write};
 use tokio::sync::Mutex;
 use tokio::{process::Command, signal::ctrl_c};
 
@@ -20,23 +17,9 @@ pub async fn start(matches: &ArgMatches) -> i32 {
     let auto_agree_eula = matches.get_one::<bool>("eula").expect("required");
     let detached = matches.get_one::<bool>("detached").expect("required");
 
-    let mut eula_file: Option<File> = File::open("eula.txt").ok();
-    let mut eula_accepted = false;
-
-    if eula_file.is_none() {
-        eula_accepted = false;
-    } else {
-        let mut eula_contents = String::new();
-        eula_file
-            .as_mut()
-            .unwrap()
-            .read_to_string(&mut eula_contents)
-            .unwrap();
-
-        if eula_contents.contains("eula=true") {
-            eula_accepted = true;
-        }
-    }
+    let eula_accepted = std::fs::read_to_string("eula.txt")
+        .unwrap_or_default()
+        .contains("eula=true");
 
     if !eula_accepted {
         if !auto_agree_eula {
@@ -51,13 +34,7 @@ pub async fn start(matches: &ArgMatches) -> i32 {
             }
         }
 
-        eula_file = File::create("eula.txt").ok();
-        eula_file
-            .as_mut()
-            .unwrap()
-            .write_all("eula=true".as_bytes())
-            .unwrap();
-        eula_file.as_mut().unwrap().sync_all().unwrap();
+        std::fs::write("eula.txt", "eula=true\n").unwrap();
     }
 
     if detached::status(config.pid) {
@@ -223,7 +200,7 @@ pub async fn start(matches: &ArgMatches) -> i32 {
                 .collect(),
         );
 
-        let (stdin, stdout, stderr) = detached::get_pipes(config.identifier.as_ref().unwrap());
+        let [stdin, stdout, stderr] = detached::get_pipes(config.identifier.as_ref().unwrap());
 
         #[allow(clippy::zombie_processes)]
         let child = std::process::Command::new(binary)

@@ -29,7 +29,7 @@ struct Asset {
 pub async fn upgrade(_matches: &ArgMatches) -> i32 {
     println!("{}", "checking for updates ...".bright_black());
 
-    let releases = api::client()
+    let releases = api::CLIENT
         .get("https://api.github.com/repos/mcjars/mcvcli/releases")
         .send()
         .await
@@ -113,7 +113,7 @@ pub async fn upgrade(_matches: &ArgMatches) -> i32 {
         "...".bright_black().italic()
     );
 
-    let mut res = api::client()
+    let mut res = api::CLIENT
         .get(&asset.browser_download_url)
         .send()
         .await
@@ -205,8 +205,6 @@ pub async fn upgrade(_matches: &ArgMatches) -> i32 {
             .arg(new_binary.to_str().unwrap())
             .arg(&binary)
             .stdin(std::process::Stdio::null())
-            .stdout(std::process::Stdio::null())
-            .stderr(std::process::Stdio::null())
             .spawn()
             .unwrap()
             .wait()

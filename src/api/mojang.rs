@@ -1,6 +1,5 @@
 use crate::api;
 
-use reqwest::Client;
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
@@ -9,19 +8,15 @@ pub struct Profile {
     pub name: String,
 }
 
-pub struct MojangApi {
-    client: Client,
-}
+pub struct MojangApi {}
 
 impl MojangApi {
     pub fn new() -> Self {
-        Self {
-            client: api::client(),
-        }
+        Self {}
     }
 
-    pub fn format_uuid(&self, raw_uuid: &str) -> Option<String> {
-        let uuid = raw_uuid.replace("-", "");
+    pub fn format_uuid(&self, uuid: &str) -> Option<String> {
+        let uuid = uuid.replace("-", "");
 
         if uuid.len() < 32 {
             return None;
@@ -37,11 +32,10 @@ impl MojangApi {
         ))
     }
 
-    pub async fn get_profile_uuid(&self, raw_uuid: &str) -> Result<Profile, reqwest::Error> {
-        let uuid = self.format_uuid(raw_uuid).unwrap_or_default();
+    pub async fn get_profile_uuid(&self, uuid: &str) -> Result<Profile, reqwest::Error> {
+        let uuid = self.format_uuid(uuid).unwrap_or_default();
 
-        let res = self
-            .client
+        let res = api::CLIENT
             .get(format!(
                 "https://sessionserver.mojang.com/session/minecraft/profile/{}",
                 uuid
@@ -53,8 +47,7 @@ impl MojangApi {
     }
 
     pub async fn get_profile_name(&self, name: &str) -> Result<Profile, reqwest::Error> {
-        let res = self
-            .client
+        let res = api::CLIENT
             .get(format!(
                 "https://api.mojang.com/users/profiles/minecraft/{}",
                 name

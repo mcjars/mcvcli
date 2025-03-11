@@ -2,10 +2,10 @@ use crate::{backups, config, detached};
 
 use clap::ArgMatches;
 use colored::Colorize;
-use dialoguer::{Confirm, theme::ColorfulTheme};
+use dialoguer::{Confirm, FuzzySelect, theme::ColorfulTheme};
 
 pub async fn restore(matches: &ArgMatches) -> i32 {
-    let name = matches.get_one::<String>("name").unwrap();
+    let name = matches.get_one::<String>("name");
     let config = config::Config::new(".mcvcli.json", false);
 
     if detached::status(config.pid) {
@@ -18,6 +18,26 @@ pub async fn restore(matches: &ArgMatches) -> i32 {
     }
 
     let list = backups::list();
+
+    let name = if let Some(name) = name {
+        name
+    } else {
+        if list.is_empty() {
+            println!("{}", "no backups to restore".red());
+            return 1;
+        }
+
+        let name = FuzzySelect::with_theme(&ColorfulTheme::default())
+            .with_prompt("Select backup to restore")
+            .items(&list.iter().map(|b| &b.name).collect::<Vec<&String>>())
+            .default(0)
+            .max_length(5)
+            .interact()
+            .unwrap();
+
+        &list[name].name
+    };
+
     if !list.iter().any(|b| b.name == *name) {
         println!(
             "{} {} {}",

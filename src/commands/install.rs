@@ -169,7 +169,7 @@ pub async fn install(matches: &ArgMatches) -> i32 {
                 )
                 .await
                 .unwrap();
-            let mut _project = 0;
+            let mut project;
 
             loop {
                 let modpack = FuzzySelect::with_theme(&ColorfulTheme::default())
@@ -196,7 +196,7 @@ pub async fn install(matches: &ArgMatches) -> i32 {
                     .interact()
                     .unwrap();
 
-                _project = modpack;
+                project = modpack;
 
                 if modpack == 0 {
                     let search = Input::<String>::new()
@@ -216,7 +216,7 @@ pub async fn install(matches: &ArgMatches) -> i32 {
                 }
             }
 
-            let project = &projects[_project - 1];
+            let project = &projects[project - 1];
 
             println!();
             println!(

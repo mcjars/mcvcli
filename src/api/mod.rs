@@ -3,7 +3,7 @@ pub mod modrinth;
 pub mod mojang;
 
 use reqwest::Client;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, LazyLock, Mutex};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 pub struct Progress {
@@ -72,9 +72,9 @@ impl Progress {
     }
 }
 
-pub fn client() -> Client {
+pub static CLIENT: LazyLock<Client> = LazyLock::new(|| {
     Client::builder()
-        .user_agent(format!("mcvcli/{} github.com/mcjars/mcvcli", VERSION))
+        .user_agent(format!("github.com/mcjars/mcvcli/{}", VERSION))
         .build()
         .unwrap()
-}
+});

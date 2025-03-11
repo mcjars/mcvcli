@@ -2,10 +2,11 @@ use crate::{config, detached, profiles};
 
 use clap::ArgMatches;
 use colored::Colorize;
+use dialoguer::{FuzzySelect, theme::ColorfulTheme};
 use std::path::Path;
 
 pub async fn r#use(matches: &ArgMatches) -> i32 {
-    let name = matches.get_one::<String>("name").unwrap();
+    let name = matches.get_one::<String>("name");
     let config = config::Config::new(".mcvcli.json", false);
 
     if detached::status(config.pid) {
@@ -17,6 +18,28 @@ pub async fn r#use(matches: &ArgMatches) -> i32 {
         return 1;
     }
 
+    let list = profiles::list();
+
+    let name = if let Some(name) = name {
+        name
+    } else {
+        if list.is_empty() {
+            println!("{}", "no profiles to use".red());
+            return 1;
+        }
+
+        let name = FuzzySelect::with_theme(&ColorfulTheme::default())
+            .with_prompt("Select profile to use")
+            .items(&list)
+            .default(0)
+            .max_length(5)
+            .interact()
+            .unwrap();
+        println!();
+
+        &list[name]
+    };
+
     if config.profile_name == *name {
         println!(
             "{} {} {}",
@@ -27,7 +50,7 @@ pub async fn r#use(matches: &ArgMatches) -> i32 {
         return 1;
     }
 
-    if !profiles::list().contains(name) {
+    if !list.contains(name) {
         println!(
             "{} {} {}",
             "profile".red(),

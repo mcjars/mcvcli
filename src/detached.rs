@@ -23,10 +23,10 @@ pub fn status(pid: Option<usize>) -> bool {
     false
 }
 
-pub fn get_pipes(identifier: &str) -> (Pipe, Pipe, Pipe) {
+pub fn get_pipes(identifier: &str) -> [Pipe; 3] {
     let stdin = Pipe::with_name(&format!("{}_stdin", identifier)).unwrap();
     let stdout = Pipe::with_name(&format!("{}_stdout", identifier)).unwrap();
     let stderr = Pipe::with_name(&format!("{}_stderr", identifier)).unwrap();
 
-    (stdin, stdout, stderr)
+    [stdin, stdout, stderr]
 }

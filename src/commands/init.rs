@@ -10,7 +10,7 @@ pub async fn init(
     profile_name: Option<&str>,
 ) -> i32 {
     let directory = if let Some(override_directory) = override_directory {
-        &override_directory.to_string()
+        override_directory
     } else {
         matches.get_one::<String>("directory").unwrap()
     };

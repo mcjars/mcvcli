@@ -63,14 +63,23 @@ mcvcli install # force install any other version
 mcvcli lookup {user} # lookup a user on your server or globally
 mcvcli start # start the server
 
+mcvcli java list # list installed java versions
+mcvcli java install {version} # install a specific java version
+mcvcli java use {version} # switch to another java version
+mcvcli java delete {version} # remove a java version
+
 mcvcli profile list # list server profiles
 mcvcli profile create {name} # create a new profile
 mcvcli profile use {name} # switch to another profile
 mcvcli profile delete {name} # nuke a profile from existance
+
 mcvcli backup list # list created server backups
 mcvcli backup create {name} # create a new server backup
 mcvcli backup delete {name} # delete a server backup
 mcvcli backup restore {name} # restore a previously created server backup
+
+mcvcli mods list # list installed mods
+mcvcli mods delete # delete selected mods
 
 mcvcli start --detached # start the server in the background (no output)
 mcvcli attach # attach to the server console

@@ -2,14 +2,34 @@ use crate::{backups, config};
 
 use clap::ArgMatches;
 use colored::Colorize;
-use dialoguer::{Confirm, theme::ColorfulTheme};
+use dialoguer::{Confirm, FuzzySelect, theme::ColorfulTheme};
 
 pub async fn delete(matches: &ArgMatches) -> i32 {
-    let name = matches.get_one::<String>("name").unwrap();
+    let name = matches.get_one::<String>("name");
     let _config = config::Config::new(".mcvcli.json", false);
 
-    let backups = backups::list();
-    if !backups.iter().any(|b| b.name == *name) {
+    let list = backups::list();
+
+    let name = if let Some(name) = name {
+        name
+    } else {
+        if list.is_empty() {
+            println!("{}", "no backups to delete".red());
+            return 1;
+        }
+
+        let name = FuzzySelect::with_theme(&ColorfulTheme::default())
+            .with_prompt("Select backup to delete")
+            .items(&list.iter().map(|b| &b.name).collect::<Vec<&String>>())
+            .default(0)
+            .max_length(5)
+            .interact()
+            .unwrap();
+
+        &list[name].name
+    };
+
+    if !list.iter().any(|b| b.name == *name) {
         println!(
             "{} {} {}",
             "backup".red(),
@@ -36,7 +56,7 @@ pub async fn delete(matches: &ArgMatches) -> i32 {
         "...".bright_black()
     );
 
-    let backup = backups.iter().find(|b| b.name == *name).unwrap();
+    let backup = list.iter().find(|b| b.name == *name).unwrap();
     std::fs::remove_file(&backup.path).unwrap();
 
     println!(

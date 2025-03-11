@@ -16,8 +16,8 @@ pub async fn version(matches: &ArgMatches) -> i32 {
         return 1;
     }
 
-    let directory = if profile.is_some() {
-        format!(".mcvcli.profiles/{}", profile.unwrap())
+    let directory = if let Some(profile) = profile {
+        format!(".mcvcli.profiles/{}", profile)
     } else {
         ".".to_string()
     };
