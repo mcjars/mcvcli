@@ -144,7 +144,12 @@ pub async fn install(directory: &str, api: &McjarsApi, version: &Version) {
         let mut handles = vec![];
 
         for file in files {
-            if file.env.is_some() && file.env.as_ref().unwrap().server == "unsupported" {
+            if file
+                .env
+                .as_ref()
+                .map(|e| e.server == "unsupported")
+                .unwrap_or(true)
+            {
                 continue;
             }
 

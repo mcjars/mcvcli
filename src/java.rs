@@ -80,6 +80,68 @@ impl Java {
         }
     }
 
+    pub fn find_local(&self) -> Option<(u8, String)> {
+        if let Ok(java_home) = std::env::var("JAVA_HOME") {
+            let binary = format!("{}/bin/java", java_home);
+            let version = std::process::Command::new(&binary)
+                .arg("-version")
+                .output()
+                .unwrap()
+                .stderr;
+
+            if let Ok(version) = String::from_utf8(version) {
+                let version = version
+                    .lines()
+                    .next()
+                    .unwrap()
+                    .split_whitespace()
+                    .nth(2)
+                    .unwrap()
+                    .replace("\"", "")
+                    .split('.')
+                    .next()
+                    .unwrap()
+                    .parse()
+                    .unwrap();
+
+                return Some((version, binary));
+            }
+        } else if let Ok(path) = std::env::var("PATH") {
+            for path in path.split(':') {
+                let binary = format!("{}/java", path);
+                if !Path::new(&binary).exists() {
+                    continue;
+                }
+
+                let version = std::process::Command::new(&binary)
+                    .arg("-version")
+                    .output()
+                    .unwrap()
+                    .stderr;
+
+                if let Ok(version) = String::from_utf8(version) {
+                    let version = version
+                        .lines()
+                        .next()
+                        .unwrap()
+                        .split_whitespace()
+                        .nth(2)
+                        .unwrap()
+                        .replace("\"", "")
+                        .split('.')
+                        .next()
+                        .unwrap()
+                        .parse()
+                        .unwrap();
+
+                    return Some((version, binary));
+                }
+            }
+        }
+
+        None
+    }
+
     pub async fn binary(&self, version: u8) -> [String; 2] {
         println!(
             "{} {} {}",
@@ -89,6 +151,21 @@ impl Java {
         );
 
         let installed = self.installed();
+        let local = self.find_local();
+
+        if let Some((v, path)) = local {
+            if v == version {
+                println!(
+                    "{} {} {} {}",
+                    "checking for java".bright_black(),
+                    version.to_string().cyan(),
+                    "...".bright_black(),
+                    "DONE".green().bold()
+                );
+
+                return [path, "".to_string()];
+            }
+        }
 
         if !installed.iter().any(|(v, _)| *v == version) {
             println!(
@@ -195,7 +272,7 @@ impl Java {
             )
         });
 
-        while let Some(chunk) = res.chunk().await.unwrap() {
+        while let Ok(Some(chunk)) = res.chunk().await {
             file.write_all(&chunk).unwrap();
             progress.incr(chunk.len());
         }

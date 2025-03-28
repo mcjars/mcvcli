@@ -114,7 +114,7 @@ impl ModrinthApi {
             }
 
             if let Ok(mut file) = tokio::fs::File::open(entry.path()).await {
-                let mut buffer = vec![0; 1024];
+                let mut buffer = vec![0; 16 * 1024];
 
                 loop {
                     let count = match file.read(&mut buffer).await {

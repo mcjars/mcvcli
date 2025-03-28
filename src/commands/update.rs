@@ -47,7 +47,7 @@ pub async fn update(matches: &ArgMatches) -> i32 {
     println!("{}", "checking installed version ...".bright_black());
 
     let mut config = config::Config::new(&format!("{}/.mcvcli.json", directory), false);
-    let detected = jar::detect(directory.clone(), &config).await;
+    let detected = jar::detect(&directory.clone(), &config).await;
 
     if detected.is_none() {
         println!(

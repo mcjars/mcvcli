@@ -27,6 +27,7 @@ pub async fn list(_matches: &ArgMatches) -> i32 {
     println!("{}", "listing java versions...".bright_black());
 
     let java = java::Java::new();
+    let local = java.find_local();
     let mut list = java.installed();
     list.sort();
 
@@ -80,6 +81,37 @@ pub async fn list(_matches: &ArgMatches) -> i32 {
             "  {} {}",
             "size:   ".bright_black(),
             human_bytes(size as f64).cyan()
+        );
+    }
+
+    if let Some((version, path)) = local {
+        println!();
+
+        println!(
+            "{} {}",
+            format!("java {}", version).cyan().bold().underline(),
+            "(local)".green()
+        );
+
+        let version = std::process::Command::new(&path)
+            .arg("-version")
+            .output()
+            .map(|output| {
+                String::from_utf8(output.stderr)
+                    .unwrap()
+                    .lines()
+                    .next()
+                    .unwrap()
+                    .to_string()
+            })
+            .unwrap_or("unknown".to_string());
+
+        println!("  {} {}", "path:   ".bright_black(), path.cyan());
+        println!("  {} {}", "version:".bright_black(), version.cyan());
+        println!(
+            "  {} {}",
+            "size:   ".bright_black(),
+            "unknown".cyan().italic()
         );
     }
 

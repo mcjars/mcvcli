@@ -103,6 +103,7 @@ cargo build
 
 # install binary globally
 cargo install --path .
+mcvcli --version
 
 # run the binary temporarily
 cargo run -- --version

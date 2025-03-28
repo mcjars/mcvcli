@@ -20,14 +20,13 @@ pub struct Version {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Build {
     pub id: u32,
     pub r#type: String,
     pub name: String,
 
-    #[serde(rename = "versionId")]
     pub version_id: Option<String>,
-    #[serde(rename = "projectVersionId")]
     pub project_version_id: Option<String>,
 
     pub installation: Vec<Vec<InstallationStep>>,
@@ -81,7 +80,7 @@ impl McjarsApi {
         let mut file = tokio::fs::File::open(file).await.unwrap();
 
         loop {
-            let mut buffer = vec![0; 1024];
+            let mut buffer = vec![0; 64 * 1024];
             let count = file.read(&mut buffer).await.unwrap();
 
             if count == 0 {

@@ -15,7 +15,7 @@ pub async fn list(_matches: &ArgMatches) -> i32 {
 
     println!("{}", "checking installed version ...".bright_black());
 
-    let detected = jar::detect(".".to_string(), &config).await;
+    let detected = jar::detect(".", &config).await;
 
     println!(
         "{} {}",

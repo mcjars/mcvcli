@@ -6,10 +6,12 @@ use reqwest::Client;
 use std::sync::{Arc, LazyLock, Mutex};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
+const SPINNER: &[char] = &['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+
 pub struct Progress {
     pub total: usize,
 
-    progress: Arc<Mutex<[usize; 2]>>,
+    progress: Arc<Mutex<usize>>,
     thread: Option<tokio::task::JoinHandle<()>>,
 }
 
@@ -17,17 +19,17 @@ impl Progress {
     pub fn new(total: usize) -> Self {
         Self {
             total,
-            progress: Arc::new(Mutex::new([0, total])),
+            progress: Arc::new(Mutex::new(0)),
             thread: None,
         }
     }
 
     pub fn incr<N: Into<usize>>(&mut self, n: N) {
-        self.progress.lock().as_mut().unwrap()[0] += n.into();
+        **self.progress.lock().as_mut().unwrap() += n.into();
     }
 
     pub fn progress(&self) -> usize {
-        self.progress.lock().unwrap()[0]
+        *self.progress.lock().unwrap()
     }
 
     pub fn percent(&self) -> f64 {
@@ -42,7 +44,6 @@ impl Progress {
         let progress = Arc::clone(&self.progress);
 
         let thread = tokio::spawn(async move {
-            let spinner = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
             let mut i = 0;
 
             loop {
@@ -54,11 +55,11 @@ impl Progress {
                             progress: Arc::clone(&progress),
                             thread: None
                         },
-                        &spinner[i].to_string()
+                        &SPINNER[i].to_string()
                     )
                 );
 
-                i = (i + 1) % spinner.len();
+                i = (i + 1) % SPINNER.len();
                 tokio::time::sleep(std::time::Duration::from_millis(50)).await;
             }
         });
@@ -67,14 +68,17 @@ impl Progress {
     }
 
     pub fn finish(&mut self) {
-        std::thread::sleep(std::time::Duration::from_millis(100));
-        self.thread.take().unwrap().abort();
+        std::thread::sleep(std::time::Duration::from_millis(110));
+
+        if let Some(thread) = self.thread.take() {
+            thread.abort();
+        }
     }
 }
 
 pub static CLIENT: LazyLock<Client> = LazyLock::new(|| {
     Client::builder()
-        .user_agent(format!("github.com/mcjars/mcvcli/{}", VERSION))
+        .user_agent(format!("github.com/mcjars/mcvcli {}", VERSION))
         .build()
         .unwrap()
 });

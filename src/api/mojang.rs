@@ -8,7 +8,7 @@ pub struct Profile {
     pub name: String,
 }
 
-pub struct MojangApi {}
+pub struct MojangApi;
 
 impl MojangApi {
     pub fn new() -> Self {

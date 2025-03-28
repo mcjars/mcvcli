@@ -144,21 +144,21 @@ pub async fn install(build: &Build, directory: &str, spaces: usize) -> Result<()
 }
 
 pub async fn detect(
-    directory: String,
+    directory: &str,
     config: &Config,
 ) -> Option<([Build; 2], IndexMap<String, Version>, Option<Project>)> {
-    let mut file = Path::new(&directory)
+    let mut file = Path::new(directory)
         .join(&config.jar_file)
         .to_str()
         .unwrap()
         .to_string();
 
-    if Path::new(&directory)
+    if Path::new(directory)
         .join("libraries/net/minecraftforge/forge")
         .exists()
     {
         let entries =
-            std::fs::read_dir(Path::new(&directory).join("libraries/net/minecraftforge/forge"))
+            std::fs::read_dir(Path::new(directory).join("libraries/net/minecraftforge/forge"))
                 .unwrap();
 
         for entry in entries {
@@ -183,12 +183,12 @@ pub async fn detect(
                 }
             }
         }
-    } else if Path::new(&directory)
+    } else if Path::new(directory)
         .join("libraries/net/neoforged/neoforge")
         .exists()
     {
         let entries =
-            std::fs::read_dir(Path::new(&directory).join("libraries/net/neoforged/neoforge"))
+            std::fs::read_dir(Path::new(directory).join("libraries/net/neoforged/neoforge"))
                 .unwrap();
 
         for entry in entries {

@@ -126,7 +126,7 @@ pub async fn start(matches: &ArgMatches) -> i32 {
                 )
             });
 
-            while let Some(chunk) = req.chunk().await.unwrap() {
+            while let Ok(Some(chunk)) = req.chunk().await {
                 file.write_all(&chunk).unwrap();
                 progress.incr(chunk.len());
             }

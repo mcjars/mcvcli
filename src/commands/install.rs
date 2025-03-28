@@ -333,7 +333,7 @@ pub async fn install(matches: &ArgMatches) -> i32 {
             config.jar_file = "server.jar".to_string();
             config.modpack_slug = Some(project.project_id.clone().unwrap());
             config.modpack_version = Some(modpack_version.id.clone());
-            let detected = jar::detect(".".to_string(), &config).await;
+            let detected = jar::detect(".", &config).await;
 
             if detected.is_some() {
                 let ([build, _], versions, _) = detected.unwrap();

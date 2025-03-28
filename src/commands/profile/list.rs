@@ -29,7 +29,7 @@ pub async fn list(matches: &ArgMatches) -> i32 {
                     false,
                 );
 
-                jar::detect(directory, &profile_config).await
+                jar::detect(&directory, &profile_config).await
             });
         }
     }
