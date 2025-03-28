@@ -12,7 +12,7 @@ pub async fn status(_matches: &ArgMatches) -> i32 {
         println!(
             "{} {}",
             "server is not running, use".red(),
-            "mcvcli start --detach".cyan()
+            "mcvcli start --detached".cyan()
         );
         return 1;
     }

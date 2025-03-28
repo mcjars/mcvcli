@@ -22,7 +22,6 @@ struct Release {
 struct Asset {
     name: String,
     size: u64,
-
     browser_download_url: String,
 }
 
@@ -198,34 +197,62 @@ pub async fn upgrade(_matches: &ArgMatches) -> i32 {
     );
 
     if std::env::consts::OS == "windows" {
+        let batch_path = Path::new(&temp_dir()).join("update_mcvcli.bat");
+        let mut batch_file = File::create(&batch_path).unwrap();
+
+        writeln!(batch_file, "@echo off").unwrap();
+        writeln!(batch_file, "echo Waiting for mcvcli to exit...").unwrap();
+        writeln!(batch_file, "ping -n 2 127.0.0.1 > nul").unwrap();
+        writeln!(batch_file, "echo Updating mcvcli...").unwrap();
+        writeln!(
+            batch_file,
+            "copy /b /y \"{}\" \"{}\" > nul",
+            new_binary.to_str().unwrap(),
+            binary
+        )
+        .unwrap();
+        writeln!(batch_file, "echo Cleaning up...").unwrap();
+        writeln!(
+            batch_file,
+            "rmdir /s /q \"{}\" > nul",
+            new_binary.parent().unwrap().to_str().unwrap()
+        )
+        .unwrap();
+        writeln!(batch_file, "echo Update complete!").unwrap();
+        writeln!(batch_file, "exit").unwrap();
+
+        batch_file.sync_all().unwrap();
+
+        #[allow(clippy::zombie_processes)]
         std::process::Command::new("cmd")
-            .arg("/C")
-            .arg("move")
-            .arg("/Y")
-            .arg(new_binary.to_str().unwrap())
-            .arg(&binary)
-            .stdin(std::process::Stdio::null())
+            .args(&["/C", "start", "/min", "", batch_path.to_str().unwrap()])
             .spawn()
-            .unwrap()
-            .wait()
             .unwrap();
 
-        std::fs::remove_dir_all(new_binary.parent().unwrap()).unwrap();
+        println!(
+            " {} {} {} {} {} {}",
+            "moving".bright_black().italic(),
+            new_binary.to_str().unwrap().cyan().italic(),
+            "to".bright_black().italic(),
+            binary.cyan().italic(),
+            "...".bright_black().italic(),
+            "SCHEDULED".yellow().bold().italic()
+        );
     } else {
         std::fs::remove_file(&binary).unwrap_or_default();
         std::fs::copy(&new_binary, &binary).unwrap();
         std::fs::remove_dir_all(new_binary.parent().unwrap()).unwrap();
-    }
 
-    println!(
-        " {} {} {} {} {} {}",
-        "moving".bright_black().italic(),
-        new_binary.to_str().unwrap().cyan().italic(),
-        "to".bright_black().italic(),
-        binary.cyan().italic(),
-        "...".bright_black().italic(),
-        "DONE".green().bold().italic()
-    );
+        println!(
+            " {} {} {} {} {} {}",
+            "moving".bright_black().italic(),
+            new_binary.to_str().unwrap().cyan().italic(),
+            "to".bright_black().italic(),
+            binary.cyan().italic(),
+            "...".bright_black().italic(),
+            "DONE".green().bold().italic()
+        );
+    }
 
     println!(
         "{} {}",
