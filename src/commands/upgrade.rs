@@ -225,7 +225,7 @@ pub async fn upgrade(_matches: &ArgMatches) -> i32 {
 
         #[allow(clippy::zombie_processes)]
         std::process::Command::new("cmd")
-            .args(&["/C", "start", "/min", "", batch_path.to_str().unwrap()])
+            .args(["/C", "start", "/min", "", batch_path.to_str().unwrap()])
             .spawn()
             .unwrap();
 
