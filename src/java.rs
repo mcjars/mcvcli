@@ -80,7 +80,7 @@ impl Java {
         }
     }
 
-    pub fn find_local(&self) -> Option<(u8, String)> {
+    pub fn find_local(&self) -> Option<(u8, String, String)> {
         if let Ok(java_home) = std::env::var("JAVA_HOME") {
             let binary = format!("{}/bin/java", java_home);
             let version = std::process::Command::new(&binary)
@@ -105,7 +105,7 @@ impl Java {
                     .parse()
                     .unwrap();
 
-                return Some((version, binary));
+                return Some((version, binary, java_home));
             }
         } else if let Ok(path) = std::env::var("PATH") {
             for path in path.split(':') {
@@ -136,7 +136,7 @@ impl Java {
                         .parse()
                         .unwrap();
 
-                    return Some((version, binary));
+                    return Some((version, binary, "".to_string()));
                 }
             }
         }
@@ -155,7 +155,7 @@ impl Java {
         let installed = self.installed();
         let local = self.find_local();
 
-        if let Some((v, path)) = local {
+        if let Some((v, path, root)) = local {
             if v == version {
                 println!(
                     "{} {} {} {}",
@@ -165,7 +165,7 @@ impl Java {
                     "DONE".green().bold()
                 );
 
-                return [path, "".to_string()];
+                return [path, root];
             }
         }
 

@@ -84,7 +84,7 @@ pub async fn list(_matches: &ArgMatches) -> i32 {
         );
     }
 
-    if let Some((version, path)) = local {
+    if let Some((version, path, root)) = local {
         println!();
 
         println!(
@@ -108,7 +108,15 @@ pub async fn list(_matches: &ArgMatches) -> i32 {
 
         println!("  {} {}", "path:   ".bright_black(), path.cyan());
         println!("  {} {}", "version:".bright_black(), version.cyan());
-        println!("  {} {}", "size:   ".bright_black(), "unknown".cyan());
+        println!(
+            "  {} {}",
+            "size:   ".bright_black(),
+            if !root.is_empty() {
+                human_bytes(recursive_size(&root) as f64).cyan()
+            } else {
+                "unknown".cyan()
+            }
+        );
     }
 
     0
