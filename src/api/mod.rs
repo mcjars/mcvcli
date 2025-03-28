@@ -3,7 +3,7 @@ pub mod modrinth;
 pub mod mojang;
 
 use reqwest::Client;
-use std::sync::{Arc, LazyLock, Mutex};
+use std::sync::{Arc, LazyLock, atomic::AtomicUsize};
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const SPINNER: &[char] = &['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
@@ -11,7 +11,7 @@ const SPINNER: &[char] = &['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧
 pub struct Progress {
     pub total: usize,
 
-    progress: Arc<Mutex<usize>>,
+    progress: Arc<AtomicUsize>,
     thread: Option<tokio::task::JoinHandle<()>>,
 }
 
@@ -19,17 +19,18 @@ impl Progress {
     pub fn new(total: usize) -> Self {
         Self {
             total,
-            progress: Arc::new(Mutex::new(0)),
+            progress: Arc::new(AtomicUsize::new(0)),
             thread: None,
         }
     }
 
     pub fn incr<N: Into<usize>>(&mut self, n: N) {
-        **self.progress.lock().as_mut().unwrap() += n.into();
+        self.progress
+            .fetch_add(n.into(), std::sync::atomic::Ordering::SeqCst);
     }
 
     pub fn progress(&self) -> usize {
-        *self.progress.lock().unwrap()
+        self.progress.load(std::sync::atomic::Ordering::SeqCst)
     }
 
     pub fn percent(&self) -> f64 {

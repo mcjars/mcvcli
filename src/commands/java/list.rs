@@ -108,11 +108,7 @@ pub async fn list(_matches: &ArgMatches) -> i32 {
 
         println!("  {} {}", "path:   ".bright_black(), path.cyan());
         println!("  {} {}", "version:".bright_black(), version.cyan());
-        println!(
-            "  {} {}",
-            "size:   ".bright_black(),
-            "unknown".cyan().italic()
-        );
+        println!("  {} {}", "size:   ".bright_black(), "unknown".cyan());
     }
 
     0
