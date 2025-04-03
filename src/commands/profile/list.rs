@@ -149,18 +149,18 @@ pub async fn list(matches: &ArgMatches) -> i32 {
                         "project id: ".bright_black(),
                         modpack.id.as_ref().unwrap().cyan()
                     );
-                    println!(
-                        "    {} {} {}",
-                        "version id: ".bright_black(),
-                        config.modpack_version.as_ref().unwrap().cyan(),
-                        if modpack.versions.last().unwrap()
-                            == config.modpack_version.as_ref().unwrap()
-                        {
-                            "(latest)".green()
-                        } else {
-                            "(outdated)".red()
-                        }
-                    );
+                    if let Some(version) = &config.modpack_version.as_ref() {
+                        println!(
+                            "    {} {} {}",
+                            "version id: ".bright_black(),
+                            version.cyan(),
+                            if modpack.versions.last().unwrap() == *version {
+                                "(latest)".green()
+                            } else {
+                                "(outdated)".red()
+                            }
+                        );
+                    }
                     println!(
                         "    {} {}",
                         "downloads:  ".bright_black(),

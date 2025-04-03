@@ -5,15 +5,12 @@ use colored::Colorize;
 use dialoguer::{FuzzySelect, theme::ColorfulTheme};
 
 pub async fn install(matches: &ArgMatches) -> i32 {
-    let version = matches
-        .get_one::<String>("version")
-        .map(|v| v.parse::<u8>().expect("invalid version"));
+    let version = matches.get_one::<u8>("version");
 
     println!("{}", "listing java versions...".bright_black());
 
-    let java = java::Java::new();
-    let list: Vec<u8> = java.versions().await.into_iter().rev().collect();
-    let installed = java.installed();
+    let list: Vec<u8> = java::versions().await.into_iter().rev().collect();
+    let installed = java::installed();
 
     println!(
         "{} {}",
@@ -23,7 +20,7 @@ pub async fn install(matches: &ArgMatches) -> i32 {
     println!();
 
     let version = if let Some(version) = version {
-        version
+        *version
     } else {
         let version = FuzzySelect::with_theme(&ColorfulTheme::default())
             .with_prompt("Select java version to install")
@@ -60,7 +57,7 @@ pub async fn install(matches: &ArgMatches) -> i32 {
             "already installed, removing...".bright_black()
         );
 
-        java.remove(version);
+        java::remove(version);
 
         println!(
             "{} {} {} {}",
@@ -78,7 +75,7 @@ pub async fn install(matches: &ArgMatches) -> i32 {
         "...".bright_black()
     );
 
-    java.install(version).await;
+    java::install(version).await;
 
     println!(
         "{} {} {} {}",

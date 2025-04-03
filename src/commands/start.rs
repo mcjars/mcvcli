@@ -46,8 +46,7 @@ pub async fn start(matches: &ArgMatches) -> i32 {
         return 1;
     }
 
-    let java = java::Java::new();
-    let [binary, java_home] = java.binary(config.java_version).await;
+    let [binary, java_home] = java::binary(config.java_version).await;
     let command = format!(
         "{} {} -Xmx{}M -jar {} nogui {}",
         binary,

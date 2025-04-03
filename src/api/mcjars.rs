@@ -111,6 +111,28 @@ impl McjarsApi {
         Ok(([data.build, data.latest], versions))
     }
 
+    pub async fn lookup_id(
+        &self,
+        id: u32,
+    ) -> Result<(Build, IndexMap<String, Version>), reqwest::Error> {
+        let res = api::CLIENT
+            .post(format!("{}/api/v2/build?fields={}", self.url, self.fields))
+            .json(&json!({
+                "id": id
+            }))
+            .send()
+            .await?;
+        let data = res.json::<ApiResponse>().await?;
+
+        #[derive(Deserialize)]
+        struct ApiResponse {
+            build: Build,
+        }
+
+        let versions = self.versions(&data.build.r#type).await.unwrap();
+        Ok((data.build, versions))
+    }
+
     pub async fn types(&self) -> Result<IndexMap<String, Type>, reqwest::Error> {
         let res = api::CLIENT
             .get(format!("{}/api/v2/types", self.url))

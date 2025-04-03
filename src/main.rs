@@ -35,6 +35,56 @@ fn cli() -> Command {
                         .default_value(".")
                         .required(false),
                 )
+                .arg(
+                    Arg::new("file")
+                        .help("The file to initialize the server with (options: install, modrinth, <any jar file>)")
+                        .long("file")
+                        .short('f')
+                        .num_args(1)
+                        .required(false),
+                )
+                .arg(
+                    Arg::new("type")
+                        .help("The type of server to install (options: https://mcjars.app)")
+                        .long("type")
+                        .short('t')
+                        .num_args(1)
+                        .required(false),
+                )
+                .arg(
+                    Arg::new("version")
+                        .help("The version of the server type to install")
+                        .long("version")
+                        .short('v')
+                        .num_args(1)
+                        .required(false),
+                )
+                .arg(
+                    Arg::new("build")
+                        .help("The build id or build name of the server type to install")
+                        .long("build")
+                        .short('b')
+                        .num_args(1)
+                        .required(false),
+                )
+                .arg(
+                    Arg::new("ram")
+                        .help("The amount of RAM to allocate to the server (in MB)")
+                        .long("ram")
+                        .short('r')
+                        .num_args(1)
+                        .value_parser(clap::value_parser!(u16).range(1024..=49152))
+                        .required(false),
+                )
+                .arg(
+                    Arg::new("java")
+                        .help("The java version to use")
+                        .long("java")
+                        .short('j')
+                        .num_args(1)
+                        .value_parser(clap::value_parser!(u8).range(8..=50))
+                        .required(false),
+                )
                 .arg_required_else_help(false),
         )
         .subcommand(
@@ -47,6 +97,39 @@ fn cli() -> Command {
                         .help("Wipe the server directory before installing")
                         .num_args(0)
                         .default_value("false")
+                        .value_parser(clap::value_parser!(bool))
+                        .required(false),
+                )
+                .arg(
+                    Arg::new("file")
+                        .help("The file to initialize the server with (options: install, modrinth, <any jar file>)")
+                        .long("file")
+                        .short('f')
+                        .num_args(1)
+                        .required(false),
+                )
+                .arg(
+                    Arg::new("type")
+                        .help("The type of server to install (options: https://mcjars.app)")
+                        .long("type")
+                        .short('t')
+                        .num_args(1)
+                        .required(false),
+                )
+                .arg(
+                    Arg::new("version")
+                        .help("The version of the server type to install")
+                        .long("version")
+                        .short('v')
+                        .num_args(1)
+                        .required(false),
+                )
+                .arg(
+                    Arg::new("build")
+                        .help("The build id or build name of the server type to install")
+                        .long("build")
+                        .short('b')
+                        .num_args(1)
                         .required(false),
                 )
                 .arg_required_else_help(false),
@@ -61,6 +144,7 @@ fn cli() -> Command {
                         .help("Accept the Minecraft EULA automatically")
                         .num_args(0)
                         .default_value("false")
+                        .value_parser(clap::value_parser!(bool))
                         .required(false),
                 )
                 .arg(
@@ -70,6 +154,7 @@ fn cli() -> Command {
                         .help("Run the server in detached mode (background)")
                         .num_args(0)
                         .default_value("false")
+                        .value_parser(clap::value_parser!(bool))
                         .required(false),
                 )
                 .arg_required_else_help(false),
@@ -84,31 +169,14 @@ fn cli() -> Command {
                         .help("The amount of time to wait for the server to stop (seconds)")
                         .num_args(1)
                         .default_value("20")
+                        .value_parser(clap::value_parser!(u64).range(1..))
                         .required(false),
                 )
                 .arg_required_else_help(false),
         )
         .subcommand(
             Command::new("attach")
-                .about("Starts the Minecraft server")
-                .arg(
-                    Arg::new("eula")
-                        .long("eula")
-                        .short('e')
-                        .help("Accept the Minecraft EULA automatically")
-                        .num_args(0)
-                        .default_value("false")
-                        .required(false),
-                )
-                .arg(
-                    Arg::new("detached")
-                        .long("detached")
-                        .short('d')
-                        .help("Run the server in detached mode (background)")
-                        .num_args(0)
-                        .default_value("false")
-                        .required(false),
-                )
+                .about("Attaches to the Minecraft server console")
                 .arg_required_else_help(false),
         )
         .subcommand(
@@ -199,6 +267,7 @@ fn cli() -> Command {
                                 .help("Include the version of each profile")
                                 .num_args(0)
                                 .default_value("false")
+                                .value_parser(clap::value_parser!(bool))
                                 .required(false),
                         )
                         .arg_required_else_help(false),
@@ -288,6 +357,7 @@ fn cli() -> Command {
                             Arg::new("version")
                                 .help("The version of Java to install")
                                 .num_args(1)
+                                .value_parser(clap::value_parser!(u8).range(8..=50))
                                 .required(false),
                         )
                         .arg_required_else_help(false),
@@ -299,6 +369,7 @@ fn cli() -> Command {
                             Arg::new("version")
                                 .help("The version of Java to install")
                                 .num_args(1)
+                                .value_parser(clap::value_parser!(u8).range(8..=50))
                                 .required(false),
                         )
                         .arg_required_else_help(false),
@@ -310,6 +381,7 @@ fn cli() -> Command {
                             Arg::new("version")
                                 .help("The version of Java to delete")
                                 .num_args(1)
+                                .value_parser(clap::value_parser!(u8).range(8..=50))
                                 .required(false),
                         )
                         .arg_required_else_help(false),

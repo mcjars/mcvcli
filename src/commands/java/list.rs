@@ -26,9 +26,8 @@ pub async fn list(_matches: &ArgMatches) -> i32 {
 
     println!("{}", "listing java versions...".bright_black());
 
-    let java = java::Java::new();
-    let local = java.find_local();
-    let mut list = java.installed();
+    let local = java::find_local();
+    let mut list = java::installed();
     list.sort();
 
     let mut versions: Vec<(String, u64)> = Vec::with_capacity(list.len());

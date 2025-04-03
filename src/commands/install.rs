@@ -17,92 +17,29 @@ pub async fn install(matches: &ArgMatches) -> i32 {
         return 1;
     }
 
-    let server_jarfile = Select::with_theme(&ColorfulTheme::default())
-        .with_prompt("Server Jar File")
-        .default(0)
-        .item("Install New (Jar)")
-        .item("Install New (Modrinth Modpack)")
-        .interact()
-        .unwrap();
+    let server_jarfile = if let Some(file) = matches.get_one::<String>("file") {
+        match file.as_str() {
+            "install" => 0,
+            "modrinth" => 1,
+            _ => {
+                println!("{} {}", file.cyan(), "not found".red());
+                return 1;
+            }
+        }
+    } else {
+        Select::with_theme(&ColorfulTheme::default())
+            .with_prompt("Server Jar File")
+            .default(0)
+            .item("Install New (Jar)")
+            .item("Install New (Modrinth Modpack)")
+            .interact()
+            .unwrap()
+    };
 
     let api = api::mcjars::McjarsApi::new();
 
     match server_jarfile {
         0 => {
-            println!("{}", "Getting server types...".bright_black());
-
-            let types = api.types().await.unwrap();
-
-            println!(
-                "{} {}",
-                "getting server types...".bright_black(),
-                "DONE".green().bold()
-            );
-
-            let server_type = FuzzySelect::with_theme(&ColorfulTheme::default())
-                .with_prompt("Server Jar File")
-                .default(0)
-                .items(&types.values().map(|t| &t.name).collect::<Vec<&String>>())
-                .max_length(10)
-                .interact()
-                .unwrap();
-
-            let server_type = types.keys().nth(server_type).unwrap();
-            println!(
-                "{} {} {}",
-                "getting server versions for".bright_black(),
-                types.get(server_type).unwrap().name.to_string().cyan(),
-                "...".bright_black()
-            );
-
-            let versions = api.versions(server_type).await.unwrap();
-
-            println!(
-                "{} {} {} {}",
-                "getting server versions for".bright_black(),
-                types.get(server_type).unwrap().name.to_string().cyan(),
-                "...".bright_black(),
-                "DONE".green().bold()
-            );
-
-            let server_version = FuzzySelect::with_theme(&ColorfulTheme::default())
-                .with_prompt("Jar Version")
-                .default(0)
-                .items(&versions.keys().rev().collect::<Vec<&String>>())
-                .max_length(10)
-                .interact()
-                .unwrap();
-
-            let server_version = versions.keys().rev().nth(server_version).unwrap();
-            println!(
-                "{} {} {}",
-                "getting server builds for".bright_black(),
-                server_version.to_string().cyan(),
-                "...".bright_black()
-            );
-
-            let builds = api.builds(server_type, server_version).await.unwrap();
-
-            println!(
-                "{} {} {} {}",
-                "getting server builds for".bright_black(),
-                server_version.to_string().cyan(),
-                "...".bright_black(),
-                "DONE".green().bold()
-            );
-
-            let server_build = FuzzySelect::with_theme(&ColorfulTheme::default())
-                .with_prompt("Jar Build")
-                .default(0)
-                .items(&builds.iter().map(|b| &b.name).collect::<Vec<&String>>())
-                .max_length(10)
-                .interact()
-                .unwrap();
-
-            let server_build = &builds[server_build];
-
-            println!();
-
             if *wipe {
                 println!("{}", "Wiping server directory...".bright_black());
 
@@ -136,28 +73,203 @@ pub async fn install(matches: &ArgMatches) -> i32 {
                 );
             }
 
-            println!(
-                "{} {} {} {}",
-                "installing".bright_black(),
-                server_version.cyan(),
-                server_build.name.cyan(),
-                "...".bright_black()
-            );
+            let java = if let Some(Ok(build_id)) =
+                matches.get_one::<String>("build").map(|b| b.parse::<u32>())
+            {
+                println!(
+                    "{} {}",
+                    "getting server build...".bright_black(),
+                    "...".bright_black()
+                );
 
-            jar::install(server_build, ".", 1).await.unwrap();
+                if let Ok((server_build, versions)) = api.lookup_id(build_id).await {
+                    println!(
+                        "{} {}",
+                        "getting server build...".bright_black(),
+                        "DONE".green().bold()
+                    );
 
-            println!(
-                "{} {} {} {} {}",
-                "installing".bright_black(),
-                server_version.cyan(),
-                server_build.name.cyan(),
-                "...".bright_black(),
-                "DONE".green().bold()
-            );
+                    let server_version = server_build
+                        .version_id
+                        .as_ref()
+                        .unwrap_or_else(|| server_build.project_version_id.as_ref().unwrap());
+
+                    println!(
+                        "{} {} {} {}",
+                        "installing".bright_black(),
+                        server_version.cyan(),
+                        server_build.name.cyan(),
+                        "...".bright_black()
+                    );
+
+                    jar::install(&server_build, ".", 1).await.unwrap();
+
+                    println!(
+                        "{} {} {} {} {}",
+                        "installing".bright_black(),
+                        server_version.cyan(),
+                        server_build.name.cyan(),
+                        "...".bright_black(),
+                        "DONE".green().bold()
+                    );
+
+                    versions
+                        .get(server_version)
+                        .unwrap_or(versions.last().unwrap().1)
+                        .java
+                } else {
+                    println!(
+                        "{} {} {}",
+                        "server build".red(),
+                        build_id.to_string().cyan(),
+                        "not found!".red()
+                    );
+                    return 1;
+                }
+            } else {
+                println!("{}", "getting server types...".bright_black());
+
+                let types = api.types().await.unwrap();
+
+                println!(
+                    "{} {}",
+                    "getting server types...".bright_black(),
+                    "DONE".green().bold()
+                );
+
+                let server_type = if let Some(r#type) = matches.get_one::<String>("type") {
+                    if !types.contains_key(&r#type.to_uppercase()) {
+                        println!(
+                            "{} {} {}",
+                            "server type".red(),
+                            r#type.to_string().cyan(),
+                            "not found!".red()
+                        );
+                        return 1;
+                    }
+
+                    &r#type.to_uppercase()
+                } else {
+                    let server_type = FuzzySelect::with_theme(&ColorfulTheme::default())
+                        .with_prompt("Server Jar File")
+                        .default(0)
+                        .items(&types.values().map(|t| &t.name).collect::<Vec<&String>>())
+                        .max_length(10)
+                        .interact()
+                        .unwrap();
+
+                    types.keys().nth(server_type).unwrap()
+                };
+
+                println!(
+                    "{} {} {}",
+                    "getting server versions for".bright_black(),
+                    types.get(server_type).unwrap().name.to_string().cyan(),
+                    "...".bright_black()
+                );
+
+                let versions = api.versions(server_type).await.unwrap();
+
+                println!(
+                    "{} {} {} {}",
+                    "getting server versions for".bright_black(),
+                    types.get(server_type).unwrap().name.to_string().cyan(),
+                    "...".bright_black(),
+                    "DONE".green().bold()
+                );
+
+                let server_version = if let Some(version) = matches.get_one::<String>("version") {
+                    if !versions.contains_key(version) {
+                        println!(
+                            "{} {} {}",
+                            "server version".red(),
+                            version.to_string().cyan(),
+                            "not found!".red()
+                        );
+                        return 1;
+                    }
+
+                    version
+                } else {
+                    let server_version = FuzzySelect::with_theme(&ColorfulTheme::default())
+                        .with_prompt("Jar Version")
+                        .default(0)
+                        .items(&versions.keys().rev().collect::<Vec<&String>>())
+                        .max_length(10)
+                        .interact()
+                        .unwrap();
+
+                    versions.keys().rev().nth(server_version).unwrap()
+                };
+
+                println!(
+                    "{} {} {}",
+                    "getting server builds for".bright_black(),
+                    server_version.to_string().cyan(),
+                    "...".bright_black()
+                );
+
+                let builds = api.builds(server_type, server_version).await.unwrap();
+
+                println!(
+                    "{} {} {} {}",
+                    "getting server builds for".bright_black(),
+                    server_version.to_string().cyan(),
+                    "...".bright_black(),
+                    "DONE".green().bold()
+                );
+
+                let server_build = if let Some(build) = matches.get_one::<String>("build") {
+                    if build.as_str() == "latest" {
+                        builds.first().unwrap()
+                    } else if let Some(build) = builds.iter().find(|b| &b.name == build) {
+                        build
+                    } else {
+                        println!(
+                            "{} {} {}",
+                            "server build".red(),
+                            build.to_string().cyan(),
+                            "not found!".red()
+                        );
+                        return 1;
+                    }
+                } else {
+                    let server_build = FuzzySelect::with_theme(&ColorfulTheme::default())
+                        .with_prompt("Jar Build")
+                        .default(0)
+                        .items(&builds.iter().map(|b| &b.name).collect::<Vec<&String>>())
+                        .max_length(10)
+                        .interact()
+                        .unwrap();
+
+                    &builds[server_build]
+                };
+
+                println!(
+                    "{} {} {} {}",
+                    "installing".bright_black(),
+                    server_version.cyan(),
+                    server_build.name.cyan(),
+                    "...".bright_black()
+                );
+
+                jar::install(server_build, ".", 1).await.unwrap();
+
+                println!(
+                    "{} {} {} {} {}",
+                    "installing".bright_black(),
+                    server_version.cyan(),
+                    server_build.name.cyan(),
+                    "...".bright_black(),
+                    "DONE".green().bold()
+                );
+
+                versions.get(server_version).unwrap().java
+            };
 
             config.modpack_slug = None;
             config.modpack_version = None;
-            config.java_version = versions.get(server_version).unwrap().java;
+            config.java_version = java;
             config.save();
         }
         1 => {

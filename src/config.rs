@@ -4,32 +4,23 @@ use serde::{Deserialize, Serialize};
 use std::{fs::File, path::Path};
 
 #[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Config {
     #[serde(skip)]
     path: String,
 
-    #[serde(rename = "jarFile")]
     pub jar_file: String,
-
-    #[serde(rename = "profileName")]
     pub profile_name: String,
 
-    #[serde(rename = "modpackSlug")]
     pub modpack_slug: Option<String>,
-
-    #[serde(rename = "modpackVersion")]
     pub modpack_version: Option<String>,
 
     #[serde(rename = "ramMB")]
     pub ram_mb: u16,
 
-    #[serde(rename = "javaVersion", default)]
     pub java_version: u8,
 
-    #[serde(rename = "extraFlags", default)]
     pub extra_flags: Vec<String>,
-
-    #[serde(rename = "extraArgs", default)]
     pub extra_args: Vec<String>,
 
     pub pid: Option<usize>,
@@ -77,7 +68,8 @@ impl Config {
         }
 
         let file = File::open(path).unwrap();
-        let mut config: Config = serde_json::from_reader(file).unwrap();
+        let mut config: Config =
+            serde_json::from_reader(file).expect("failed to parse config file");
 
         config.path = path.to_string();
 
@@ -89,8 +81,9 @@ impl Config {
             return None;
         }
 
-        let file = File::open(path).unwrap();
-        let mut config: Config = serde_json::from_reader(file).unwrap();
+        let file = File::open(path).ok()?;
+        let mut config: Config =
+            serde_json::from_reader(file).expect("failed to parse config file");
 
         config.path = path.to_string();
 

@@ -5,14 +5,11 @@ use colored::Colorize;
 use dialoguer::{FuzzySelect, theme::ColorfulTheme};
 
 pub async fn delete(matches: &ArgMatches) -> i32 {
-    let version = matches
-        .get_one::<String>("version")
-        .map(|v| v.parse::<u8>().expect("invalid version"));
+    let version = matches.get_one::<u8>("version");
 
     println!("{}", "listing java versions...".bright_black());
 
-    let java = java::Java::new();
-    let list = java.installed();
+    let list = java::installed();
 
     println!(
         "{} {}",
@@ -22,7 +19,17 @@ pub async fn delete(matches: &ArgMatches) -> i32 {
     println!();
 
     let version = if let Some(version) = version {
-        version
+        if !list.iter().any(|(v, _)| v == version) {
+            println!(
+                "{} {} {}",
+                "java".bright_black(),
+                version.to_string().cyan(),
+                "not installed".red()
+            );
+            return 1;
+        }
+
+        *version
     } else {
         if list.is_empty() {
             println!("{}", "no java versions to delete".red());
@@ -53,7 +60,7 @@ pub async fn delete(matches: &ArgMatches) -> i32 {
         "...".bright_black()
     );
 
-    java.remove(version);
+    java::remove(version);
 
     println!(
         "{} {} {} {}",
