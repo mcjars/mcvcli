@@ -106,14 +106,7 @@ pub async fn list(matches: &ArgMatches) -> i32 {
                                 .unwrap_or(&"unknown".to_string())
                         )
                         .cyan(),
-                    if versions.keys().next_back().unwrap_or(&String::new())
-                        == build.version_id.as_ref().unwrap_or(
-                            build
-                                .project_version_id
-                                .as_ref()
-                                .unwrap_or(&"unknown".to_string())
-                        )
-                    {
+                    if jar::is_latest_version(build, versions) {
                         "(latest)".green()
                     } else {
                         "(outdated)".red()

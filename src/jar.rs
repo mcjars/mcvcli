@@ -240,3 +240,25 @@ pub async fn detect(
 
     Some(([build, latest], versions, None))
 }
+
+#[inline(always)]
+pub fn is_latest_version(build: &Build, versions: &IndexMap<String, Version>) -> bool {
+    let version = build
+        .version_id
+        .as_ref()
+        .unwrap_or_else(|| build.project_version_id.as_ref().unwrap());
+
+    let version_type = versions.get(version).unwrap().r#type.clone();
+    let latest_version = versions
+        .iter()
+        .rev()
+        .find(|(_, v)| v.r#type == version_type);
+
+    if let Some((k, _)) = latest_version {
+        if k == version {
+            return true;
+        }
+    }
+
+    false
+}
