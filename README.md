@@ -30,8 +30,10 @@ cargo install mcvcli
 ```bash
 # Basic Example for Linux
 wget https://github.com/mcjars/mcvcli/releases/latest/download/mcvcli-x86_64-linux.tar.xz
-tar -xf mcvcli-x86_64-linux.tar.xz -C .
-export PATH=$PATH:$(pwd)/mcvcli-x86_64-linux
+tar xfv mcvcli-x86_64-linux.tar.xz -C .
+mv mcvcli-x86_64-linux/mcvcli /usr/bin
+chmod +x /usr/bin/mcvcli
+rm -r mcvcli-x86_64-linux mcvcli-x86_64-linux.tar.xz
 
 mcvcli --version
 ```
@@ -53,40 +55,40 @@ mcvcli --version
 To setup your Minecraft server version, use the `init` command
 
 ```bash
-mcvcli init ./server
+mkdir /home/Minecraft
+cd /home/Minecraft
+mcvcli init .
 
-cd server
+mcvcli version # View installed version, auto updates with your jar
+mcvcli update # Update build or minecraft version of your jar (only newer)
+mcvcli install # Force install any other version
+mcvcli lookup {user} # Lookup a user on your server or globally
+mcvcli start # Start the server
 
-mcvcli version # view installed version, auto updates with your jar
-mcvcli update # update build or minecraft version of your jar (only newer)
-mcvcli install # force install any other version
-mcvcli lookup {user} # lookup a user on your server or globally
-mcvcli start # start the server
+mcvcli java list # List installed java versions
+mcvcli java install {version} # Install a specific java version
+mcvcli java use {version} # Switch to another java version
+mcvcli java delete {version} # Remove a java version
 
-mcvcli java list # list installed java versions
-mcvcli java install {version} # install a specific java version
-mcvcli java use {version} # switch to another java version
-mcvcli java delete {version} # remove a java version
+mcvcli profile list # List server profiles
+mcvcli profile create {name} # Create a new profile
+mcvcli profile use {name} # Switch to another profile
+mcvcli profile delete {name} # Nuke a profile from existance
 
-mcvcli profile list # list server profiles
-mcvcli profile create {name} # create a new profile
-mcvcli profile use {name} # switch to another profile
-mcvcli profile delete {name} # nuke a profile from existance
+mcvcli backup list # List created server backups
+mcvcli backup create {name} # Create a new server backup
+mcvcli backup delete {name} # Delete a server backup
+mcvcli backup restore {name} # Restore a previously created server backup
 
-mcvcli backup list # list created server backups
-mcvcli backup create {name} # create a new server backup
-mcvcli backup delete {name} # delete a server backup
-mcvcli backup restore {name} # restore a previously created server backup
+mcvcli mods list # List installed mods
+mcvcli mods delete # Delete selected mods
 
-mcvcli mods list # list installed mods
-mcvcli mods delete # delete selected mods
+mcvcli start --detached # Start the server in the background (no output)
+mcvcli attach # Attach to the server console
+mcvcli stop # Stop the server
+mcvcli status # Check the server status
 
-mcvcli start --detached # start the server in the background (no output)
-mcvcli attach # attach to the server console
-mcvcli stop # stop the server
-mcvcli status # check the server status
-
-mcvcli upgrade # upgrade the mcvcli binary
+mcvcli upgrade # Upgrade the mcvcli binary
 ```
 
 ## Developing
@@ -94,18 +96,16 @@ mcvcli upgrade # upgrade the mcvcli binary
 To Develop on this tool, you need to install all required dependencies
 
 ```bash
-git clone https://github.com/mcjars/mcvcli.git mcjars-mcvcli
+mkdir /home/mcvcli
+cd /home/mcvcli
+git init
+git pull https://github.com/mcjars/mcvcli.git
 
-cd mcjars-mcvcli
-
-# make sure to have cargo installed already
-cargo build
-
-# install binary globally
+# Install binary globally
 cargo install --path .
 mcvcli --version
 
-# run the binary temporarily
+# Run the binary temporarily
 cargo run -- --version
 ```
 
