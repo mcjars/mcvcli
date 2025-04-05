@@ -4,10 +4,7 @@ use clap::ArgMatches;
 use colored::Colorize;
 
 pub async fn stop(matches: &ArgMatches) -> i32 {
-    let timeout = matches.get_one::<String>("timeout").expect("required");
-    let timeout = timeout
-        .parse::<u64>()
-        .expect("timeout must be a non-negative integer");
+    let timeout = *matches.get_one::<u64>("timeout").expect("required");
     let mut config = config::Config::new(".mcvcli.json", false);
 
     if !detached::status(config.pid) {

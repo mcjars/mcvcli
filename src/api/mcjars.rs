@@ -67,7 +67,7 @@ pub struct McjarsApi {
 impl McjarsApi {
     pub fn new() -> Self {
         Self {
-            url: std::env::var("MCJARS_URL").unwrap_or("https://versions.mcjars.app".to_string()),
+            url: std::env::var("MCJARS_URL").unwrap_or("https://mcjars.app".to_string()),
             fields: "id,type,versionId,projectVersionId,name,installation,changes".to_string(),
         }
     }
