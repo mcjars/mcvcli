@@ -4,9 +4,9 @@ use clap::ArgMatches;
 use colored::Colorize;
 use flate2::bufread::GzDecoder;
 use serde::Deserialize;
-use std::{fmt::Debug, fs::File, io::BufReader, path::Path};
+use std::{fs::File, io::BufReader, path::Path};
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 struct PlayerData {
     #[serde(rename = "Health")]
     health: f64,
@@ -23,29 +23,30 @@ struct PlayerData {
     attributes: Option<Vec<Attribute>>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 struct InventoryItem {
+    #[serde(alias = "Count")]
     count: u8,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 struct Attribute {
     id: String,
     base: f64,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 struct PlayerStats {
     stats: Stats,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 struct Stats {
     #[serde(rename = "minecraft:custom")]
     custom: Custom,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 struct Custom {
     #[serde(rename = "minecraft:deaths")]
     deaths: Option<u32>,
