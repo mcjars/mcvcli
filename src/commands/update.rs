@@ -128,6 +128,7 @@ pub async fn update(matches: &ArgMatches) -> i32 {
             .with_prompt("Jar Version")
             .default(0)
             .items(&versions)
+            .max_length(10)
             .interact()
             .unwrap();
         let server_version = &versions[server_version];
@@ -267,7 +268,7 @@ pub async fn update(matches: &ArgMatches) -> i32 {
                     })
                     .collect::<Vec<&String>>(),
             )
-            .max_length(5)
+            .max_length(10)
             .interact()
             .unwrap();
         let modpack_version = &versions[modpack_version];
