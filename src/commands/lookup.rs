@@ -60,14 +60,13 @@ struct Custom {
 pub async fn lookup(matches: &ArgMatches) -> i32 {
     let player = matches.get_one::<String>("player").expect("required");
     let _config = config::Config::new(".mcvcli.json", false);
-    let api = api::mojang::MojangApi::new();
 
     println!("{}", "looking up player...".bright_black());
 
-    let player = if player.len() > 16 {
-        api.get_profile_uuid(player).await
+    let player = if let Some(uuid) = api::mojang::format_uuid(player) {
+        api::mojang::get_profile_uuid(&uuid).await
     } else {
-        api.get_profile_name(player).await
+        api::mojang::get_profile_name(player).await
     };
 
     if player.is_err() {
@@ -92,12 +91,12 @@ pub async fn lookup(matches: &ArgMatches) -> i32 {
     println!(
         "  {} {}",
         "uuid:".bright_black(),
-        api.format_uuid(&player.id).unwrap().cyan()
+        api::mojang::format_uuid(&player.id).unwrap().cyan()
     );
 
     if !Path::new(&format!(
         "world/playerdata/{}.dat",
-        api.format_uuid(&player.id).unwrap()
+        api::mojang::format_uuid(&player.id).unwrap()
     ))
     .exists()
     {
@@ -113,23 +112,21 @@ pub async fn lookup(matches: &ArgMatches) -> i32 {
 
     let player_data = File::open(format!(
         "world/playerdata/{}.dat",
-        api.format_uuid(&player.id).unwrap()
+        api::mojang::format_uuid(&player.id).unwrap()
     ))
     .unwrap();
     let player_data = GzDecoder::new(BufReader::new(player_data));
-    let player_data: Option<PlayerData> = fastnbt::from_reader(player_data).ok();
+    let player_data: Result<PlayerData, _> = fastnbt::from_reader(player_data);
 
-    let player_stats = File::open(format!(
+    let player_stats: Option<PlayerStats> = match File::open(format!(
         "world/stats/{}.json",
-        api.format_uuid(&player.id).unwrap()
-    ))
-    .ok();
-    let player_stats: Option<PlayerStats> = match player_stats {
-        Some(player_stats) => serde_json::from_reader(player_stats).ok(),
-        _ => None,
+        api::mojang::format_uuid(&player.id).unwrap()
+    )) {
+        Ok(player_stats) => serde_json::from_reader(player_stats).ok(),
+        Err(_) => None,
     };
 
-    if player_data.is_none() {
+    if player_data.is_err() {
         println!(
             "    {} {}",
             "player data:".bright_black(),
@@ -141,8 +138,8 @@ pub async fn lookup(matches: &ArgMatches) -> i32 {
     let player_data = player_data.unwrap();
 
     let mut max_health: f64 = 20.0;
-    if player_data.attributes.is_some() {
-        for attribute in player_data.attributes.unwrap() {
+    if let Some(attributes) = player_data.attributes {
+        for attribute in attributes {
             if attribute.id == "minecraft:max_health" {
                 max_health = attribute.base;
                 break;
@@ -184,12 +181,12 @@ pub async fn lookup(matches: &ArgMatches) -> i32 {
         player_data.dimension.cyan()
     );
 
-    if player_data.inventory.is_some() {
+    if let Some(inventory) = player_data.inventory {
         println!("    {}", "inventory:".bright_black());
 
         let mut total: u32 = 0;
         let mut filled: u32 = 0;
-        for item in player_data.inventory.unwrap() {
+        for item in inventory {
             total += item.count as u32;
             filled += 1;
         }
@@ -206,46 +203,32 @@ pub async fn lookup(matches: &ArgMatches) -> i32 {
         );
     }
 
-    if player_stats.is_some() {
+    if let Some(player_stats) = player_stats {
         println!("    {}", "stats:".bright_black());
 
-        let player_stats = player_stats.unwrap();
-
-        if player_stats.stats.custom.deaths.is_some() {
+        if let Some(deaths) = player_stats.stats.custom.deaths {
             println!(
                 "      {} {}",
                 "deaths:      ".bright_black(),
-                player_stats.stats.custom.deaths.unwrap().to_string().cyan()
+                deaths.to_string().cyan()
             );
         }
 
-        if player_stats.stats.custom.player_kills.is_some() {
+        if let Some(player_kills) = player_stats.stats.custom.player_kills {
             println!(
                 "      {} {}",
                 "player kills:".bright_black(),
-                player_stats
-                    .stats
-                    .custom
-                    .player_kills
-                    .unwrap()
-                    .to_string()
-                    .cyan()
+                player_kills.to_string().cyan()
             );
         }
 
-        if player_stats.stats.custom.play_time.is_some() {
+        if let Some(play_time) = player_stats.stats.custom.play_time {
             println!(
                 "      {} {}h {}m {}s",
                 "play time:   ".bright_black(),
-                (player_stats.stats.custom.play_time.unwrap() / 72000)
-                    .to_string()
-                    .cyan(),
-                ((player_stats.stats.custom.play_time.unwrap() % 72000) / 1200)
-                    .to_string()
-                    .cyan(),
-                ((player_stats.stats.custom.play_time.unwrap() % 72000) % 1200 / 20)
-                    .to_string()
-                    .cyan()
+                (play_time / 72000).to_string().cyan(),
+                ((play_time % 72000) / 1200).to_string().cyan(),
+                ((play_time % 72000) % 1200 / 20).to_string().cyan()
             );
         }
     }

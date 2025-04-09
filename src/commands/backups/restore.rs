@@ -60,9 +60,7 @@ pub async fn restore(matches: &ArgMatches) -> i32 {
 
     println!("{}", "wiping server directory...".bright_black());
 
-    let entries = std::fs::read_dir(".").unwrap();
-    for entry in entries {
-        let entry = entry.unwrap();
+    for entry in std::fs::read_dir(".").unwrap().flatten() {
         let path = entry.path();
 
         if path

@@ -31,19 +31,17 @@ pub fn installed() -> Vec<(u8, String)> {
         return installed;
     }
 
-    let entries = std::fs::read_dir(LOCATION.as_str()).unwrap();
-    for entry in entries {
-        let entry = entry.unwrap();
+    for entry in std::fs::read_dir(LOCATION.as_str()).unwrap().flatten() {
         let path = entry.path();
 
-        if path.is_dir() {
+        if path.is_dir() && std::fs::exists(path.join("bin/java")).unwrap_or_default() {
             let version = path
                 .file_name()
                 .unwrap()
                 .to_str()
                 .unwrap()
                 .parse()
-                .unwrap_or(0);
+                .unwrap_or_default();
 
             if version != 0 {
                 installed.push((version, path.to_str().unwrap().to_string()));
@@ -181,8 +179,8 @@ pub async fn binary(version: u8) -> [String; 2] {
     );
 
     [
-        format!("{}/{}/bin/java", LOCATION.as_str(), version),
-        format!("{}/{}", LOCATION.as_str(), version),
+        format!("{}/{}/bin/java", *LOCATION, version),
+        format!("{}/{}", *LOCATION, version),
     ]
 }
 
@@ -227,9 +225,9 @@ pub async fn install(version: u8) {
     }
 
     let binary = binary.unwrap();
-    let destination = format!("{}/{}/java.archive", LOCATION.as_str(), version);
+    let destination = format!("{}/{}/java.archive", *LOCATION, version);
 
-    std::fs::create_dir_all(format!("{}/{}", LOCATION.as_str(), version)).unwrap();
+    std::fs::create_dir_all(format!("{}/{}", *LOCATION, version)).unwrap();
 
     let mut res = api::CLIENT
         .get(&binary.binary.package.link)
@@ -282,20 +280,20 @@ pub async fn install(version: u8) {
     if binary.binary.package.name.ends_with(".zip") {
         let mut archive = ZipArchive::new(File::open(&destination).unwrap()).unwrap();
         archive
-            .extract(format!("{}/{}", LOCATION.as_str(), version))
+            .extract(format!("{}/{}", *LOCATION, version))
             .unwrap();
     } else {
         let mut archive = TarArchive::new(GzDecoder::new(File::open(&destination).unwrap()));
         archive
-            .unpack(format!("{}/{}", LOCATION.as_str(), version))
+            .unpack(format!("{}/{}", *LOCATION, version))
             .unwrap();
     }
 
     std::fs::remove_file(&destination).unwrap();
 
-    let entries = std::fs::read_dir(format!("{}/{}", LOCATION.as_str(), version)).unwrap();
+    let entries = std::fs::read_dir(format!("{}/{}", *LOCATION, version)).unwrap();
     if entries.count() == 1 {
-        let entry = std::fs::read_dir(format!("{}/{}", LOCATION.as_str(), version))
+        let entry = std::fs::read_dir(format!("{}/{}", *LOCATION, version))
             .unwrap()
             .next()
             .unwrap()
@@ -310,7 +308,7 @@ pub async fn install(version: u8) {
                 &file_path,
                 format!(
                     "{}/{}/{}",
-                    LOCATION.as_str(),
+                    *LOCATION,
                     version,
                     file_path.file_name().unwrap().to_str().unwrap()
                 ),

@@ -71,8 +71,6 @@ pub async fn init(
             .unwrap()
     };
 
-    let api = api::mcjars::McjarsApi::new();
-
     match server_jarfile {
         0 => {
             let java = if let Some(Ok(build_id)) =
@@ -84,7 +82,7 @@ pub async fn init(
                     "...".bright_black()
                 );
 
-                if let Ok((server_build, versions)) = api.lookup_id(build_id).await {
+                if let Ok((server_build, versions)) = api::mcjars::lookup_id(build_id).await {
                     println!(
                         "{} {}",
                         "getting server build...".bright_black(),
@@ -131,7 +129,7 @@ pub async fn init(
             } else {
                 println!("{}", "getting server types...".bright_black());
 
-                let types = api.types().await.unwrap();
+                let types = api::mcjars::types().await.unwrap();
 
                 println!(
                     "{} {}",
@@ -170,7 +168,7 @@ pub async fn init(
                     "...".bright_black()
                 );
 
-                let versions = api.versions(server_type).await.unwrap();
+                let versions = api::mcjars::versions(server_type).await.unwrap();
 
                 println!(
                     "{} {} {} {}",
@@ -211,7 +209,9 @@ pub async fn init(
                     "...".bright_black()
                 );
 
-                let builds = api.builds(server_type, server_version).await.unwrap();
+                let builds = api::mcjars::builds(server_type, server_version)
+                    .await
+                    .unwrap();
 
                 println!(
                     "{} {} {} {}",
@@ -302,14 +302,12 @@ pub async fn init(
             config.save();
         }
         1 => {
-            let modrinth_api = api::modrinth::ModrinthApi::new();
-            let mut projects = modrinth_api
-                .projects(
-                    "",
-                    "[[\"project_type:modpack\"],[\"server_side != unsupported\"]]",
-                )
-                .await
-                .unwrap();
+            let mut projects = api::modrinth::projects(
+                "",
+                "[[\"project_type:modpack\"],[\"server_side != unsupported\"]]",
+            )
+            .await
+            .unwrap();
             let mut project;
 
             loop {
@@ -345,13 +343,12 @@ pub async fn init(
                         .interact()
                         .unwrap();
 
-                    projects = modrinth_api
-                        .projects(
-                            &search,
-                            "[[\"project_type:modpack\"],[\"server_side != unsupported\"]]",
-                        )
-                        .await
-                        .unwrap();
+                    projects = api::modrinth::projects(
+                        &search,
+                        "[[\"project_type:modpack\"],[\"server_side != unsupported\"]]",
+                    )
+                    .await
+                    .unwrap();
                 } else {
                     break;
                 }
@@ -367,8 +364,7 @@ pub async fn init(
                 "...".bright_black()
             );
 
-            let versions = modrinth_api
-                .versions(project.project_id.as_ref().unwrap())
+            let versions = api::modrinth::versions(project.project_id.as_ref().unwrap())
                 .await
                 .unwrap();
             let versions = versions
@@ -445,7 +441,7 @@ pub async fn init(
                 "...".bright_black()
             );
 
-            modpack::install(directory, &api, modpack_version).await;
+            modpack::install(directory, modpack_version).await;
 
             let mut config = config::Config::new(&format!("{}/.mcvcli.json", directory), true);
             config.profile_name = profile_name.unwrap_or("default").to_string();

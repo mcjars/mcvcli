@@ -25,7 +25,6 @@ pub async fn version(matches: &ArgMatches) -> i32 {
     println!("{}", "checking installed version ...".bright_black());
 
     let config = config::Config::new(&format!("{}/.mcvcli.json", directory), false);
-    let detected = jar::detect(&directory, &config).await;
 
     println!(
         "{} {}",
@@ -41,9 +40,7 @@ pub async fn version(matches: &ArgMatches) -> i32 {
     );
     println!("{}", "installed jar version:".bright_black());
 
-    if detected.is_some() {
-        let ([build, latest], versions, modpack) = detected.unwrap();
-
+    if let Some(([build, latest], versions, modpack)) = jar::detect(&directory, &config).await {
         println!("  {} {}", "type:   ".bright_black(), build.r#type.cyan());
         println!(
             "  {} {} {}",
@@ -75,9 +72,7 @@ pub async fn version(matches: &ArgMatches) -> i32 {
             }
         );
 
-        if modpack.is_some() {
-            let modpack = modpack.unwrap();
-
+        if let Some(modpack) = modpack {
             println!("{}", "installed modpack:".bright_black());
             println!(
                 "  {} {}",
@@ -111,9 +106,9 @@ pub async fn version(matches: &ArgMatches) -> i32 {
             );
         }
     } else {
-        println!("  {} {}", "type:   ".bright_black(), "Unknown".cyan());
-        println!("  {} {}", "version:".bright_black(), "Unknown".cyan());
-        println!("  {} {}", "build:  ".bright_black(), "Unknown".cyan());
+        println!("  {} {}", "type:   ".bright_black(), "unknown".cyan());
+        println!("  {} {}", "version:".bright_black(), "unknown".cyan());
+        println!("  {} {}", "build:  ".bright_black(), "unknown".cyan());
     }
 
     println!(

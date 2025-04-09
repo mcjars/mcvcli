@@ -88,6 +88,44 @@ fn cli() -> Command {
                 .arg_required_else_help(false),
         )
         .subcommand(
+            Command::new("config")
+                .about("Manages the configuration file")
+                .arg(
+                    Arg::new("profile")
+                        .long("profile")
+                        .short('p')
+                        .help("The profile to use")
+                        .num_args(1)
+                        .required(false),
+                )
+                .arg(
+                    Arg::new("ram")
+                        .long("ram")
+                        .short('r')
+                        .help("The amount of RAM to allocate to the server (in MB)")
+                        .num_args(1)
+                        .value_parser(clap::value_parser!(u16).range(1024..=49152))
+                        .required(false),
+                )
+                .arg(
+                    Arg::new("flags")
+                        .long("flags")
+                        .short('f')
+                        .help("The extra flags to pass to the server when starting")
+                        .num_args(1)
+                        .required(false),
+                )
+                .arg(
+                    Arg::new("args")
+                        .long("args")
+                        .short('a')
+                        .help("The extra args to pass to the server when starting")
+                        .num_args(1)
+                        .required(false),
+                )
+                .arg_required_else_help(false),
+        )
+        .subcommand(
             Command::new("install")
                 .about("Install a new version of the Minecraft server")
                 .arg(
@@ -401,6 +439,9 @@ async fn main() {
         }
         Some(("init", sub_matches)) => {
             std::process::exit(commands::init::init(sub_matches, None, None).await)
+        }
+        Some(("config", sub_matches)) => {
+            std::process::exit(commands::config::config(sub_matches).await)
         }
         Some(("install", sub_matches)) => {
             std::process::exit(commands::install::install(sub_matches).await)

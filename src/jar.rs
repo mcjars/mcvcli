@@ -1,6 +1,9 @@
 use crate::api::Progress;
-use crate::api::mcjars::{Build, InstallationStep, McjarsApi, Version};
-use crate::api::modrinth::{ModrinthApi, Project};
+use crate::api::{
+    self,
+    mcjars::{Build, InstallationStep, Version},
+    modrinth::Project,
+};
 use crate::config::Config;
 
 use colored::Colorize;
@@ -40,7 +43,7 @@ pub async fn install(build: &Build, directory: &str, spaces: usize) -> Result<()
                         .unwrap();
                     }
 
-                    let mut res = reqwest::get(&step.url).await?;
+                    let mut res = api::CLIENT.get(&step.url).send().await?;
                     let mut file = File::create(Path::new(directory).join(&step.file)).unwrap();
 
                     let mut progress = Progress::new(step.size as usize);
@@ -153,23 +156,14 @@ pub async fn detect(
         .unwrap()
         .to_string();
 
-    if Path::new(directory)
-        .join("libraries/net/minecraftforge/forge")
-        .exists()
+    if let Ok(entries) =
+        std::fs::read_dir(Path::new(directory).join("libraries/net/minecraftforge/forge"))
     {
-        let entries =
-            std::fs::read_dir(Path::new(directory).join("libraries/net/minecraftforge/forge"))
-                .unwrap();
-
-        for entry in entries {
-            let entry = entry.unwrap();
+        for entry in entries.flatten() {
             let path = entry.path();
 
             if path.is_dir() {
-                let entries = std::fs::read_dir(&path).unwrap();
-
-                for entry in entries {
-                    let entry = entry.unwrap();
+                for entry in std::fs::read_dir(&path).unwrap().flatten() {
                     let path = entry.path();
 
                     if path.is_file() {
@@ -183,23 +177,14 @@ pub async fn detect(
                 }
             }
         }
-    } else if Path::new(directory)
-        .join("libraries/net/neoforged/neoforge")
-        .exists()
+    } else if let Ok(entries) =
+        std::fs::read_dir(Path::new(directory).join("libraries/net/neoforged/neoforge"))
     {
-        let entries =
-            std::fs::read_dir(Path::new(directory).join("libraries/net/neoforged/neoforge"))
-                .unwrap();
-
-        for entry in entries {
-            let entry = entry.unwrap();
+        for entry in entries.flatten() {
             let path = entry.path();
 
             if path.is_dir() {
-                let entries = std::fs::read_dir(&path).unwrap();
-
-                for entry in entries {
-                    let entry = entry.unwrap();
+                for entry in std::fs::read_dir(&path).unwrap().flatten() {
                     let path = entry.path();
 
                     if path.is_file() {
@@ -219,29 +204,20 @@ pub async fn detect(
         return None;
     }
 
-    let api = McjarsApi::new();
-    let detected = api.lookup(&file).await;
+    if let Ok(([build, latest], versions)) = api::mcjars::lookup(&file).await {
+        if let Some(modpack_slug) = &config.modpack_slug {
+            let modpack = api::modrinth::project(modpack_slug).await.unwrap();
 
-    if detected.is_err() {
-        return None;
+            return Some(([build, latest], versions, Some(modpack)));
+        }
+
+        Some(([build, latest], versions, None))
+    } else {
+        None
     }
-
-    let ([build, latest], versions) = detected.unwrap();
-
-    if config.modpack_slug.is_some() && config.modpack_version.is_some() {
-        let modrinth_api = ModrinthApi::new();
-        let modpack = modrinth_api
-            .project(config.modpack_slug.as_ref().unwrap())
-            .await
-            .unwrap();
-
-        return Some(([build, latest], versions, Some(modpack)));
-    }
-
-    Some(([build, latest], versions, None))
 }
 
-#[inline(always)]
+#[inline]
 pub fn is_latest_version(build: &Build, versions: &IndexMap<String, Version>) -> bool {
     let version = build
         .version_id

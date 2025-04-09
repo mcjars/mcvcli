@@ -11,9 +11,7 @@ fn recursive_add_directory(
     options: SimpleFileOptions,
     progress: &mut Progress,
 ) {
-    let entries = std::fs::read_dir(directory).unwrap();
-    for entry in entries {
-        let entry = entry.unwrap();
+    for entry in std::fs::read_dir(directory).unwrap().flatten() {
         let path = entry.path();
 
         if path.file_name().unwrap() == ".mcvcli.backups"
@@ -52,10 +50,7 @@ pub fn create(name: &str) {
         .unix_permissions(0o755);
 
     let mut file_count = 0;
-    for entry in walkdir::WalkDir::new(".")
-        .into_iter()
-        .filter_map(|e| e.ok())
-    {
+    for entry in walkdir::WalkDir::new(".").into_iter().flatten() {
         let path = entry.path().to_str().unwrap();
 
         if path.contains(".mcvcli.backups") || path.contains(".mcvcli.profiles") {

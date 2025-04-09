@@ -4,7 +4,7 @@ use clap::ArgMatches;
 use colored::Colorize;
 
 pub async fn attach(_matches: &ArgMatches) -> i32 {
-    let config = config::Config::new(".mcvcli.json", false);
+    let mut config = config::Config::new(".mcvcli.json", false);
 
     if !detached::status(config.pid) {
         println!(
@@ -17,8 +17,9 @@ pub async fn attach(_matches: &ArgMatches) -> i32 {
 
     println!("{}", "attaching to server ...".bright_black());
 
-    let [mut stdin, mut stdout, mut stderr] = detached::get_pipes(&config.identifier.unwrap());
-    let mut threads = Vec::new();
+    let [mut stdin, mut stdout, mut stderr] =
+        detached::get_pipes(&config.identifier.clone().unwrap());
+    let mut threads = Vec::with_capacity(3);
 
     println!(
         "{} {}",
@@ -44,6 +45,11 @@ pub async fn attach(_matches: &ArgMatches) -> i32 {
             if !detached::status(config.pid) {
                 println!();
                 println!("{}", "server has stopped".red());
+
+                config.pid = None;
+                config.identifier = None;
+                config.save();
+
                 break;
             }
 

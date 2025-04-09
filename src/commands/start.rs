@@ -1,4 +1,4 @@
-use crate::api::Progress;
+use crate::api::{self, Progress};
 use crate::{config, detached, java};
 
 use clap::ArgMatches;
@@ -60,7 +60,9 @@ pub async fn start(matches: &ArgMatches) -> i32 {
         if Path::new("libraries/net/minecraftforge/forge").exists() {
             println!("{}", "downloading forge wrapper jar...".bright_black());
 
-            let mut req = reqwest::get("https://s3.mcjars.app/forge/ForgeServerJAR.jar")
+            let mut req = api::CLIENT
+                .get("https://s3.mcjars.app/forge/ForgeServerJAR.jar")
+                .send()
                 .await
                 .unwrap();
             let mut file = File::create(&config.jar_file).unwrap();
@@ -100,7 +102,9 @@ pub async fn start(matches: &ArgMatches) -> i32 {
         } else if Path::new("libraries/net/neoforged/neoforge").exists() {
             println!("{}", "downloading neoforge wrapper jar...".bright_black());
 
-            let mut req = reqwest::get("https://s3.mcjars.app/neoforge/NeoForgeServerJAR.jar")
+            let mut req = api::CLIENT
+                .get("https://s3.mcjars.app/neoforge/NeoForgeServerJAR.jar")
+                .send()
                 .await
                 .unwrap();
             let mut file = File::create(&config.jar_file).unwrap();

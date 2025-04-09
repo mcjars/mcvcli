@@ -1,4 +1,4 @@
-use crate::{api::modrinth::ModrinthApi, config, jar};
+use crate::{api, config, jar};
 
 use clap::ArgMatches;
 use colored::Colorize;
@@ -6,7 +6,6 @@ use std::path::Path;
 
 pub async fn list(_matches: &ArgMatches) -> i32 {
     let config = config::Config::new(".mcvcli.json", false);
-    let api = ModrinthApi::new();
 
     if !Path::new("mods").exists() {
         println!("{}", "no mods folder found.".red());
@@ -31,21 +30,20 @@ pub async fn list(_matches: &ArgMatches) -> i32 {
     println!("{}", "listing mods...".bright_black());
 
     let [build, _] = detected.unwrap().0;
-    let list = api
-        .lookup(
-            "mods",
-            Some(&build.r#type.to_lowercase()),
-            Some(
-                build.version_id.as_ref().unwrap_or(
-                    build
-                        .project_version_id
-                        .as_ref()
-                        .unwrap_or(&"unknown".to_string()),
-                ),
+    let list = api::modrinth::lookup(
+        "mods",
+        Some(&build.r#type.to_lowercase()),
+        Some(
+            build.version_id.as_ref().unwrap_or(
+                build
+                    .project_version_id
+                    .as_ref()
+                    .unwrap_or(&"unknown".to_string()),
             ),
-        )
-        .await
-        .unwrap();
+        ),
+    )
+    .await
+    .unwrap();
 
     println!(
         "{} {}",
@@ -53,7 +51,7 @@ pub async fn list(_matches: &ArgMatches) -> i32 {
         "DONE".green().bold()
     );
 
-    for (path, project) in &list {
+    for (path, project) in list.iter() {
         println!();
         println!("{}", project.title.cyan().bold().underline());
 

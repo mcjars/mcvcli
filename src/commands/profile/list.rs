@@ -16,7 +16,7 @@ pub async fn list(matches: &ArgMatches) -> i32 {
     let mut futures = Vec::new();
 
     if *include_version {
-        for profile in &list {
+        for profile in list.iter() {
             let directory = if *profile != config.profile_name {
                 format!(".mcvcli.profiles/{}", profile)
             } else {
@@ -42,7 +42,7 @@ pub async fn list(matches: &ArgMatches) -> i32 {
         "DONE".green().bold()
     );
 
-    for profile in &list {
+    for (i, profile) in list.into_iter().enumerate() {
         println!();
 
         let directory = if *profile != config.profile_name {
@@ -83,14 +83,9 @@ pub async fn list(matches: &ArgMatches) -> i32 {
         );
 
         if *include_version {
-            let detected = results
-                .get(list.iter().position(|x| x == profile).unwrap())
-                .unwrap()
-                .as_ref();
+            let detected = results.get(i).unwrap().as_ref();
 
-            if detected.is_some() {
-                let ([build, latest], versions, modpack) = detected.unwrap();
-
+            if let Some(([build, latest], versions, modpack)) = detected {
                 println!("  {}", "version:".bright_black());
                 println!("    {} {}", "type:   ".bright_black(), build.r#type.cyan());
                 println!(
@@ -123,9 +118,7 @@ pub async fn list(matches: &ArgMatches) -> i32 {
                     }
                 );
 
-                if modpack.is_some() {
-                    let modpack = modpack.as_ref().unwrap();
-
+                if let Some(modpack) = modpack {
                     println!("  {}", "installed modpack:".bright_black());
                     println!(
                         "    {} {}",
@@ -142,12 +135,12 @@ pub async fn list(matches: &ArgMatches) -> i32 {
                         "project id: ".bright_black(),
                         modpack.id.as_ref().unwrap().cyan()
                     );
-                    if let Some(version) = &config.modpack_version.as_ref() {
+                    if let Some(version) = config.modpack_version.as_ref() {
                         println!(
                             "    {} {} {}",
                             "version id: ".bright_black(),
                             version.cyan(),
-                            if modpack.versions.last().unwrap() == *version {
+                            if modpack.versions.last().unwrap() == version {
                                 "(latest)".green()
                             } else {
                                 "(outdated)".red()

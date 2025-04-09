@@ -77,10 +77,6 @@ impl Config {
     }
 
     pub fn new_optional(path: &str) -> Option<Self> {
-        if !Path::new(path).exists() {
-            return None;
-        }
-
         let file = File::open(path).ok()?;
         let mut config: Config =
             serde_json::from_reader(file).expect("failed to parse config file");

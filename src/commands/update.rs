@@ -86,9 +86,7 @@ pub async fn update(matches: &ArgMatches) -> i32 {
 
     let mut modpack_versions = Vec::new();
     if modpack.is_some() {
-        let modrinth_api = api::modrinth::ModrinthApi::new();
-        modpack_versions = modrinth_api
-            .versions(config.modpack_slug.as_ref().unwrap())
+        modpack_versions = api::modrinth::versions(config.modpack_slug.as_ref().unwrap())
             .await
             .unwrap();
 
@@ -110,8 +108,6 @@ pub async fn update(matches: &ArgMatches) -> i32 {
         .unwrap();
 
     let update = items[update];
-    let api = api::mcjars::McjarsApi::new();
-
     if update == "Update Version" {
         let version_index = versions
             .keys()
@@ -143,7 +139,9 @@ pub async fn update(matches: &ArgMatches) -> i32 {
             "...".bright_black()
         );
 
-        let builds = api.builds(&build.r#type, server_version).await.unwrap();
+        let builds = api::mcjars::builds(&build.r#type, server_version)
+            .await
+            .unwrap();
 
         println!(
             "{} {} {} {}",
@@ -195,7 +193,9 @@ pub async fn update(matches: &ArgMatches) -> i32 {
             "...".bright_black()
         );
 
-        let builds = api.builds(&build.r#type, &server_version).await.unwrap();
+        let builds = api::mcjars::builds(&build.r#type, &server_version)
+            .await
+            .unwrap();
         let builds = builds.iter().rev().collect::<Vec<&api::mcjars::Build>>();
 
         println!(
@@ -279,7 +279,7 @@ pub async fn update(matches: &ArgMatches) -> i32 {
             "...".bright_black()
         );
 
-        modpack::install(&directory, &api, modpack_version).await;
+        modpack::install(&directory, modpack_version).await;
 
         config.modpack_version = Some(modpack_version.id.clone());
         config.save();

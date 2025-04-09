@@ -12,13 +12,13 @@ use zip::ZipArchive;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 struct Release {
     tag_name: String,
     assets: Vec<Asset>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 struct Asset {
     name: String,
     size: u64,

@@ -24,15 +24,18 @@ impl Progress {
         }
     }
 
+    #[inline]
     pub fn incr<N: Into<usize>>(&mut self, n: N) {
         self.progress
             .fetch_add(n.into(), std::sync::atomic::Ordering::SeqCst);
     }
 
+    #[inline]
     pub fn progress(&self) -> usize {
         self.progress.load(std::sync::atomic::Ordering::SeqCst)
     }
 
+    #[inline]
     pub fn percent(&self) -> f64 {
         (self.progress() as f64 / self.total as f64) * 100.0
     }

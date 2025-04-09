@@ -56,8 +56,7 @@ pub async fn delete(matches: &ArgMatches) -> i32 {
         "...".bright_black()
     );
 
-    let backup = list.iter().find(|b| b.name == *name).unwrap();
-    std::fs::remove_file(&backup.path).unwrap();
+    std::fs::remove_file(&list.iter().find(|b| b.name == *name).unwrap().path).unwrap();
 
     println!(
         "{} {} {} {}",

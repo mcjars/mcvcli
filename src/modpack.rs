@@ -1,5 +1,5 @@
 use crate::{
-    api::{Progress, mcjars::McjarsApi, modrinth::Version},
+    api::{self, Progress, modrinth::Version},
     jar,
     progress::Progress as ProgressBar,
 };
@@ -21,23 +21,20 @@ struct IndexJson {
 struct IndexJsonDependencies {
     minecraft: String,
 
-    #[serde(rename = "fabric-loader")]
-    fabric_loader: Option<String>,
-
-    #[serde(rename = "quilt-loader")]
-    quilt_loader: Option<String>,
-
     forge: Option<String>,
     neoforge: Option<String>,
+    #[serde(rename = "fabric-loader")]
+    fabric_loader: Option<String>,
+    #[serde(rename = "quilt-loader")]
+    quilt_loader: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct IndexJsonFile {
     path: String,
     downloads: Vec<String>,
     env: Option<IndexJsonFileEnv>,
-
-    #[serde(rename = "fileSize")]
     file_size: u64,
 }
 
@@ -46,7 +43,7 @@ struct IndexJsonFileEnv {
     server: String,
 }
 
-pub async fn install(directory: &str, api: &McjarsApi, version: &Version) {
+pub async fn install(directory: &str, version: &Version) {
     let file = version.files.iter().find(|file| file.primary).unwrap();
 
     println!(
@@ -106,8 +103,7 @@ pub async fn install(directory: &str, api: &McjarsApi, version: &Version) {
 
     std::fs::remove_file(Path::new(directory).join("modrinth.index.json")).unwrap_or_default();
 
-    if Path::new(directory).join("overrides").exists() {
-        let files = std::fs::read_dir(Path::new(directory).join("overrides")).unwrap();
+    if let Ok(files) = std::fs::read_dir(Path::new(directory).join("overrides")) {
         for file in files {
             let file = file.unwrap();
             let file_path = file.path();
@@ -200,13 +196,12 @@ pub async fn install(directory: &str, api: &McjarsApi, version: &Version) {
     );
 
     let minecraft = index.dependencies.minecraft;
-    if index.dependencies.fabric_loader.is_some() {
-        let fabric_loader = index.dependencies.fabric_loader.unwrap();
-        let builds = api.builds("FABRIC", &minecraft).await.unwrap();
+    if let Some(fabric_loader) = index.dependencies.fabric_loader {
+        let builds = api::mcjars::builds("FABRIC", &minecraft).await.unwrap();
 
         let build = builds
             .iter()
-            .find(|build| build.project_version_id.as_ref().unwrap() == &fabric_loader)
+            .find(|build| build.project_version_id.as_ref() == Some(&fabric_loader))
             .unwrap();
 
         println!(
@@ -225,13 +220,12 @@ pub async fn install(directory: &str, api: &McjarsApi, version: &Version) {
             "...".bright_black().italic(),
             "DONE".green().bold().italic()
         );
-    } else if index.dependencies.quilt_loader.is_some() {
-        let quilt_loader = index.dependencies.quilt_loader.unwrap();
-        let builds = api.builds("QUILT", &minecraft).await.unwrap();
+    } else if let Some(quilt_loader) = index.dependencies.quilt_loader {
+        let builds = api::mcjars::builds("QUILT", &minecraft).await.unwrap();
 
         let build = builds
             .iter()
-            .find(|build| build.project_version_id.as_ref().unwrap() == &quilt_loader)
+            .find(|build| build.project_version_id.as_ref() == Some(&quilt_loader))
             .unwrap();
 
         println!(
@@ -250,13 +244,12 @@ pub async fn install(directory: &str, api: &McjarsApi, version: &Version) {
             "...".bright_black().italic(),
             "DONE".green().bold().italic()
         );
-    } else if index.dependencies.forge.is_some() {
-        let forge = index.dependencies.forge.unwrap();
-        let builds = api.builds("FORGE", &minecraft).await.unwrap();
+    } else if let Some(forge) = index.dependencies.forge {
+        let builds = api::mcjars::builds("FORGE", &minecraft).await.unwrap();
 
         let build = builds
             .iter()
-            .find(|build| build.project_version_id.as_ref().unwrap() == &forge)
+            .find(|build| build.project_version_id.as_ref() == Some(&forge))
             .unwrap();
 
         println!(
@@ -275,13 +268,12 @@ pub async fn install(directory: &str, api: &McjarsApi, version: &Version) {
             "...".bright_black().italic(),
             "DONE".green().bold().italic()
         );
-    } else if index.dependencies.neoforge.is_some() {
-        let neoforge = index.dependencies.neoforge.unwrap();
-        let builds = api.builds("NEOFORGE", &minecraft).await.unwrap();
+    } else if let Some(neoforge) = index.dependencies.neoforge {
+        let builds = api::mcjars::builds("NEOFORGE", &minecraft).await.unwrap();
 
         let build = builds
             .iter()
-            .find(|build| build.project_version_id.as_ref().unwrap() == &neoforge)
+            .find(|build| build.project_version_id.as_ref() == Some(&neoforge))
             .unwrap();
 
         println!(

@@ -74,9 +74,7 @@ pub async fn r#use(matches: &ArgMatches) -> i32 {
         std::fs::create_dir_all(&new_directory).unwrap();
     }
 
-    let entries = std::fs::read_dir(".").unwrap();
-    for entry in entries {
-        let entry = entry.unwrap();
+    for entry in std::fs::read_dir(".").unwrap().flatten() {
         let path = entry.path();
 
         if path.file_name().unwrap() == ".mcvcli.profiles" {
@@ -94,9 +92,7 @@ pub async fn r#use(matches: &ArgMatches) -> i32 {
         .unwrap();
     }
 
-    let entries = std::fs::read_dir(&old_directory).unwrap();
-    for entry in entries {
-        let entry = entry.unwrap();
+    for entry in std::fs::read_dir(&old_directory).unwrap().flatten() {
         let path = entry.path();
 
         std::fs::rename(

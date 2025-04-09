@@ -29,53 +29,49 @@ pub struct Backup {
 
 pub fn list() -> Vec<Backup> {
     let mut backups = Vec::new();
-    let entries = std::fs::read_dir(".mcvcli.backups").ok();
 
-    if entries.is_none() {
-        return backups;
-    }
+    if let Ok(entries) = std::fs::read_dir(".mcvcli.backups") {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            let name = path.file_name().unwrap().to_str().unwrap();
 
-    for entry in entries.unwrap() {
-        let entry = entry.unwrap();
-        let path = entry.path();
-        let name = path.file_name().unwrap().to_str().unwrap();
+            if !path.is_file() {
+                continue;
+            }
 
-        if !path.is_file() {
-            continue;
-        }
-
-        if name.ends_with("zip") {
-            backups.push(Backup {
-                name: name.to_string().replacen(".zip", "", 1),
-                path: path.to_str().unwrap().to_string(),
-                size: path.metadata().unwrap().len(),
-                format: BackupFormat::Zip,
-                created: DateTime::from(path.metadata().unwrap().created().unwrap()),
-            });
-        } else if name.ends_with("tar") {
-            backups.push(Backup {
-                name: name.to_string().replacen(".tar", "", 1),
-                path: path.to_str().unwrap().to_string(),
-                size: path.metadata().unwrap().len(),
-                format: BackupFormat::Tar,
-                created: DateTime::from(path.metadata().unwrap().created().unwrap()),
-            });
-        } else if name.ends_with("tar.gz") {
-            backups.push(Backup {
-                name: name.to_string().replacen(".tar.gz", "", 1),
-                path: path.to_str().unwrap().to_string(),
-                size: path.metadata().unwrap().len(),
-                format: BackupFormat::TarGz,
-                created: DateTime::from(path.metadata().unwrap().created().unwrap()),
-            });
-        } else if path.is_file() && name.ends_with("tar.xz") {
-            backups.push(Backup {
-                name: name.to_string().replacen(".tar.xz", "", 1),
-                path: path.to_str().unwrap().to_string(),
-                size: path.metadata().unwrap().len(),
-                format: BackupFormat::TarXz,
-                created: DateTime::from(path.metadata().unwrap().created().unwrap()),
-            });
+            if name.ends_with("zip") {
+                backups.push(Backup {
+                    name: name.to_string().replacen(".zip", "", 1),
+                    path: path.to_str().unwrap().to_string(),
+                    size: path.metadata().unwrap().len(),
+                    format: BackupFormat::Zip,
+                    created: DateTime::from(path.metadata().unwrap().created().unwrap()),
+                });
+            } else if name.ends_with("tar") {
+                backups.push(Backup {
+                    name: name.to_string().replacen(".tar", "", 1),
+                    path: path.to_str().unwrap().to_string(),
+                    size: path.metadata().unwrap().len(),
+                    format: BackupFormat::Tar,
+                    created: DateTime::from(path.metadata().unwrap().created().unwrap()),
+                });
+            } else if name.ends_with("tar.gz") {
+                backups.push(Backup {
+                    name: name.to_string().replacen(".tar.gz", "", 1),
+                    path: path.to_str().unwrap().to_string(),
+                    size: path.metadata().unwrap().len(),
+                    format: BackupFormat::TarGz,
+                    created: DateTime::from(path.metadata().unwrap().created().unwrap()),
+                });
+            } else if path.is_file() && name.ends_with("tar.xz") {
+                backups.push(Backup {
+                    name: name.to_string().replacen(".tar.xz", "", 1),
+                    path: path.to_str().unwrap().to_string(),
+                    size: path.metadata().unwrap().len(),
+                    format: BackupFormat::TarXz,
+                    created: DateTime::from(path.metadata().unwrap().created().unwrap()),
+                });
+            }
         }
     }
 

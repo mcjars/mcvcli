@@ -1,4 +1,4 @@
-use crate::{api::modrinth::ModrinthApi, config};
+use crate::{api, config};
 
 use clap::ArgMatches;
 use colored::Colorize;
@@ -7,7 +7,6 @@ use std::path::Path;
 
 pub async fn delete(_matches: &ArgMatches) -> i32 {
     let _config = config::Config::new(".mcvcli.json", false);
-    let api = ModrinthApi::new();
 
     if !Path::new("mods").exists() {
         println!("{}", "no mods folder found.".red());
@@ -16,7 +15,7 @@ pub async fn delete(_matches: &ArgMatches) -> i32 {
 
     println!("{}", "listing mods...".bright_black());
 
-    let list = api.lookup("mods", None, None).await.unwrap();
+    let list = api::modrinth::lookup("mods", None, None).await.unwrap();
 
     println!(
         "{} {}",
