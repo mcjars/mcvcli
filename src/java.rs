@@ -34,7 +34,7 @@ pub fn installed() -> Vec<(u8, String)> {
     for entry in std::fs::read_dir(LOCATION.as_str()).unwrap().flatten() {
         let path = entry.path();
 
-        if path.is_dir() && std::fs::exists(path.join("bin/java")).unwrap_or_default() {
+        if path.is_dir() && std::fs::exists(path.join("bin")).unwrap_or_default() {
             let version = path
                 .file_name()
                 .unwrap()

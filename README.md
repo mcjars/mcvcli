@@ -62,6 +62,7 @@ mcvcli update # update build or minecraft version of your jar (only newer)
 mcvcli install # force install any other version
 mcvcli lookup {user} # lookup a user on your server or globally
 mcvcli start # start the server
+mcvcli config # manage mcvcli config file
 
 mcvcli java list # list installed java versions
 mcvcli java install {version} # install a specific java version
