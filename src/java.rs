@@ -24,6 +24,18 @@ struct Package {
 static LOCATION: LazyLock<String> =
     LazyLock::new(|| format!("{}/.mcvcli/java", home_dir().unwrap().to_str().unwrap()));
 
+fn parse_version_stderr(stderr: &str) -> u8 {
+    let line = stderr.lines().next().unwrap();
+    let version = line
+        .split_whitespace()
+        .find(|s| s.chars().any(|c| c.is_numeric()))
+        .unwrap()
+        .trim_matches(|c: char| !c.is_numeric())
+        .replace("1.8", "8");
+
+    atoi::atoi(version.as_bytes()).unwrap()
+}
+
 pub fn installed() -> Vec<(u8, String)> {
     let mut installed: Vec<(u8, String)> = Vec::new();
 
@@ -72,20 +84,7 @@ pub fn find_local() -> Option<(u8, String, String)> {
             .stderr;
 
         if let Ok(version) = String::from_utf8(version) {
-            let version = version
-                .lines()
-                .next()
-                .unwrap()
-                .split_whitespace()
-                .nth(2)
-                .unwrap()
-                .replace("\"", "")
-                .replace("1.8", "8")
-                .split('.')
-                .next()
-                .unwrap()
-                .parse()
-                .unwrap();
+            let version = parse_version_stderr(&version);
 
             return Some((version, binary, java_home));
         }
@@ -103,20 +102,7 @@ pub fn find_local() -> Option<(u8, String, String)> {
                 .stderr;
 
             if let Ok(version) = String::from_utf8(version) {
-                let version = version
-                    .lines()
-                    .next()
-                    .unwrap()
-                    .split_whitespace()
-                    .nth(2)
-                    .unwrap()
-                    .replace("\"", "")
-                    .replace("1.8", "8")
-                    .split('.')
-                    .next()
-                    .unwrap()
-                    .parse()
-                    .unwrap();
+                let version = parse_version_stderr(&version);
 
                 return Some((version, binary, "".to_string()));
             }

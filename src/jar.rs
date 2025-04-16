@@ -1,6 +1,5 @@
-use crate::api::Progress;
 use crate::api::{
-    self,
+    self, Progress,
     mcjars::{Build, InstallationStep, Version},
     modrinth::Project,
 };
@@ -16,7 +15,7 @@ use zip::ZipArchive;
 
 pub async fn install(build: &Build, directory: &str, spaces: usize) -> Result<(), reqwest::Error> {
     if Path::new(directory).join("libraries").exists() {
-        std::fs::remove_dir_all(Path::new(directory).join("libraries")).unwrap_or(());
+        std::fs::remove_dir_all(Path::new(directory).join("libraries")).unwrap_or_default();
     }
 
     for group in build.installation.iter() {

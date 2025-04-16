@@ -1,7 +1,7 @@
 [package]
 name = "mcvcli"
 description = "A command line interface for managing Minecraft servers."
-version = "2.3.3"
+version = "2.3.4"
 edition = "2024"
 license = "MIT"
 homepage = "https://github.com/mcjars/mcvcli"
@@ -35,3 +35,4 @@ sysinfo = "0.34.0"
 rand = "0.9.0"
 ipipe = "0.11.7"
 xz2 = "0.1.7"
+atoi = "2.0.0"

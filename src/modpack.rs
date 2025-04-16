@@ -104,8 +104,7 @@ pub async fn install(directory: &str, version: &Version) {
     std::fs::remove_file(Path::new(directory).join("modrinth.index.json")).unwrap_or_default();
 
     if let Ok(files) = std::fs::read_dir(Path::new(directory).join("overrides")) {
-        for file in files {
-            let file = file.unwrap();
+        for file in files.flatten() {
             let file_path = file.path();
             let new_path =
                 Path::new(directory).join(file_path.file_name().unwrap().to_str().unwrap());
@@ -137,7 +136,7 @@ pub async fn install(directory: &str, version: &Version) {
     let terminal_width = term_size::dimensions().unwrap().0 as usize;
     for files in index.files.chunks(10) {
         let progress = Arc::new(Mutex::new(ProgressBar::with_capacity(10)));
-        let mut handles = vec![];
+        let mut handles = Vec::new();
 
         for file in files {
             if file
