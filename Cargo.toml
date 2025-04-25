@@ -1,11 +1,13 @@
 [package]
 name = "mcvcli"
 description = "A command line interface for managing Minecraft servers."
-version = "2.3.4"
+version = "2.3.5"
 edition = "2024"
 license = "MIT"
 homepage = "https://github.com/mcjars/mcvcli"
 repository = "https://github.com/mcjars/mcvcli.git"
+keywords = ["minecraft", "server", "cli", "command-line", "utilities"]
+categories = ["command-line-utilities"]
 
 [[bin]]
 name = "mcvcli"

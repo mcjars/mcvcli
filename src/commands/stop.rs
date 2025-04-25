@@ -1,3 +1,5 @@
+use std::io::Write;
+
 use crate::{config, detached};
 
 use clap::ArgMatches;
@@ -16,21 +18,13 @@ pub async fn stop(matches: &ArgMatches) -> i32 {
         return 1;
     }
 
+    let [mut stdin, mut stdout, mut stderr] = detached::get_pipes(&config.identifier.unwrap());
+    let mut threads = Vec::new();
+
     println!(
         "{}",
         format!("stopping server ({}s before being killed) ...", timeout).bright_black()
     );
-
-    let pid = sysinfo::Pid::from(config.pid.unwrap());
-    let sys = sysinfo::System::new_all();
-    let process = sys.process(pid).unwrap();
-
-    let [mut stdin, mut stdout, mut stderr] = detached::get_pipes(&config.identifier.unwrap());
-    let mut threads = Vec::new();
-
-    threads.push(tokio::spawn(async move {
-        std::io::copy(&mut std::io::stdin(), &mut stdin).unwrap();
-    }));
 
     threads.push(tokio::spawn(async move {
         std::io::copy(&mut stdout, &mut std::io::stdout()).unwrap();
@@ -40,17 +34,24 @@ pub async fn stop(matches: &ArgMatches) -> i32 {
         std::io::copy(&mut stderr, &mut std::io::stderr()).unwrap();
     }));
 
-    process.kill_with(sysinfo::Signal::Interrupt);
+    threads.push(tokio::spawn({
+        let stop_command = config.stop_command.clone();
+
+        async move {
+            stdin.write_all((stop_command + "\n").as_bytes()).unwrap();
+            stdin.flush().unwrap();
+
+            std::io::copy(&mut std::io::stdin(), &mut stdin).unwrap();
+        }
+    }));
 
     let kill = tokio::spawn(async move {
         tokio::time::sleep(tokio::time::Duration::from_secs(timeout)).await;
 
         if detached::status(config.pid) {
             println!(
-                " {}",
-                "server is taking too long to stop, killing it ..."
-                    .bright_black()
-                    .italic()
+                "{}",
+                "server is taking too long to stop, killing it ...".bright_black()
             );
 
             let pid = sysinfo::Pid::from(config.pid.unwrap());
@@ -60,11 +61,9 @@ pub async fn stop(matches: &ArgMatches) -> i32 {
             process.kill_with(sysinfo::Signal::Kill);
 
             println!(
-                " {} {}",
-                "server is taking too long to stop, killing it ..."
-                    .bright_black()
-                    .italic(),
-                "DONE".green().bold().italic()
+                "{} {}",
+                "server is taking too long to stop, killing it ...".bright_black(),
+                "DONE".green().bold()
             );
         }
     });

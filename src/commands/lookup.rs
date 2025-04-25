@@ -64,10 +64,9 @@ pub async fn lookup(matches: &ArgMatches) -> i32 {
 
     println!("{}", "looking up player...".bright_black());
 
-    let player = if let Some(uuid) = api::mojang::format_uuid(player) {
-        api::mojang::get_profile_uuid(&uuid).await
-    } else {
-        api::mojang::get_profile_name(player).await
+    let player = match api::mojang::format_uuid(player) {
+        Some(uuid) => api::mojang::get_profile_uuid(&uuid).await,
+        None => api::mojang::get_profile_name(player).await,
     };
 
     if player.is_err() {
@@ -186,7 +185,7 @@ pub async fn lookup(matches: &ArgMatches) -> i32 {
         println!("    {}", "inventory:".bright_black());
 
         let mut total: u32 = 0;
-        let mut filled: u32 = 0;
+        let mut filled: u8 = 0;
         for item in inventory {
             total += item.count as u32;
             filled += 1;

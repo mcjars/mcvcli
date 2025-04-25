@@ -108,6 +108,14 @@ fn cli() -> Command {
                         .required(false),
                 )
                 .arg(
+                    Arg::new("stop_command")
+                        .long("stop-command")
+                        .short('s')
+                        .help("The stop command to use when stopping the server")
+                        .num_args(1)
+                        .required(false),
+                )
+                .arg(
                     Arg::new("flags")
                         .long("flags")
                         .short('f')
@@ -193,6 +201,16 @@ fn cli() -> Command {
                         .num_args(0)
                         .default_value("false")
                         .value_parser(clap::value_parser!(bool))
+                        .required(false),
+                )
+                .arg(
+                    Arg::new("timeout")
+                        .long("timeout")
+                        .short('t')
+                        .help("The amount of time to wait for the server to stop (seconds)")
+                        .num_args(1)
+                        .default_value("20")
+                        .value_parser(clap::value_parser!(u64).range(1..))
                         .required(false),
                 )
                 .arg_required_else_help(false),

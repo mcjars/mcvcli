@@ -3,6 +3,10 @@ use rand::{Rng, distr::Alphanumeric};
 use serde::{Deserialize, Serialize};
 use std::{fs::File, path::Path};
 
+fn default_stop_command() -> String {
+    "stop".to_string()
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Config {
@@ -10,6 +14,8 @@ pub struct Config {
     path: String,
 
     pub jar_file: String,
+    #[serde(default = "default_stop_command")]
+    pub stop_command: String,
     pub profile_name: String,
 
     pub modpack_slug: Option<String>,
@@ -34,6 +40,7 @@ impl Config {
                 let config = Config {
                     path: path.to_string(),
                     jar_file: "server.jar".to_string(),
+                    stop_command: "stop".to_string(),
                     profile_name: "default".to_string(),
                     modpack_slug: None,
                     modpack_version: None,

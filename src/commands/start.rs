@@ -6,16 +6,17 @@ use colored::Colorize;
 use dialoguer::{Confirm, theme::ColorfulTheme};
 use human_bytes::human_bytes;
 use rand::{Rng, distr::Alphanumeric};
+use std::io::Read;
 use std::path::Path;
 use std::sync::Arc;
 use std::{fs::File, io::Write};
-use tokio::sync::Mutex;
-use tokio::{process::Command, signal::ctrl_c};
+use tokio::{io::AsyncWriteExt, process::Command, sync::Mutex};
 
 pub async fn start(matches: &ArgMatches) -> i32 {
     let mut config = config::Config::new(".mcvcli.json", false);
-    let auto_agree_eula = matches.get_one::<bool>("eula").expect("required");
-    let detached = matches.get_one::<bool>("detached").expect("required");
+    let auto_agree_eula = *matches.get_one::<bool>("eula").expect("required");
+    let detached = *matches.get_one::<bool>("detached").expect("required");
+    let timeout = *matches.get_one::<u64>("timeout").expect("required");
 
     let eula_accepted = std::fs::read_to_string("eula.txt")
         .unwrap_or_default()
@@ -156,7 +157,7 @@ pub async fn start(matches: &ArgMatches) -> i32 {
     println!("{}", "starting the minecraft server...".yellow());
     println!("{}", command);
 
-    if !*detached {
+    if !detached {
         let child = Arc::new(Mutex::new(
             Command::new(binary)
                 .args(config.extra_flags)
@@ -166,21 +167,106 @@ pub async fn start(matches: &ArgMatches) -> i32 {
                 .arg("nogui")
                 .args(config.extra_args)
                 .env("JAVA_HOME", java_home)
+                .stdin(std::process::Stdio::piped())
+                .stdout(std::process::Stdio::inherit())
+                .stderr(std::process::Stdio::inherit())
+                .kill_on_drop(true)
+                .process_group(0)
                 .spawn()
                 .unwrap(),
         ));
 
-        let child_clone = Arc::clone(&child);
-        tokio::spawn(async move {
-            ctrl_c().await.unwrap();
-            let mut child = child_clone.lock().await;
+        let kill = Arc::new(Mutex::new(None));
+        tokio::spawn({
+            let child = Arc::clone(&child);
+            let kill = Arc::clone(&kill);
+            let stop_command = config.stop_command.clone();
 
-            child.start_kill().unwrap_or(());
+            async move {
+                tokio::signal::ctrl_c().await.unwrap();
+
+                println!();
+                println!();
+                println!(
+                    "{}",
+                    format!("stopping server ({}s before being killed) ...", timeout)
+                        .bright_black()
+                );
+                println!();
+
+                if let Some(stdin) = child.lock().await.stdin.as_mut() {
+                    stdin
+                        .write_all((stop_command + "\n").as_bytes())
+                        .await
+                        .unwrap();
+                }
+
+                let child = Arc::clone(&child);
+                *kill.lock().await = Some(tokio::spawn(async move {
+                    tokio::time::sleep(tokio::time::Duration::from_secs(timeout)).await;
+
+                    println!(
+                        "{}",
+                        "server is taking too long to stop, killing it ...".bright_black()
+                    );
+
+                    child.lock().await.kill().await.unwrap();
+
+                    println!(
+                        "{} {}",
+                        "server is taking too long to stop, killing it ...".bright_black(),
+                        "DONE".green().bold()
+                    );
+                }));
+            }
         });
 
-        let code = child.lock().await.wait().await.unwrap();
+        tokio::spawn({
+            let child = Arc::clone(&child);
+            let mut stdin = std::io::stdin();
+
+            async move {
+                let mut buffer = [0; 1024];
+
+                loop {
+                    match stdin.read(&mut buffer) {
+                        Ok(0) => break,
+                        Ok(n) => {
+                            let mut child = child.lock().await;
+                            if let Some(stdin) = child.stdin.as_mut() {
+                                stdin.write_all(&buffer[..n]).await.unwrap();
+                            }
+                        }
+                        Err(_) => break,
+                    }
+                }
+            }
+        });
+
+        let code = {
+            loop {
+                tokio::time::sleep(std::time::Duration::from_millis(50)).await;
+
+                let mut child = child.lock().await;
+                match child.try_wait() {
+                    Ok(Some(code)) => break code,
+                    Ok(None) => continue,
+                    Err(_) => break Default::default(),
+                }
+            }
+        };
+
+        if let Some(kill) = kill.lock().await.take() {
+            kill.abort();
+        }
 
         println!();
+        println!(
+            "{} {}",
+            "stopping server ...".bright_black(),
+            "DONE".green().bold()
+        );
+
         println!(
             "{} {}",
             "server has stopped with code".red(),

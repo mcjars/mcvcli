@@ -23,10 +23,11 @@ pub async fn config(matches: &ArgMatches) -> i32 {
     };
 
     let ram = matches.get_one::<u16>("ram");
+    let stop_command = matches.get_one::<String>("stop_command");
     let flags = matches.get_one::<String>("flags");
     let args = matches.get_one::<String>("args");
 
-    if ram.is_none() && flags.is_none() && args.is_none() {
+    if ram.is_none() && stop_command.is_none() && flags.is_none() && args.is_none() {
         println!(
             "{} {}",
             "no changes made, use".bright_black(),
@@ -39,6 +40,9 @@ pub async fn config(matches: &ArgMatches) -> i32 {
 
     if let Some(ram) = ram {
         config.ram_mb = *ram;
+    }
+    if let Some(stop_command) = stop_command {
+        config.stop_command = stop_command.to_string();
     }
     if let Some(flags) = flags {
         config.extra_flags = vec![flags.to_string()];
