@@ -1,9 +1,8 @@
-use std::io::Write;
-
 use crate::{config, detached};
 
 use clap::ArgMatches;
 use colored::Colorize;
+use std::io::Write;
 
 pub async fn stop(matches: &ArgMatches) -> i32 {
     let timeout = *matches.get_one::<u64>("timeout").expect("required");
@@ -39,7 +38,6 @@ pub async fn stop(matches: &ArgMatches) -> i32 {
 
         async move {
             stdin.write_all((stop_command + "\n").as_bytes()).unwrap();
-            stdin.flush().unwrap();
 
             std::io::copy(&mut std::io::stdin(), &mut stdin).unwrap();
         }

@@ -6,10 +6,7 @@ use colored::Colorize;
 use dialoguer::{Confirm, theme::ColorfulTheme};
 use human_bytes::human_bytes;
 use rand::{Rng, distr::Alphanumeric};
-use std::io::Read;
-use std::path::Path;
-use std::sync::Arc;
-use std::{fs::File, io::Write};
+use std::{fs::File, io::Read, io::Write, path::Path, sync::Arc};
 use tokio::{io::AsyncWriteExt, process::Command, sync::Mutex};
 
 pub async fn start(matches: &ArgMatches) -> i32 {
@@ -158,23 +155,26 @@ pub async fn start(matches: &ArgMatches) -> i32 {
     println!("{}", command);
 
     if !detached {
-        let child = Arc::new(Mutex::new(
-            Command::new(binary)
-                .args(config.extra_flags)
-                .arg(format!("-Xmx{}M", config.ram_mb))
-                .arg("-jar")
-                .arg(config.jar_file)
-                .arg("nogui")
-                .args(config.extra_args)
-                .env("JAVA_HOME", java_home)
-                .stdin(std::process::Stdio::piped())
-                .stdout(std::process::Stdio::inherit())
-                .stderr(std::process::Stdio::inherit())
-                .kill_on_drop(true)
-                .process_group(0)
-                .spawn()
-                .unwrap(),
-        ));
+        let child = Arc::new(Mutex::new({
+            let mut command = Command::new(binary);
+
+            command.args(config.extra_flags);
+            command.arg(format!("-Xmx{}M", config.ram_mb));
+            command.arg("-jar");
+            command.arg(config.jar_file);
+            command.arg("nogui");
+            command.args(config.extra_args);
+            command.env("JAVA_HOME", java_home);
+            command.stdin(std::process::Stdio::piped());
+            command.stdout(std::process::Stdio::inherit());
+            command.stderr(std::process::Stdio::inherit());
+            command.kill_on_drop(true);
+
+            #[cfg(unix)]
+            command.process_group(0);
+
+            command.spawn().unwrap()
+        }));
 
         let kill = Arc::new(Mutex::new(None));
         tokio::spawn({
