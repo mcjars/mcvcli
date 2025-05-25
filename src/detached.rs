@@ -15,7 +15,7 @@ pub fn status(pid: Option<usize>) -> bool {
 
     let process = process.unwrap();
     for value in process.environ() {
-        if value.to_str().unwrap().contains("/.mcvcli/java/") {
+        if value.to_str().unwrap().contains("java") {
             return true;
         }
     }
