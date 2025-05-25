@@ -7,20 +7,16 @@ pub fn status(pid: Option<usize>) -> bool {
 
     let pid = sysinfo::Pid::from(pid.unwrap());
     let sys = sysinfo::System::new_all();
-    let process = sys.process(pid);
+    let process = match sys.process(pid) {
+        Some(proc) => proc,
+        None => return false,
+    };
 
-    if process.is_none() {
-        return false;
-    }
-
-    let process = process.unwrap();
-    for value in process.environ() {
-        if value.to_str().unwrap().contains("java") {
-            return true;
-        }
-    }
-
-    false
+    process
+        .exe()
+        .map(|exe| exe.to_str())
+        .flatten()
+        .is_some_and(|s| s.contains("java"))
 }
 
 pub fn get_pipes(identifier: &str) -> [Pipe; 3] {
