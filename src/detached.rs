@@ -14,8 +14,7 @@ pub fn status(pid: Option<usize>) -> bool {
 
     process
         .exe()
-        .map(|exe| exe.to_str())
-        .flatten()
+        .and_then(|exe| exe.to_str())
         .is_some_and(|s| s.contains("java"))
 }
 
