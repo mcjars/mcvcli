@@ -1145,7 +1145,7 @@ checksum = "60302e4db3a61da70c0cb7991976248362f30319e88850c487b9b95bbf059e00"
 
 [[package]]
 name = "mcvcli"
-version = "2.3.7"
+version = "2.4.0"
 dependencies = [
  "atoi",
  "chrono",
@@ -1159,6 +1159,7 @@ dependencies = [
  "human_bytes",
  "indexmap",
  "ipipe",
+ "msp",
  "rand 0.9.1",
  "reqwest",
  "serde",
@@ -1221,6 +1222,16 @@ dependencies = [
  "libc",
  "wasi 0.11.0+wasi-snapshot-preview1",
  "windows-sys 0.59.0",
+]
+
+[[package]]
+name = "msp"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bd90e4103a16f3f5552c14f1a5108304f6d218fd5eae3d08a2049200b72ec8c7"
+dependencies = [
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

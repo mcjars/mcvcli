@@ -252,6 +252,26 @@ fn cli() -> Command {
                 .arg_required_else_help(true),
         )
         .subcommand(
+            Command::new("query")
+                .about("Queries the Minecraft server for information")
+                .arg(
+                    Arg::new("address")
+                        .help("The address of the Minecraft server to query (e.g., `example.com:25565`)")
+                        .num_args(1)
+                        .required(true),
+                )
+                .arg(
+                    Arg::new("query")
+                        .long("query")
+                        .short('q')
+                        .help("Use the query protocol to get more information (requires server to have query enabled)")
+                        .num_args(0)
+                        .default_value("false")
+                        .value_parser(clap::value_parser!(bool))
+                        .required(false),
+                )
+        )
+        .subcommand(
             Command::new("version")
                 .about("Gets the installed version of the Minecraft server")
                 .arg(
@@ -476,6 +496,9 @@ async fn main() {
         }
         Some(("lookup", sub_matches)) => {
             std::process::exit(commands::lookup::lookup(sub_matches).await)
+        }
+        Some(("query", sub_matches)) => {
+            std::process::exit(commands::query::query(sub_matches).await)
         }
         Some(("version", sub_matches)) => {
             std::process::exit(commands::version::version(sub_matches).await)

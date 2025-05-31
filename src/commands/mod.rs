@@ -7,6 +7,7 @@ pub mod java;
 pub mod lookup;
 pub mod mods;
 pub mod profile;
+pub mod query;
 pub mod start;
 pub mod status;
 pub mod stop;
