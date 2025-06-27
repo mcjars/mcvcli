@@ -34,7 +34,7 @@ pub async fn create(matches: &ArgMatches) -> i32 {
         "...".bright_black()
     );
 
-    let directory = format!(".mcvcli.profiles/{}", name);
+    let directory = format!(".mcvcli.profiles/{name}");
     commands::init::init(matches, Some(&directory), Some(name)).await;
 
     println!(

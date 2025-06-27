@@ -124,7 +124,7 @@ impl Progress {
 
                 if !force {
                     // Save cursor position and then move up `pos` lines.
-                    let _ = write!(self.out, "\x1B[s\x1B[{}A\r", pos);
+                    let _ = write!(self.out, "\x1B[s\x1B[{pos}A\r");
                 }
 
                 let _ = write!(

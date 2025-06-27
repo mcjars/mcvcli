@@ -41,7 +41,7 @@ pub enum TarEncoder {
 }
 
 pub fn create(name: &str, encoder: TarEncoder, extension: &str) {
-    let path = format!(".mcvcli.backups/{}.{}", name, extension);
+    let path = format!(".mcvcli.backups/{name}.{extension}");
     let file = File::create(&path).unwrap();
 
     let file: Box<dyn Write> = match encoder {

@@ -19,9 +19,9 @@ pub fn status(pid: Option<usize>) -> bool {
 }
 
 pub fn get_pipes(identifier: &str) -> [Pipe; 3] {
-    let stdin = Pipe::with_name(&format!("{}_stdin", identifier)).unwrap();
-    let stdout = Pipe::with_name(&format!("{}_stdout", identifier)).unwrap();
-    let stderr = Pipe::with_name(&format!("{}_stderr", identifier)).unwrap();
+    let stdin = Pipe::with_name(&format!("{identifier}_stdin")).unwrap();
+    let stdout = Pipe::with_name(&format!("{identifier}_stdout")).unwrap();
+    let stderr = Pipe::with_name(&format!("{identifier}_stderr")).unwrap();
 
     [stdin, stdout, stderr]
 }

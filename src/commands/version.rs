@@ -17,14 +17,14 @@ pub async fn version(matches: &ArgMatches) -> i32 {
     }
 
     let directory = if let Some(profile) = profile {
-        format!(".mcvcli.profiles/{}", profile)
+        format!(".mcvcli.profiles/{profile}")
     } else {
         ".".to_string()
     };
 
     println!("{}", "checking installed version ...".bright_black());
 
-    let config = config::Config::new(&format!("{}/.mcvcli.json", directory), false);
+    let config = config::Config::new(&format!("{directory}/.mcvcli.json"), false);
 
     println!(
         "{} {}",

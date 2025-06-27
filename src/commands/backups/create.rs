@@ -7,8 +7,7 @@ use dialoguer::{Confirm, theme::ColorfulTheme};
 pub async fn create(matches: &ArgMatches) -> i32 {
     let name = matches.get_one::<String>("name").expect("required");
     let format = matches.get_one::<String>("format").expect("required");
-    let format: Option<backups::BackupFormat> =
-        serde_json::from_str(&format!("\"{}\"", format)).ok();
+    let format: Option<backups::BackupFormat> = serde_json::from_str(&format!("\"{format}\"")).ok();
     let _config = config::Config::new(".mcvcli.json", false);
 
     if format.is_none() {

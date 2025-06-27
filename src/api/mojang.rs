@@ -32,8 +32,7 @@ pub async fn get_profile_uuid(uuid: &str) -> Result<Profile, reqwest::Error> {
 
     let res = api::CLIENT
         .get(format!(
-            "https://sessionserver.mojang.com/session/minecraft/profile/{}",
-            uuid
+            "https://sessionserver.mojang.com/session/minecraft/profile/{uuid}"
         ))
         .send()
         .await?;
@@ -45,8 +44,7 @@ pub async fn get_profile_uuid(uuid: &str) -> Result<Profile, reqwest::Error> {
 pub async fn get_profile_name(name: &str) -> Result<Profile, reqwest::Error> {
     let res = api::CLIENT
         .get(format!(
-            "https://api.mojang.com/users/profiles/minecraft/{}",
-            name
+            "https://api.mojang.com/users/profiles/minecraft/{name}"
         ))
         .send()
         .await?;

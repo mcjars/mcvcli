@@ -76,7 +76,7 @@ pub fn remove(version: u8) {
 
 pub fn find_local() -> Option<(u8, String, String)> {
     if let Ok(java_home) = std::env::var("JAVA_HOME") {
-        let binary = format!("{}/bin/java", java_home);
+        let binary = format!("{java_home}/bin/java");
         let version = std::process::Command::new(&binary)
             .arg("-version")
             .output()
@@ -90,7 +90,7 @@ pub fn find_local() -> Option<(u8, String, String)> {
         }
     } else if let Ok(path) = std::env::var("PATH") {
         for path in path.split(':') {
-            let binary = format!("{}/java", path);
+            let binary = format!("{path}/java");
             if !Path::new(&binary).exists() {
                 continue;
             }
@@ -187,8 +187,7 @@ pub async fn install(version: u8) {
 
     let res = api::CLIENT
         .get(format!(
-            "https://api.adoptium.net/v3/assets/latest/{}/hotspot?os={}&architecture={}",
-            version, query_os, query_arch
+            "https://api.adoptium.net/v3/assets/latest/{version}/hotspot?os={query_os}&architecture={query_arch}"
         ))
         .send()
         .await
@@ -207,7 +206,7 @@ pub async fn install(version: u8) {
     });
 
     if binary.is_none() {
-        panic!("no binary found for Java {}", version);
+        panic!("no binary found for Java {version}");
     }
 
     let binary = binary.unwrap();

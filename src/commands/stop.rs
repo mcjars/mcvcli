@@ -22,7 +22,7 @@ pub async fn stop(matches: &ArgMatches) -> i32 {
 
     println!(
         "{}",
-        format!("stopping server ({}s before being killed) ...", timeout).bright_black()
+        format!("stopping server ({timeout}s before being killed) ...").bright_black()
     );
 
     threads.push(tokio::spawn(async move {

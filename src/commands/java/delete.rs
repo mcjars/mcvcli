@@ -41,7 +41,7 @@ pub async fn delete(matches: &ArgMatches) -> i32 {
             .items(
                 &list
                     .iter()
-                    .map(|(version, _)| format!("java {}", version))
+                    .map(|(version, _)| format!("java {version}"))
                     .collect::<Vec<String>>(),
             )
             .default(0)

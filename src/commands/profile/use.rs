@@ -68,7 +68,7 @@ pub async fn r#use(matches: &ArgMatches) -> i32 {
     );
 
     let new_directory = format!(".mcvcli.profiles/{}", config.profile_name);
-    let old_directory = format!(".mcvcli.profiles/{}", name);
+    let old_directory = format!(".mcvcli.profiles/{name}");
 
     if !Path::new(&new_directory).exists() {
         std::fs::create_dir_all(&new_directory).unwrap();

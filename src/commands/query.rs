@@ -35,7 +35,7 @@ pub async fn query(matches: &ArgMatches) -> i32 {
             }
         };
 
-        println!("{:?}", status);
+        println!("{status:?}");
     } else {
         match server.get_server_status() {
             Ok(status) => {
@@ -51,7 +51,7 @@ pub async fn query(matches: &ArgMatches) -> i32 {
                 println!("{}", address.bright_cyan().underline());
                 println!(
                     "  {} {}",
-                    "version:".bright_black(),
+                    "version: ".bright_black(),
                     status.version.name.cyan()
                 );
                 println!(
@@ -68,7 +68,7 @@ pub async fn query(matches: &ArgMatches) -> i32 {
                 );
                 println!(
                     "    {} {}",
-                    "max:".bright_black(),
+                    "max:   ".bright_black(),
                     status.players.max.to_string().cyan()
                 );
                 println!("    {}", "sample:".bright_black());
@@ -113,7 +113,7 @@ pub async fn query(matches: &ArgMatches) -> i32 {
                             );
                             println!(
                                 "    {} {}",
-                                "max:".bright_black(),
+                                "max:   ".bright_black(),
                                 status.max_players.to_string().cyan()
                             );
 
@@ -134,7 +134,7 @@ pub async fn query(matches: &ArgMatches) -> i32 {
                 println!("{}", address.bright_cyan().underline());
                 println!(
                     "  {} {}",
-                    "version:".bright_black(),
+                    "version: ".bright_black(),
                     status.server_version.cyan()
                 );
                 println!(
@@ -151,7 +151,7 @@ pub async fn query(matches: &ArgMatches) -> i32 {
                 );
                 println!(
                     "    {} {}",
-                    "max:".bright_black(),
+                    "max:   ".bright_black(),
                     status.max_players.to_string().cyan()
                 );
 

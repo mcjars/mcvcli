@@ -66,7 +66,7 @@ pub async fn delete(matches: &ArgMatches) -> i32 {
         "...".bright_black()
     );
 
-    let directory = format!(".mcvcli.profiles/{}", name);
+    let directory = format!(".mcvcli.profiles/{name}");
     std::fs::remove_dir_all(directory).unwrap();
 
     println!(

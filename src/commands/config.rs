@@ -17,7 +17,7 @@ pub async fn config(matches: &ArgMatches) -> i32 {
     }
 
     let mut config = if let Some(profile) = profile {
-        config::Config::new(&format!(".mcvcli.profiles/{}/.mcvcli.json", profile), false)
+        config::Config::new(&format!(".mcvcli.profiles/{profile}/.mcvcli.json"), false)
     } else {
         config::Config::new(".mcvcli.json", false)
     };

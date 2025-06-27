@@ -89,17 +89,17 @@ pub async fn upgrade(_matches: &ArgMatches) -> i32 {
         "macos" => release
             .assets
             .iter()
-            .find(|asset| asset.name == format!("mcvcli-{}-macos.tar.xz", arch))
+            .find(|asset| asset.name == format!("mcvcli-{arch}-macos.tar.xz"))
             .unwrap(),
         "windows" => release
             .assets
             .iter()
-            .find(|asset| asset.name == format!("mcvcli-{}-windows.zip", arch))
+            .find(|asset| asset.name == format!("mcvcli-{arch}-windows.zip"))
             .unwrap(),
         _ => release
             .assets
             .iter()
-            .find(|asset| asset.name == format!("mcvcli-{}-linux.tar.xz", arch))
+            .find(|asset| asset.name == format!("mcvcli-{arch}-linux.tar.xz"))
             .unwrap(),
     };
 

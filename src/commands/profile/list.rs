@@ -18,7 +18,7 @@ pub async fn list(matches: &ArgMatches) -> i32 {
     if *include_version {
         for profile in list.iter() {
             let directory = if *profile != config.profile_name {
-                format!(".mcvcli.profiles/{}", profile)
+                format!(".mcvcli.profiles/{profile}")
             } else {
                 String::from(".")
             };
@@ -46,7 +46,7 @@ pub async fn list(matches: &ArgMatches) -> i32 {
         println!();
 
         let directory = if *profile != config.profile_name {
-            format!(".mcvcli.profiles/{}", profile)
+            format!(".mcvcli.profiles/{profile}")
         } else {
             String::from(".")
         };

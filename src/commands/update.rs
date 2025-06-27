@@ -39,14 +39,14 @@ pub async fn update(matches: &ArgMatches) -> i32 {
     }
 
     let directory = if let Some(profile) = profile {
-        format!(".mcvcli.profiles/{}", profile)
+        format!(".mcvcli.profiles/{profile}")
     } else {
         ".".to_string()
     };
 
     println!("{}", "checking installed version ...".bright_black());
 
-    let mut config = config::Config::new(&format!("{}/.mcvcli.json", directory), false);
+    let mut config = config::Config::new(&format!("{directory}/.mcvcli.json"), false);
     let detected = jar::detect(&directory.clone(), &config).await;
 
     if detected.is_none() {

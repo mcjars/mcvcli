@@ -31,7 +31,7 @@ pub async fn list(_matches: &ArgMatches) -> i32 {
 
     let mut versions: Vec<(String, u64)> = Vec::with_capacity(list.len());
     for (_, path) in list.iter() {
-        let version = std::process::Command::new(format!("{}/bin/java", path))
+        let version = std::process::Command::new(format!("{path}/bin/java"))
             .arg("-version")
             .output()
             .map(|output| {
@@ -58,7 +58,7 @@ pub async fn list(_matches: &ArgMatches) -> i32 {
 
         println!(
             "{} {}",
-            format!("java {}", version).cyan().bold().underline(),
+            format!("java {version}").cyan().bold().underline(),
             if version
                 == config
                     .as_ref()
@@ -87,7 +87,7 @@ pub async fn list(_matches: &ArgMatches) -> i32 {
 
         println!(
             "{} {}",
-            format!("java {}", version).cyan().bold().underline(),
+            format!("java {version}").cyan().bold().underline(),
             "(local)".green()
         );
 

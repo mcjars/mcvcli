@@ -13,7 +13,7 @@ pub async fn init(
         .or_else(|| matches.get_one::<String>("directory").map(|d| d.as_str()))
         .unwrap();
 
-    if std::path::Path::new(&format!("{}/.mcvcli.json", directory)).exists() {
+    if std::path::Path::new(&format!("{directory}/.mcvcli.json")).exists() {
         println!("{} {}", ".mcvcli.json".cyan(), "already exists!".red());
         println!(
             "{} {} {}",
@@ -295,7 +295,7 @@ pub async fn init(
                 java
             };
 
-            let mut config = config::Config::new(&format!("{}/.mcvcli.json", directory), true);
+            let mut config = config::Config::new(&format!("{directory}/.mcvcli.json"), true);
             config.profile_name = profile_name.unwrap_or("default").to_string();
             config.java_version = java;
             config.ram_mb = ram_mb;
@@ -443,7 +443,7 @@ pub async fn init(
 
             modpack::install(directory, modpack_version).await;
 
-            let mut config = config::Config::new(&format!("{}/.mcvcli.json", directory), true);
+            let mut config = config::Config::new(&format!("{directory}/.mcvcli.json"), true);
             config.profile_name = profile_name.unwrap_or("default").to_string();
             config.ram_mb = ram_mb;
             config.jar_file = "server.jar".to_string();
@@ -543,7 +543,7 @@ pub async fn init(
                     .unwrap()
             };
 
-            let mut config = config::Config::new(&format!("{}/.mcvcli.json", directory), true);
+            let mut config = config::Config::new(&format!("{directory}/.mcvcli.json"), true);
             config.profile_name = profile_name.unwrap_or("default").to_string();
             config.jar_file = jar_file.to_string();
             config.java_version = java_version;

@@ -41,7 +41,7 @@ fn recursive_add_directory(
 }
 
 pub fn create(name: &str) {
-    let path = format!(".mcvcli.backups/{}.zip", name);
+    let path = format!(".mcvcli.backups/{name}.zip");
     let file = File::create(&path).unwrap();
 
     let mut zip = ZipWriter::new(file);

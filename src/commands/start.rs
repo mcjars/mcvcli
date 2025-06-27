@@ -152,7 +152,7 @@ pub async fn start(matches: &ArgMatches) -> i32 {
 
     println!();
     println!("{}", "starting the minecraft server...".yellow());
-    println!("{}", command);
+    println!("{command}");
 
     if !detached {
         let child = Arc::new(Mutex::new({
@@ -189,8 +189,7 @@ pub async fn start(matches: &ArgMatches) -> i32 {
                 println!();
                 println!(
                     "{}",
-                    format!("stopping server ({}s before being killed) ...", timeout)
-                        .bright_black()
+                    format!("stopping server ({timeout}s before being killed) ...").bright_black()
                 );
                 println!();
 
