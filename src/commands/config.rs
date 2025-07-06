@@ -22,7 +22,7 @@ pub async fn config(matches: &ArgMatches) -> i32 {
         config::Config::new(".mcvcli.json", false)
     };
 
-    let ram = matches.get_one::<u16>("ram");
+    let ram = matches.get_one::<u32>("ram");
     let stop_command = matches.get_one::<String>("stop_command");
     let flags = matches.get_one::<String>("flags");
     let args = matches.get_one::<String>("args");

@@ -22,7 +22,7 @@ pub struct Config {
     pub modpack_version: Option<String>,
 
     #[serde(rename = "ramMB")]
-    pub ram_mb: u16,
+    pub ram_mb: u32,
 
     pub java_version: u8,
 

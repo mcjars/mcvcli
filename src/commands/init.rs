@@ -269,10 +269,10 @@ pub async fn init(
                 versions.get(server_version).unwrap().java
             };
 
-            let ram_mb = if let Some(ram) = matches.get_one::<u16>("ram") {
+            let ram_mb = if let Some(ram) = matches.get_one::<u32>("ram") {
                 *ram
             } else {
-                Input::<u16>::with_theme(&ColorfulTheme::default())
+                Input::<u32>::with_theme(&ColorfulTheme::default())
                     .with_prompt("RAM (MB)")
                     .default(2048)
                     .interact()
@@ -423,10 +423,10 @@ pub async fn init(
 
             let modpack_version = &versions[modpack_version];
 
-            let ram_mb = if let Some(ram) = matches.get_one::<u16>("ram") {
+            let ram_mb = if let Some(ram) = matches.get_one::<u32>("ram") {
                 *ram
             } else {
-                Input::<u16>::with_theme(&ColorfulTheme::default())
+                Input::<u32>::with_theme(&ColorfulTheme::default())
                     .with_prompt("RAM (MB)")
                     .default(2048)
                     .interact()
@@ -533,10 +533,10 @@ pub async fn init(
                 *java_versions.iter().rev().nth(java_version).unwrap()
             };
 
-            let ram_mb = if let Some(ram) = matches.get_one::<u16>("ram") {
+            let ram_mb = if let Some(ram) = matches.get_one::<u32>("ram") {
                 *ram
             } else {
-                Input::<u16>::with_theme(&ColorfulTheme::default())
+                Input::<u32>::with_theme(&ColorfulTheme::default())
                     .with_prompt("RAM (MB)")
                     .default(2048)
                     .interact()
