@@ -75,7 +75,7 @@ pub async fn install(matches: &ArgMatches) -> i32 {
         "...".bright_black()
     );
 
-    java::install(version).await;
+    java::install(version).await.unwrap();
 
     println!(
         "{} {} {} {}",

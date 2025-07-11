@@ -1,9 +1,10 @@
-mod tar;
-mod zip;
-
 use chrono::{DateTime, Local};
 use serde::Deserialize;
 use std::path::Path;
+
+mod counting_reader;
+mod tar;
+mod zip;
 
 #[derive(Debug, Deserialize)]
 pub enum BackupFormat {

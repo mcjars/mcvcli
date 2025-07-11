@@ -10,8 +10,8 @@ const SPINNER: &[char] = &['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧
 
 pub struct Progress {
     pub total: usize,
+    pub progress: Arc<AtomicUsize>,
 
-    progress: Arc<AtomicUsize>,
     thread: Option<tokio::task::JoinHandle<()>>,
 }
 

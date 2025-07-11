@@ -1,8 +1,7 @@
-use crate::api::Progress;
-
+use crate::{api::Progress, backups::counting_reader::CountingReader};
 use colored::Colorize;
 use flate2::{Compression, read::GzDecoder, write::GzEncoder};
-use std::{fs::File, io::Write, path::Path};
+use std::{fs::File, io::Write, path::Path, sync::Arc};
 use tar::{Archive, Builder};
 use xz2::{read::XzDecoder, write::XzEncoder};
 
@@ -21,15 +20,37 @@ fn recursive_add_directory(
             continue;
         }
 
-        if path.is_dir() {
+        let metadata = match path.metadata() {
+            Ok(metadata) => metadata,
+            Err(_) => continue,
+        };
+
+        if metadata.is_dir() {
             tar.append_dir(path.strip_prefix(root).unwrap().to_str().unwrap(), &path)
                 .unwrap();
             recursive_add_directory(tar, &path, root, progress);
-        } else {
-            tar.append_file(&path, &mut File::open(&path).unwrap())
-                .unwrap();
+        } else if metadata.is_file() {
+            let mut header = tar::Header::new_gnu();
+            header.set_entry_type(tar::EntryType::Regular);
+            header.set_size(metadata.len());
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
 
-            progress.incr(1usize);
+                header.set_mode(metadata.permissions().mode());
+            }
+
+            header.set_mtime(
+                metadata
+                    .modified()
+                    .map(|t| t.duration_since(std::time::UNIX_EPOCH).unwrap_or_default())
+                    .unwrap_or_default()
+                    .as_secs(),
+            );
+            let mut reader =
+                CountingReader::new(File::open(&path).unwrap(), Arc::clone(&progress.progress));
+
+            tar.append_data(&mut header, &path, &mut reader).unwrap();
         }
     }
 }
@@ -52,7 +73,7 @@ pub fn create(name: &str, encoder: TarEncoder, extension: &str) {
 
     let mut tar = Builder::new(file);
 
-    let mut file_count = 0;
+    let mut total_size = 0;
     for entry in walkdir::WalkDir::new(".").into_iter().flatten() {
         let path = entry.path().to_str().unwrap();
 
@@ -60,19 +81,28 @@ pub fn create(name: &str, encoder: TarEncoder, extension: &str) {
             continue;
         }
 
-        if entry.path().is_file() {
-            file_count += 1;
+        match entry.metadata() {
+            Ok(metadata) => {
+                if metadata.is_file() {
+                    total_size += metadata.len();
+                }
+            }
+            Err(_) => continue,
         }
     }
 
-    let mut progress = Progress::new(file_count);
+    let mut progress = Progress::new(total_size as usize);
     progress.spinner(|progress, spinner| {
         format!(
             "\r {} {} {}/{} ({}%)      ",
             "backing up...".bright_black().italic(),
             spinner.cyan(),
-            progress.progress().to_string().cyan().italic(),
-            progress.total.to_string().cyan().italic(),
+            human_bytes::human_bytes(progress.progress() as f64)
+                .cyan()
+                .italic(),
+            human_bytes::human_bytes(progress.total as f64)
+                .cyan()
+                .italic(),
             progress.percent().round().to_string().cyan().italic()
         )
     });
@@ -89,20 +119,14 @@ pub fn restore(path: &str, decoder: TarEncoder) {
     println!(" {}", "reading backup...".bright_black().italic());
 
     let file = File::open(path).unwrap();
+    let total = file.metadata().unwrap().len() as usize;
+    let mut progress = Progress::new(total);
+
+    let reader = CountingReader::new(file, Arc::clone(&progress.progress));
     let mut archive: Archive<Box<dyn std::io::Read>> = match decoder {
-        TarEncoder::Tar => Archive::new(Box::new(file)),
-        TarEncoder::Gz => Archive::new(Box::new(GzDecoder::new(file))),
-        TarEncoder::Xz => Archive::new(Box::new(XzDecoder::new(file))),
-    };
-
-    let total = {
-        let mut archive: Archive<Box<dyn std::io::Read>> = match decoder {
-            TarEncoder::Tar => Archive::new(Box::new(File::open(path).unwrap())),
-            TarEncoder::Gz => Archive::new(Box::new(GzDecoder::new(File::open(path).unwrap()))),
-            TarEncoder::Xz => Archive::new(Box::new(XzDecoder::new(File::open(path).unwrap()))),
-        };
-
-        archive.entries().unwrap().count()
+        TarEncoder::Tar => Archive::new(Box::new(reader)),
+        TarEncoder::Gz => Archive::new(Box::new(GzDecoder::new(reader))),
+        TarEncoder::Xz => Archive::new(Box::new(XzDecoder::new(reader))),
     };
 
     println!(
@@ -111,14 +135,17 @@ pub fn restore(path: &str, decoder: TarEncoder) {
         "DONE".green().bold().italic()
     );
 
-    let mut progress = Progress::new(total);
     progress.spinner(|progress, spinner| {
         format!(
             "\r {} {} {}/{} ({}%)      ",
             "restoring...".bright_black().italic(),
             spinner.cyan(),
-            progress.progress().to_string().cyan().italic(),
-            progress.total.to_string().cyan().italic(),
+            human_bytes::human_bytes(progress.progress() as f64)
+                .cyan()
+                .italic(),
+            human_bytes::human_bytes(progress.total as f64)
+                .cyan()
+                .italic(),
             progress.percent().round().to_string().cyan().italic()
         )
     });
@@ -129,13 +156,28 @@ pub fn restore(path: &str, decoder: TarEncoder) {
 
         if file.header().entry_type().is_dir() {
             std::fs::create_dir_all(&path).unwrap();
+
+            #[cfg(unix)]
+            if let Ok(mode) = file.header().mode() {
+                use std::os::unix::fs::PermissionsExt;
+
+                std::fs::set_permissions(&path, std::fs::Permissions::from_mode(mode)).unwrap();
+            }
         } else {
-            let mut write_file = std::fs::File::create(&path).unwrap();
+            let mut write_file = File::create(&path).unwrap();
 
             std::io::copy(&mut file, &mut write_file).unwrap();
-        }
 
-        progress.incr(1usize);
+            write_file.sync_all().unwrap();
+            drop(write_file);
+
+            #[cfg(unix)]
+            if let Ok(mode) = file.header().mode() {
+                use std::os::unix::fs::PermissionsExt;
+
+                std::fs::set_permissions(&path, std::fs::Permissions::from_mode(mode)).unwrap();
+            }
+        }
     }
 
     progress.finish();
