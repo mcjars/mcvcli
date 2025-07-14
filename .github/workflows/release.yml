@@ -34,7 +34,7 @@ jobs:
           target: x86_64-apple-darwin
           cross: false
         - build: x86_64-windows
-          os: windows-latest
+          os: windows-11
           rust: stable
           target: x86_64-pc-windows-msvc
           cross: false
@@ -42,6 +42,11 @@ jobs:
           os: macos-latest
           rust: stable
           target: aarch64-apple-darwin
+        - build: aarch64-windows
+          os: windows-11-arm
+          rust: stable
+          target: aarch64-pc-windows-msvc
+          cross: false
 
     steps:
       - name: Checkout sources
