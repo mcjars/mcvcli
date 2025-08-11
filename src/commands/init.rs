@@ -465,9 +465,7 @@ pub async fn init(
             } else {
                 let detected = jar::detect(".", &config).await;
 
-                if detected.is_some() {
-                    let ([build, _], versions, _) = detected.unwrap();
-
+                if let Some(([build, _], versions, _)) = detected {
                     config.java_version =
                         versions
                             .get(&build.version_id.unwrap_or(

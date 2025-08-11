@@ -443,9 +443,7 @@ pub async fn install(matches: &ArgMatches) -> i32 {
             config.modpack_version = Some(modpack_version.id.clone());
             let detected = jar::detect(".", &config).await;
 
-            if detected.is_some() {
-                let ([build, _], versions, _) = detected.unwrap();
-
+            if let Some(([build, _], versions, _)) = detected {
                 config.java_version = versions
                     .get(
                         &build

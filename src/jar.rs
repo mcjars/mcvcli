@@ -229,10 +229,10 @@ pub fn is_latest_version(build: &Build, versions: &IndexMap<String, Version>) ->
         .rev()
         .find(|(_, v)| v.r#type == version_type);
 
-    if let Some((k, _)) = latest_version {
-        if k == version {
-            return true;
-        }
+    if let Some((k, _)) = latest_version
+        && k == version
+    {
+        return true;
     }
 
     false

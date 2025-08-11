@@ -127,18 +127,18 @@ pub async fn binary(version: u8) -> [String; 2] {
     let installed = installed();
     let local = find_local();
 
-    if let Some((v, path, root)) = local {
-        if v == version {
-            println!(
-                "{} {} {} {}",
-                "checking for java".bright_black(),
-                version.to_string().cyan(),
-                "...".bright_black(),
-                "DONE".green().bold()
-            );
+    if let Some((v, path, root)) = local
+        && v == version
+    {
+        println!(
+            "{} {} {} {}",
+            "checking for java".bright_black(),
+            version.to_string().cyan(),
+            "...".bright_black(),
+            "DONE".green().bold()
+        );
 
-            return [path, root];
-        }
+        return [path, root];
     }
 
     if !installed.iter().any(|(v, _)| *v == version) {
