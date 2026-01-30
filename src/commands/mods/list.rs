@@ -89,14 +89,16 @@ pub async fn list(_matches: &ArgMatches) -> i32 {
                         .unwrap()
                 )
                 .cyan(),
-            if project.installed_latest_version.is_none() || project.installed_version.is_none() {
-                "(unknown)".yellow()
-            } else if project.installed_latest_version.as_ref().unwrap().id
-                == project.installed_version.as_ref().unwrap().id
+            if let Some(installed) = &project.installed_version
+                && let Some(latest) = &project.installed_latest_version
             {
-                "(latest)".green()
+                if installed.id == latest.id {
+                    "(latest)".green()
+                } else {
+                    "(outdated)".red()
+                }
             } else {
-                "(outdated)".red()
+                "(unknown)".yellow()
             }
         );
     }

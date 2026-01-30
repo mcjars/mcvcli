@@ -68,7 +68,7 @@ pub async fn lookup(file: &str) -> Result<([Build; 2], IndexMap<String, Version>
     let mut file = tokio::fs::File::open(file).await.unwrap();
 
     loop {
-        let mut buffer = vec![0; 64 * 1024];
+        let mut buffer = vec![0; 32 * 1024];
         let count = file.read(&mut buffer).await.unwrap();
 
         if count == 0 {

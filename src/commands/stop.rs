@@ -18,32 +18,31 @@ pub async fn stop(matches: &ArgMatches) -> i32 {
     }
 
     let [mut stdin, mut stdout, mut stderr] = detached::get_pipes(&config.identifier.unwrap());
-    let mut threads = Vec::new();
 
     println!(
         "{}",
         format!("stopping server ({timeout}s before being killed) ...").bright_black()
     );
 
-    threads.push(tokio::spawn(async move {
+    tokio::task::spawn_blocking(move || {
         std::io::copy(&mut stdout, &mut std::io::stdout()).unwrap();
-    }));
+    });
 
-    threads.push(tokio::spawn(async move {
+    tokio::task::spawn_blocking(move || {
         std::io::copy(&mut stderr, &mut std::io::stderr()).unwrap();
-    }));
+    });
 
-    threads.push(tokio::spawn({
+    tokio::task::spawn_blocking({
         let stop_command = config.stop_command.clone();
 
-        async move {
+        move || {
             stdin.write_all((stop_command + "\n").as_bytes()).unwrap();
 
             std::io::copy(&mut std::io::stdin(), &mut stdin).unwrap();
         }
-    }));
+    });
 
-    let kill = tokio::spawn(async move {
+    let kill_future = async {
         tokio::time::sleep(tokio::time::Duration::from_secs(timeout)).await;
 
         if detached::status(config.pid) {
@@ -64,9 +63,9 @@ pub async fn stop(matches: &ArgMatches) -> i32 {
                 "DONE".green().bold()
             );
         }
-    });
+    };
 
-    tokio::spawn(async move {
+    let stop_future = async {
         loop {
             if !detached::status(config.pid) {
                 println!();
@@ -80,14 +79,11 @@ pub async fn stop(matches: &ArgMatches) -> i32 {
 
             tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
         }
-    })
-    .await
-    .unwrap();
+    };
 
-    kill.abort();
-
-    for thread in threads {
-        thread.abort();
+    tokio::select! {
+        _ = kill_future => {},
+        _ = stop_future => {},
     }
 
     config.pid = None;

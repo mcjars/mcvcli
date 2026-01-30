@@ -6,11 +6,13 @@ use colored::Colorize;
 pub async fn config(matches: &ArgMatches) -> i32 {
     let profile = matches.get_one::<String>("profile");
 
-    if profile.is_some() && !profiles::list().contains(profile.unwrap()) {
+    if let Some(profile) = profile
+        && !profiles::list().contains(profile)
+    {
         println!(
             "{} {} {}",
             "profile".red(),
-            profile.unwrap().cyan(),
+            profile.cyan(),
             "does not exist!".red()
         );
         return 1;

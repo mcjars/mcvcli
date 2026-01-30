@@ -28,39 +28,31 @@ pub async fn attach(_matches: &ArgMatches) -> i32 {
     );
     println!();
 
-    threads.push(tokio::spawn(async move {
+    threads.push(tokio::task::spawn_blocking(move || {
         std::io::copy(&mut std::io::stdin(), &mut stdin).unwrap();
     }));
 
-    threads.push(tokio::spawn(async move {
+    threads.push(tokio::task::spawn_blocking(move || {
         std::io::copy(&mut stdout, &mut std::io::stdout().lock()).unwrap();
     }));
 
-    threads.push(tokio::spawn(async move {
+    threads.push(tokio::task::spawn_blocking(move || {
         std::io::copy(&mut stderr, &mut std::io::stderr().lock()).unwrap();
     }));
 
-    tokio::spawn(async move {
-        loop {
-            if !detached::status(config.pid) {
-                println!();
-                println!("{}", "server has stopped".red());
+    loop {
+        if !detached::status(config.pid) {
+            println!();
+            println!("{}", "server has stopped".red());
 
-                config.pid = None;
-                config.identifier = None;
-                config.save();
+            config.pid = None;
+            config.identifier = None;
+            config.save();
 
-                break;
-            }
-
-            tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+            break;
         }
-    })
-    .await
-    .unwrap();
 
-    for thread in threads {
-        thread.abort();
+        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
     }
 
     0

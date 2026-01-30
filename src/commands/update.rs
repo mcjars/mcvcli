@@ -18,21 +18,25 @@ pub async fn update(matches: &ArgMatches) -> i32 {
         return 1;
     }
 
-    if profile.is_some() && config.profile_name == *profile.unwrap() {
+    if let Some(profile) = profile
+        && config.profile_name == *profile
+    {
         println!(
             "{} {} {}",
             "profile".red(),
-            profile.unwrap().cyan(),
+            profile.cyan(),
             "is currently in use!".red()
         );
         return 1;
     }
 
-    if profile.is_some() && !profiles::list().contains(profile.unwrap()) {
+    if let Some(profile) = profile
+        && !profiles::list().contains(profile)
+    {
         println!(
             "{} {} {}",
             "profile".red(),
-            profile.unwrap().cyan(),
+            profile.cyan(),
             "does not exist!".red()
         );
         return 1;

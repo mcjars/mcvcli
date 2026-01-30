@@ -146,7 +146,8 @@ pub fn restore(path: &str) {
         } else {
             let mut write_file = std::fs::File::create(&path).unwrap();
 
-            std::io::copy(&mut file, &mut write_file).unwrap();
+            let mut reader = CountingReader::new(&mut file, Arc::clone(&progress.progress));
+            std::io::copy(&mut reader, &mut write_file).unwrap();
 
             write_file.sync_all().unwrap();
             drop(write_file);

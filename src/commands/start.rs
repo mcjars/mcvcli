@@ -6,7 +6,8 @@ use colored::Colorize;
 use dialoguer::{Confirm, theme::ColorfulTheme};
 use human_bytes::human_bytes;
 use rand::{Rng, distr::Alphanumeric};
-use std::{fs::File, io::Read, io::Write, path::Path, sync::Arc};
+use std::{fs::File, io::Write, path::Path};
+use tokio::io::AsyncReadExt;
 use tokio::{io::AsyncWriteExt, process::Command, sync::Mutex};
 
 pub async fn start(matches: &ArgMatches) -> i32 {
@@ -155,7 +156,7 @@ pub async fn start(matches: &ArgMatches) -> i32 {
     println!("{command}");
 
     if !detached {
-        let child = Arc::new(Mutex::new({
+        let mut child = {
             let mut command = Command::new(binary);
 
             command.args(config.extra_flags);
@@ -170,94 +171,93 @@ pub async fn start(matches: &ArgMatches) -> i32 {
             command.stderr(std::process::Stdio::inherit());
             command.kill_on_drop(true);
 
+            // Process group 0 to make sure child processes are also killed
             #[cfg(unix)]
             command.process_group(0);
 
             command.spawn().unwrap()
-        }));
+        };
 
-        let kill = Arc::new(Mutex::new(None));
-        tokio::spawn({
-            let child = Arc::clone(&child);
-            let kill = Arc::clone(&kill);
-            let stop_command = config.stop_command.clone();
+        let child_kill_notifier = tokio::sync::Notify::new();
+        let child_stdin = Mutex::new(child.stdin.take().unwrap());
 
-            async move {
-                tokio::signal::ctrl_c().await.unwrap();
+        let stop_future = async {
+            tokio::signal::ctrl_c().await.unwrap();
 
-                println!();
-                println!();
-                println!(
-                    "{}",
-                    format!("stopping server ({timeout}s before being killed) ...").bright_black()
-                );
-                println!();
+            println!();
+            println!();
+            println!(
+                "{}",
+                format!("stopping server ({timeout}s before being killed) ...").bright_black()
+            );
+            println!();
 
-                if let Some(stdin) = child.lock().await.stdin.as_mut() {
-                    stdin
-                        .write_all((stop_command + "\n").as_bytes())
-                        .await
-                        .unwrap();
-                }
+            child_stdin
+                .lock()
+                .await
+                .write_all((config.stop_command + "\n").as_bytes())
+                .await
+                .unwrap();
 
-                let child = Arc::clone(&child);
-                *kill.lock().await = Some(tokio::spawn(async move {
-                    tokio::time::sleep(tokio::time::Duration::from_secs(timeout)).await;
+            tokio::time::sleep(tokio::time::Duration::from_secs(timeout)).await;
 
-                    println!(
-                        "{}",
-                        "server is taking too long to stop, killing it ...".bright_black()
-                    );
+            println!(
+                "{}",
+                "server is taking too long to stop, killing it ...".bright_black()
+            );
 
-                    child.lock().await.kill().await.unwrap();
+            child_kill_notifier.notify_waiters();
 
-                    println!(
-                        "{} {}",
-                        "server is taking too long to stop, killing it ...".bright_black(),
-                        "DONE".green().bold()
-                    );
-                }));
-            }
-        });
+            println!(
+                "{} {}",
+                "server is taking too long to stop, killing it ...".bright_black(),
+                "DONE".green().bold()
+            );
+        };
 
-        tokio::spawn({
-            let child = Arc::clone(&child);
-            let mut stdin = std::io::stdin();
+        let stdin_future = async {
+            let mut buffer = [0; 1024];
+            let mut stdin = tokio::io::stdin();
 
-            async move {
-                let mut buffer = [0; 1024];
-
-                loop {
-                    match stdin.read(&mut buffer) {
-                        Ok(0) => break,
-                        Ok(n) => {
-                            let mut child = child.lock().await;
-                            if let Some(stdin) = child.stdin.as_mut() {
-                                stdin.write_all(&buffer[..n]).await.unwrap();
-                            }
-                        }
-                        Err(_) => break,
-                    }
-                }
-            }
-        });
-
-        let code = {
             loop {
-                tokio::time::sleep(std::time::Duration::from_millis(50)).await;
-
-                let mut child = child.lock().await;
-                match child.try_wait() {
-                    Ok(Some(code)) => break code,
-                    Ok(None) => continue,
-                    Err(_) => break Default::default(),
+                match stdin.read(&mut buffer).await {
+                    Ok(0) => break,
+                    Ok(n) => {
+                        child_stdin
+                            .lock()
+                            .await
+                            .write_all(&buffer[..n])
+                            .await
+                            .unwrap();
+                    }
+                    Err(_) => break,
                 }
             }
         };
 
-        if let Some(kill) = kill.lock().await.take() {
-            kill.abort();
-        }
+        let code_future = async {
+            tokio::select! {
+                _ = child_kill_notifier.notified() => {
+                    child.kill().await.unwrap();
+                    0
+                },
+                status = child.wait() => {
+                    status.unwrap().code().unwrap_or(0)
+                }
+            }
+        };
+
+        let code = tokio::select! {
+            _ = stop_future => {
+                child.wait().await.unwrap().code().unwrap_or(0)
+            },
+            _ = stdin_future => {
+                child.wait().await.unwrap().code().unwrap_or(0)
+            },
+            code = code_future => {
+                code
+            }
+        };
 
         println!();
         println!(
@@ -266,11 +266,7 @@ pub async fn start(matches: &ArgMatches) -> i32 {
             "DONE".green().bold()
         );
 
-        println!(
-            "{} {}",
-            "server has stopped with code".red(),
-            code.code().unwrap_or(0)
-        );
+        println!("{} {}", "server has stopped with code".red(), code);
     } else {
         if std::env::consts::OS == "windows" {
             println!(

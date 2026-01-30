@@ -80,6 +80,14 @@ impl Progress {
     }
 }
 
+impl Drop for Progress {
+    fn drop(&mut self) {
+        if let Some(thread) = self.thread.take() {
+            thread.abort();
+        }
+    }
+}
+
 pub static CLIENT: LazyLock<Client> = LazyLock::new(|| {
     Client::builder()
         .user_agent(format!("github.com/mcjars/mcvcli {VERSION}"))
