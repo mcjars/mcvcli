@@ -73,7 +73,7 @@ fn cli() -> Command {
                         .long("ram")
                         .short('r')
                         .num_args(1)
-                        .value_parser(clap::value_parser!(u16).range(1024..=49152))
+                        .value_parser(clap::value_parser!(u32).range(1024..=49152))
                         .required(false),
                 )
                 .arg(
@@ -104,7 +104,7 @@ fn cli() -> Command {
                         .short('r')
                         .help("The amount of RAM to allocate to the server (in MB)")
                         .num_args(1)
-                        .value_parser(clap::value_parser!(u16).range(1024..=49152))
+                        .value_parser(clap::value_parser!(u32).range(1024..=49152))
                         .required(false),
                 )
                 .arg(
