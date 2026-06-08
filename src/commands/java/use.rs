@@ -4,13 +4,13 @@ use clap::ArgMatches;
 use colored::Colorize;
 use dialoguer::{FuzzySelect, theme::ColorfulTheme};
 
-pub async fn r#use(matches: &ArgMatches) -> i32 {
+pub async fn r#use(matches: &ArgMatches) -> Result<i32, anyhow::Error> {
     let version = matches.get_one::<u8>("version");
     let mut config = config::Config::new(".mcvcli.json", false);
 
     println!("{}", "listing java versions...".bright_black());
 
-    let list: Vec<u8> = java::versions().await.into_iter().rev().collect();
+    let list: Vec<u8> = java::versions().await?.into_iter().rev().collect();
 
     println!(
         "{} {}",
@@ -25,8 +25,7 @@ pub async fn r#use(matches: &ArgMatches) -> i32 {
         let version = FuzzySelect::with_theme(&ColorfulTheme::default())
             .with_prompt("Select java version to use")
             .items(
-                &list
-                    .iter()
+                list.iter()
                     .map(|p| {
                         format!(
                             "java {} {}",
@@ -42,8 +41,7 @@ pub async fn r#use(matches: &ArgMatches) -> i32 {
             )
             .default(0)
             .max_length(5)
-            .interact()
-            .unwrap();
+            .interact()?;
         println!();
 
         list[version]
@@ -64,7 +62,7 @@ pub async fn r#use(matches: &ArgMatches) -> i32 {
             "...".bright_black()
         );
 
-        java::install(version).await.unwrap();
+        java::install(version).await?;
 
         println!(
             "{} {} {} {}",
@@ -86,5 +84,5 @@ pub async fn r#use(matches: &ArgMatches) -> i32 {
         "DONE".green().bold()
     );
 
-    0
+    Ok(0)
 }

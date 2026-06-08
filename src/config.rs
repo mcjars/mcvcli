@@ -1,10 +1,12 @@
 use colored::Colorize;
-use rand::{Rng, distr::Alphanumeric};
 use serde::{Deserialize, Serialize};
 use std::{fs::File, path::Path};
 
 fn default_stop_command() -> String {
     "stop".to_string()
+}
+fn default_detached_log_max_mb() -> u64 {
+    10
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -21,7 +23,7 @@ pub struct Config {
     pub modpack_slug: Option<String>,
     pub modpack_version: Option<String>,
 
-    #[serde(rename = "ramMB")]
+    #[serde(alias = "ramMB")]
     pub ram_mb: u32,
 
     pub java_version: u8,
@@ -29,8 +31,8 @@ pub struct Config {
     pub extra_flags: Vec<String>,
     pub extra_args: Vec<String>,
 
-    pub pid: Option<usize>,
-    pub identifier: Option<String>,
+    #[serde(default = "default_detached_log_max_mb")]
+    pub detached_log_max_mb: u64,
 }
 
 impl Config {
@@ -48,18 +50,11 @@ impl Config {
                     java_version: 21,
                     extra_flags: Vec::new(),
                     extra_args: Vec::new(),
-                    pid: None,
-                    identifier: Some(
-                        rand::rng()
-                            .sample_iter(&Alphanumeric)
-                            .take(7)
-                            .map(char::from)
-                            .collect(),
-                    ),
+                    detached_log_max_mb: default_detached_log_max_mb(),
                 };
 
-                let file = File::create(path).unwrap();
-                serde_json::to_writer_pretty(file, &config).unwrap();
+                let file = File::create(path).expect("failed to create config file");
+                serde_json::to_writer_pretty(file, &config).expect("failed to write config file");
 
                 return config;
             } else {
@@ -74,7 +69,7 @@ impl Config {
             }
         }
 
-        let file = File::open(path).unwrap();
+        let file = File::open(path).expect("failed to open config file");
         let mut config: Config =
             serde_json::from_reader(file).expect("failed to parse config file");
 
@@ -94,7 +89,7 @@ impl Config {
     }
 
     pub fn save(&self) {
-        let file = File::create(&self.path).unwrap();
-        serde_json::to_writer_pretty(file, &self).unwrap();
+        let file = File::create(&self.path).expect("failed to create config file");
+        serde_json::to_writer_pretty(file, &self).expect("failed to write config file");
     }
 }

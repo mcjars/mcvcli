@@ -5,13 +5,12 @@ use clap::ArgMatches;
 use colored::Colorize;
 use dialoguer::{Confirm, theme::ColorfulTheme};
 use human_bytes::human_bytes;
-use rand::{Rng, distr::Alphanumeric};
 use std::{fs::File, io::Write, path::Path};
 use tokio::io::AsyncReadExt;
 use tokio::{io::AsyncWriteExt, process::Command, sync::Mutex};
 
-pub async fn start(matches: &ArgMatches) -> i32 {
-    let mut config = config::Config::new(".mcvcli.json", false);
+pub async fn start(matches: &ArgMatches) -> Result<i32, anyhow::Error> {
+    let config = config::Config::new(".mcvcli.json", false);
     let auto_agree_eula = *matches.get_one::<bool>("eula").expect("required");
     let detached = *matches.get_one::<bool>("detached").expect("required");
     let timeout = *matches.get_one::<u64>("timeout").expect("required");
@@ -25,27 +24,26 @@ pub async fn start(matches: &ArgMatches) -> i32 {
             let accept_eula = Confirm::with_theme(&ColorfulTheme::default())
                 .with_prompt("Do you accept the Minecraft EULA? (https://minecraft.net/eula)")
                 .default(false)
-                .interact()
-                .unwrap();
+                .interact()?;
 
             if !accept_eula {
-                return 1;
+                return Ok(1);
             }
         }
 
-        std::fs::write("eula.txt", "eula=true\n").unwrap();
+        std::fs::write("eula.txt", "eula=true\n")?;
     }
 
-    if detached::status(config.pid) {
+    if detached::is_running() {
         println!(
             "{} {}",
             "server is already running, use".red(),
             "mcvcli attach".cyan()
         );
-        return 1;
+        return Ok(1);
     }
 
-    let [binary, java_home] = java::binary(config.java_version).await;
+    let [binary, java_home] = java::binary(config.java_version).await?;
     let command = format!(
         "{} {} -Xmx{}M -jar {} nogui {}",
         binary,
@@ -62,11 +60,10 @@ pub async fn start(matches: &ArgMatches) -> i32 {
             let mut req = api::CLIENT
                 .get("https://s3.mcjars.app/forge/ForgeServerJAR.jar")
                 .send()
-                .await
-                .unwrap();
-            let mut file = File::create(&config.jar_file).unwrap();
+                .await?;
+            let mut file = File::create(&config.jar_file)?;
 
-            let mut progress = Progress::new(req.content_length().unwrap() as usize);
+            let mut progress = Progress::new(req.content_length().unwrap_or(0) as usize);
             progress.spinner(|progress, spinner| {
                 format!(
                     "\r {} {} {}/{} ({}%)      ",
@@ -84,12 +81,12 @@ pub async fn start(matches: &ArgMatches) -> i32 {
                 )
             });
 
-            while let Some(chunk) = req.chunk().await.unwrap() {
-                file.write_all(&chunk).unwrap();
+            while let Some(chunk) = req.chunk().await? {
+                file.write_all(&chunk)?;
                 progress.incr(chunk.len());
             }
 
-            file.sync_all().unwrap();
+            file.sync_all()?;
             progress.finish();
             println!();
 
@@ -104,11 +101,10 @@ pub async fn start(matches: &ArgMatches) -> i32 {
             let mut req = api::CLIENT
                 .get("https://s3.mcjars.app/neoforge/NeoForgeServerJAR.jar")
                 .send()
-                .await
-                .unwrap();
-            let mut file = File::create(&config.jar_file).unwrap();
+                .await?;
+            let mut file = File::create(&config.jar_file)?;
 
-            let mut progress = Progress::new(req.content_length().unwrap() as usize);
+            let mut progress = Progress::new(req.content_length().unwrap_or(0) as usize);
             progress.spinner(|progress, spinner| {
                 format!(
                     "\r {} {} {}/{} ({}%)      ",
@@ -129,11 +125,11 @@ pub async fn start(matches: &ArgMatches) -> i32 {
             });
 
             while let Ok(Some(chunk)) = req.chunk().await {
-                file.write_all(&chunk).unwrap();
+                file.write_all(&chunk)?;
                 progress.incr(chunk.len());
             }
 
-            file.sync_all().unwrap();
+            file.sync_all()?;
 
             progress.finish();
             println!();
@@ -147,7 +143,7 @@ pub async fn start(matches: &ArgMatches) -> i32 {
             );
         } else {
             println!("{}", "no server jar found".red());
-            return 1;
+            return Ok(1);
         }
     }
 
@@ -175,14 +171,19 @@ pub async fn start(matches: &ArgMatches) -> i32 {
             #[cfg(unix)]
             command.process_group(0);
 
-            command.spawn().unwrap()
+            command.spawn()?
         };
 
         let child_kill_notifier = tokio::sync::Notify::new();
-        let child_stdin = Mutex::new(child.stdin.take().unwrap());
+        let child_stdin = Mutex::new(
+            child
+                .stdin
+                .take()
+                .ok_or_else(|| anyhow::anyhow!("failed to capture server stdin"))?,
+        );
 
         let stop_future = async {
-            tokio::signal::ctrl_c().await.unwrap();
+            let _ = tokio::signal::ctrl_c().await;
 
             println!();
             println!();
@@ -192,12 +193,11 @@ pub async fn start(matches: &ArgMatches) -> i32 {
             );
             println!();
 
-            child_stdin
+            let _ = child_stdin
                 .lock()
                 .await
                 .write_all((config.stop_command + "\n").as_bytes())
-                .await
-                .unwrap();
+                .await;
 
             tokio::time::sleep(tokio::time::Duration::from_secs(timeout)).await;
 
@@ -223,12 +223,7 @@ pub async fn start(matches: &ArgMatches) -> i32 {
                 match stdin.read(&mut buffer).await {
                     Ok(0) => break,
                     Ok(n) => {
-                        child_stdin
-                            .lock()
-                            .await
-                            .write_all(&buffer[..n])
-                            .await
-                            .unwrap();
+                        let _ = child_stdin.lock().await.write_all(&buffer[..n]).await;
                     }
                     Err(_) => break,
                 }
@@ -238,21 +233,21 @@ pub async fn start(matches: &ArgMatches) -> i32 {
         let code_future = async {
             tokio::select! {
                 _ = child_kill_notifier.notified() => {
-                    child.kill().await.unwrap();
+                    let _ = child.kill().await;
                     0
                 },
                 status = child.wait() => {
-                    status.unwrap().code().unwrap_or(0)
+                    status.ok().and_then(|status| status.code()).unwrap_or(0)
                 }
             }
         };
 
         let code = tokio::select! {
             _ = stop_future => {
-                child.wait().await.unwrap().code().unwrap_or(0)
+                child.wait().await.ok().and_then(|status| status.code()).unwrap_or(0)
             },
             _ = stdin_future => {
-                child.wait().await.unwrap().code().unwrap_or(0)
+                child.wait().await.ok().and_then(|status| status.code()).unwrap_or(0)
             },
             code = code_future => {
                 code
@@ -268,44 +263,47 @@ pub async fn start(matches: &ArgMatches) -> i32 {
 
         println!("{} {}", "server has stopped with code".red(), code);
     } else {
-        if std::env::consts::OS == "windows" {
-            println!(
-                "{}",
-                "detached mode is currently not supported on windows".red()
-            );
-            return 1;
+        // Hand the server off to a detached `mcvcli daemon` supervisor. The daemon owns java,
+        // continuously drains its output (so the pipe never fills) and exposes a control socket
+        // that `attach`/`stop` connect to.
+        detached::write_spec(&detached::Spec {
+            binary,
+            java_home,
+            jar_file: config.jar_file.clone(),
+            ram_mb: config.ram_mb,
+            extra_flags: config.extra_flags.clone(),
+            extra_args: config.extra_args.clone(),
+            stop_command: config.stop_command.clone(),
+            log_max_bytes: config.detached_log_max_mb.saturating_mul(1024 * 1024),
+        })?;
+
+        detached::spawn_daemon()?;
+
+        // Wait for the daemon to come up and report its state.
+        let mut started = false;
+        for _ in 0..50 {
+            if detached::is_running() {
+                started = true;
+                break;
+            }
+
+            tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
         }
 
-        config.identifier = Some(
-            rand::rng()
-                .sample_iter(&Alphanumeric)
-                .take(7)
-                .map(char::from)
-                .collect(),
+        if !started {
+            println!(
+                "{}",
+                "failed to start detached server, check .mcvcli.detached/latest.log".red()
+            );
+            return Ok(1);
+        }
+
+        println!(
+            "{} {}",
+            "server has started in detached mode, use".green(),
+            "mcvcli attach".cyan()
         );
-
-        let [stdin, stdout, stderr] = detached::get_pipes(config.identifier.as_ref().unwrap());
-
-        #[allow(clippy::zombie_processes)]
-        let child = std::process::Command::new(binary)
-            .args(&config.extra_flags)
-            .arg(format!("-Xmx{}M", config.ram_mb))
-            .arg("-jar")
-            .arg(&config.jar_file)
-            .arg("nogui")
-            .args(&config.extra_args)
-            .env("JAVA_HOME", java_home)
-            .stdin(File::open(stdin.path()).unwrap())
-            .stdout(File::create(stdout.path()).unwrap())
-            .stderr(File::create(stderr.path()).unwrap())
-            .spawn()
-            .unwrap();
-
-        config.pid = Some(child.id() as usize);
-        config.save();
-
-        println!("{}", "server has started in detached mode".green());
     }
 
-    0
+    Ok(0)
 }

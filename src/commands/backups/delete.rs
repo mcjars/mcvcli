@@ -4,7 +4,7 @@ use clap::ArgMatches;
 use colored::Colorize;
 use dialoguer::{Confirm, FuzzySelect, theme::ColorfulTheme};
 
-pub async fn delete(matches: &ArgMatches) -> i32 {
+pub async fn delete(matches: &ArgMatches) -> Result<i32, anyhow::Error> {
     let name = matches.get_one::<String>("name");
     let _config = config::Config::new(".mcvcli.json", false);
 
@@ -15,16 +15,15 @@ pub async fn delete(matches: &ArgMatches) -> i32 {
     } else {
         if list.is_empty() {
             println!("{}", "no backups to delete".red());
-            return 1;
+            return Ok(1);
         }
 
         let name = FuzzySelect::with_theme(&ColorfulTheme::default())
             .with_prompt("Select backup to delete")
-            .items(&list.iter().map(|b| &b.name).collect::<Vec<&String>>())
+            .items(list.iter().map(|b| &b.name).collect::<Vec<&String>>())
             .default(0)
             .max_length(5)
-            .interact()
-            .unwrap();
+            .interact()?;
 
         &list[name].name
     };
@@ -36,17 +35,16 @@ pub async fn delete(matches: &ArgMatches) -> i32 {
             name.cyan(),
             "does not exist!".red()
         );
-        return 1;
+        return Ok(1);
     }
 
     let confirm = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Are you sure you want to delete this backup?")
         .default(false)
-        .interact()
-        .unwrap();
+        .interact()?;
 
     if !confirm {
-        return 1;
+        return Ok(1);
     }
 
     println!(
@@ -56,7 +54,11 @@ pub async fn delete(matches: &ArgMatches) -> i32 {
         "...".bright_black()
     );
 
-    std::fs::remove_file(&list.iter().find(|b| b.name == *name).unwrap().path).unwrap();
+    let backup = list
+        .iter()
+        .find(|b| b.name == *name)
+        .ok_or_else(|| anyhow::anyhow!("backup {name} not found"))?;
+    std::fs::remove_file(&backup.path)?;
 
     println!(
         "{} {} {} {}",
@@ -66,5 +68,5 @@ pub async fn delete(matches: &ArgMatches) -> i32 {
         "DONE".green().bold()
     );
 
-    0
+    Ok(0)
 }

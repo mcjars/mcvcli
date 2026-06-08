@@ -4,12 +4,12 @@ use clap::ArgMatches;
 use colored::Colorize;
 use std::path::Path;
 
-pub async fn list(_matches: &ArgMatches) -> i32 {
+pub async fn list(_matches: &ArgMatches) -> Result<i32, anyhow::Error> {
     let config = config::Config::new(".mcvcli.json", false);
 
     if !Path::new("mods").exists() {
         println!("{}", "no mods folder found.".red());
-        return 1;
+        return Ok(1);
     }
 
     println!("{}", "checking installed version ...".bright_black());
@@ -22,14 +22,14 @@ pub async fn list(_matches: &ArgMatches) -> i32 {
         "DONE".green().bold()
     );
 
-    if detected.is_none() {
+    let Some(detected) = detected else {
         println!("{}", "installed version could not be detected.".red());
-        return 1;
-    }
+        return Ok(1);
+    };
 
     println!("{}", "listing mods...".bright_black());
 
-    let [build, _] = detected.unwrap().0;
+    let [build, _] = detected.0;
     let list = api::modrinth::lookup(
         "mods",
         Some(&build.r#type.to_lowercase()),
@@ -42,8 +42,7 @@ pub async fn list(_matches: &ArgMatches) -> i32 {
             ),
         ),
     )
-    .await
-    .unwrap();
+    .await?;
 
     println!(
         "{} {}",
@@ -70,25 +69,17 @@ pub async fn list(_matches: &ArgMatches) -> i32 {
             "downloads:  ".bright_black(),
             project.downloads.to_string().cyan()
         );
+        let version_name = project
+            .installed_version
+            .as_ref()
+            .and_then(|version| version.name.as_ref().or(version.version_number.as_ref()))
+            .map(|name| name.as_str())
+            .unwrap_or("unknown");
+
         println!(
             "  {} {} {}",
             "version:    ".bright_black(),
-            project
-                .installed_version
-                .as_ref()
-                .unwrap()
-                .name
-                .as_ref()
-                .unwrap_or(
-                    project
-                        .installed_version
-                        .as_ref()
-                        .unwrap()
-                        .version_number
-                        .as_ref()
-                        .unwrap()
-                )
-                .cyan(),
+            version_name.cyan(),
             if let Some(installed) = &project.installed_version
                 && let Some(latest) = &project.installed_latest_version
             {
@@ -115,15 +106,18 @@ pub async fn list(_matches: &ArgMatches) -> i32 {
         "outdated:  ".bright_black(),
         list.values()
             .filter(|project| {
-                project.installed_latest_version.is_some()
-                    && project.installed_version.is_some()
-                    && project.installed_version.as_ref().unwrap().id
-                        != project.installed_latest_version.as_ref().unwrap().id
+                match (
+                    &project.installed_version,
+                    &project.installed_latest_version,
+                ) {
+                    (Some(installed), Some(latest)) => installed.id != latest.id,
+                    _ => false,
+                }
             })
             .count()
             .to_string()
             .cyan()
     );
 
-    0
+    Ok(0)
 }

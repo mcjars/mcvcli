@@ -5,17 +5,17 @@ use colored::Colorize;
 use dialoguer::{FuzzySelect, Select, theme::ColorfulTheme};
 use std::collections::HashMap;
 
-pub async fn update(matches: &ArgMatches) -> i32 {
+pub async fn update(matches: &ArgMatches) -> Result<i32, anyhow::Error> {
     let profile = matches.get_one::<String>("profile");
     let config = config::Config::new(".mcvcli.json", false);
 
-    if detached::status(config.pid) {
+    if detached::is_running() {
         println!(
             "{} {}",
             "server is currently running, use".red(),
             "mcvcli stop".cyan()
         );
-        return 1;
+        return Ok(1);
     }
 
     if let Some(profile) = profile
@@ -27,7 +27,7 @@ pub async fn update(matches: &ArgMatches) -> i32 {
             profile.cyan(),
             "is currently in use!".red()
         );
-        return 1;
+        return Ok(1);
     }
 
     if let Some(profile) = profile
@@ -39,7 +39,7 @@ pub async fn update(matches: &ArgMatches) -> i32 {
             profile.cyan(),
             "does not exist!".red()
         );
-        return 1;
+        return Ok(1);
     }
 
     let directory = if let Some(profile) = profile {
@@ -53,14 +53,14 @@ pub async fn update(matches: &ArgMatches) -> i32 {
     let mut config = config::Config::new(&format!("{directory}/.mcvcli.json"), false);
     let detected = jar::detect(&directory.clone(), &config).await;
 
-    if detected.is_none() {
+    let Some(([build, latest], versions, modpack)) = detected else {
         println!(
             "{} {}",
             "checking installed version ...".bright_black(),
             "FAILED".red().bold()
         );
-        return 1;
-    }
+        return Ok(1);
+    };
 
     println!(
         "{} {}",
@@ -69,7 +69,6 @@ pub async fn update(matches: &ArgMatches) -> i32 {
     );
     println!();
 
-    let ([build, latest], versions, modpack) = detected.unwrap();
     let mut items: Vec<&str> = Vec::new();
 
     if versions.keys().next_back().unwrap_or(&String::new())
@@ -84,32 +83,33 @@ pub async fn update(matches: &ArgMatches) -> i32 {
         items.push("Update Version");
     }
 
-    if build.id != latest.id {
+    if build.uuid != latest.uuid {
         items.push("Update Build");
     }
 
     let mut modpack_versions = Vec::new();
     if modpack.is_some() {
-        modpack_versions = api::modrinth::versions(config.modpack_slug.as_ref().unwrap())
-            .await
-            .unwrap();
+        let slug = config
+            .modpack_slug
+            .as_ref()
+            .ok_or_else(|| anyhow::anyhow!("modpack has no slug"))?;
+        modpack_versions = api::modrinth::versions(slug).await?;
 
-        if &modpack_versions[0].id != config.modpack_version.as_ref().unwrap() {
+        if modpack_versions.first().map(|v| &v.id) != config.modpack_version.as_ref() {
             items.push("Update Modpack");
         }
     }
 
     if items.is_empty() {
         println!("{}", "everything is up to date!".green());
-        return 0;
+        return Ok(0);
     }
 
     let update = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Update?")
         .default(0)
         .items(&items)
-        .interact()
-        .unwrap();
+        .interact()?;
 
     let update = items[update];
     if update == "Update Version" {
@@ -123,7 +123,7 @@ pub async fn update(matches: &ArgMatches) -> i32 {
                         .unwrap_or(build.project_version_id.as_ref().unwrap_or(&String::new()))
                         .as_str()
             })
-            .unwrap();
+            .ok_or_else(|| anyhow::anyhow!("current version not found in version list"))?;
         let versions_java: HashMap<&String, u8> =
             versions.iter().map(|(k, v)| (k, v.java)).collect();
         let versions: Vec<&String> = versions.keys().skip(version_index + 1).rev().collect();
@@ -133,8 +133,7 @@ pub async fn update(matches: &ArgMatches) -> i32 {
             .default(0)
             .items(&versions)
             .max_length(10)
-            .interact()
-            .unwrap();
+            .interact()?;
         let server_version = &versions[server_version];
 
         println!(
@@ -144,9 +143,7 @@ pub async fn update(matches: &ArgMatches) -> i32 {
             "...".bright_black()
         );
 
-        let builds = api::mcjars::builds(&build.r#type, server_version)
-            .await
-            .unwrap();
+        let builds = api::mcjars::builds(&build.r#type, server_version).await?;
 
         println!(
             "{} {} {} {}",
@@ -159,10 +156,9 @@ pub async fn update(matches: &ArgMatches) -> i32 {
         let server_build = FuzzySelect::with_theme(&ColorfulTheme::default())
             .with_prompt("Jar Build")
             .default(0)
-            .items(&builds.iter().map(|b| &b.name).collect::<Vec<&String>>())
+            .items(builds.iter().map(|b| &b.name).collect::<Vec<&String>>())
             .max_length(10)
-            .interact()
-            .unwrap();
+            .interact()?;
 
         let server_build = &builds[server_build];
 
@@ -174,9 +170,11 @@ pub async fn update(matches: &ArgMatches) -> i32 {
             "...".bright_black()
         );
 
-        jar::install(server_build, &directory, 1).await.unwrap();
+        jar::install(server_build, &directory, 1).await?;
 
-        config.java_version = *versions_java.get(*server_version).unwrap();
+        config.java_version = *versions_java
+            .get(*server_version)
+            .ok_or_else(|| anyhow::anyhow!("no java version for {server_version}"))?;
         config.save();
 
         println!(
@@ -198,9 +196,7 @@ pub async fn update(matches: &ArgMatches) -> i32 {
             "...".bright_black()
         );
 
-        let builds = api::mcjars::builds(&build.r#type, &server_version)
-            .await
-            .unwrap();
+        let builds = api::mcjars::builds(&build.r#type, &server_version).await?;
         let builds = builds.iter().rev().collect::<Vec<&api::mcjars::Build>>();
 
         println!(
@@ -211,16 +207,18 @@ pub async fn update(matches: &ArgMatches) -> i32 {
             "DONE".green().bold()
         );
 
-        let build_index = builds.iter().position(|b| b.id == build.id).unwrap_or(0);
+        let build_index = builds
+            .iter()
+            .position(|b| b.uuid == build.uuid)
+            .unwrap_or(0);
         let builds: Vec<&&api::mcjars::Build> = builds.iter().skip(build_index + 1).rev().collect();
 
         let server_build = FuzzySelect::with_theme(&ColorfulTheme::default())
             .with_prompt("Jar Build")
             .default(0)
-            .items(&builds.iter().map(|b| &b.name).collect::<Vec<&String>>())
+            .items(builds.iter().map(|b| &b.name).collect::<Vec<&String>>())
             .max_length(10)
-            .interact()
-            .unwrap();
+            .interact()?;
 
         let server_build = &builds[server_build];
 
@@ -232,7 +230,7 @@ pub async fn update(matches: &ArgMatches) -> i32 {
             "...".bright_black()
         );
 
-        jar::install(server_build, &directory, 1).await.unwrap();
+        jar::install(server_build, &directory, 1).await?;
 
         println!(
             "{} {} {} {} {}",
@@ -243,16 +241,20 @@ pub async fn update(matches: &ArgMatches) -> i32 {
             "DONE".green().bold()
         );
     } else if update == "Update Modpack" {
-        let modpack = modpack.unwrap();
+        let modpack = modpack.ok_or_else(|| anyhow::anyhow!("no modpack installed"))?;
         let modpack_versions = modpack_versions
             .iter()
             .rev()
             .collect::<Vec<&api::modrinth::Version>>();
 
+        let current_version = config
+            .modpack_version
+            .as_ref()
+            .ok_or_else(|| anyhow::anyhow!("no modpack version set"))?;
         let version_index = modpack_versions
             .iter()
-            .position(|v| &v.id == config.modpack_version.as_ref().unwrap())
-            .unwrap();
+            .position(|v| &v.id == current_version)
+            .ok_or_else(|| anyhow::anyhow!("current modpack version not found"))?;
         let versions: Vec<&&api::modrinth::Version> = modpack_versions
             .iter()
             .skip(version_index + 1)
@@ -263,18 +265,18 @@ pub async fn update(matches: &ArgMatches) -> i32 {
             .with_prompt("Modpack Version?")
             .default(0)
             .items(
-                &versions
+                versions
                     .iter()
                     .map(|v| {
                         v.name
-                            .as_ref()
-                            .unwrap_or(v.version_number.as_ref().unwrap())
+                            .clone()
+                            .or_else(|| v.version_number.clone())
+                            .unwrap_or_else(|| "unknown".to_string())
                     })
-                    .collect::<Vec<&String>>(),
+                    .collect::<Vec<String>>(),
             )
             .max_length(10)
-            .interact()
-            .unwrap();
+            .interact()?;
         let modpack_version = &versions[modpack_version];
 
         println!(
@@ -284,7 +286,7 @@ pub async fn update(matches: &ArgMatches) -> i32 {
             "...".bright_black()
         );
 
-        modpack::install(&directory, modpack_version).await;
+        modpack::install(&directory, modpack_version).await?;
 
         config.modpack_version = Some(modpack_version.id.clone());
         config.save();
@@ -294,13 +296,14 @@ pub async fn update(matches: &ArgMatches) -> i32 {
             "updating to".bright_black(),
             modpack_version
                 .name
-                .as_ref()
-                .unwrap_or(modpack_version.version_number.as_ref().unwrap())
+                .as_deref()
+                .or(modpack_version.version_number.as_deref())
+                .unwrap_or("unknown")
                 .cyan(),
             "...".bright_black(),
             "DONE".green().bold()
         );
     }
 
-    0
+    Ok(0)
 }

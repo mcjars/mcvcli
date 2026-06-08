@@ -43,8 +43,12 @@ struct IndexJsonFileEnv {
     server: String,
 }
 
-pub async fn install(directory: &str, version: &Version) {
-    let file = version.files.iter().find(|file| file.primary).unwrap();
+pub async fn install(directory: &str, version: &Version) -> Result<(), anyhow::Error> {
+    let file = version
+        .files
+        .iter()
+        .find(|file| file.primary)
+        .ok_or_else(|| anyhow::anyhow!("modpack version has no primary file"))?;
 
     println!(
         " {} {} {}",
@@ -53,8 +57,8 @@ pub async fn install(directory: &str, version: &Version) {
         "...".bright_black()
     );
 
-    let mut res = reqwest::get(&file.url).await.unwrap();
-    let mut mrpack_file = File::create(Path::new(directory).join(&file.filename)).unwrap();
+    let mut res = reqwest::get(&file.url).await?;
+    let mut mrpack_file = File::create(Path::new(directory).join(&file.filename))?;
 
     let mut progress = Progress::new(file.size as usize);
     progress.spinner(|progress, spinner| {
@@ -74,12 +78,12 @@ pub async fn install(directory: &str, version: &Version) {
         )
     });
 
-    while let Some(chunk) = res.chunk().await.unwrap() {
-        mrpack_file.write_all(&chunk).unwrap();
+    while let Some(chunk) = res.chunk().await? {
+        mrpack_file.write_all(&chunk)?;
         progress.incr(chunk.len());
     }
 
-    mrpack_file.sync_all().unwrap();
+    mrpack_file.sync_all()?;
     progress.finish();
     println!();
 
@@ -91,39 +95,39 @@ pub async fn install(directory: &str, version: &Version) {
         "DONE".green().bold().italic()
     );
 
-    let mut archive =
-        ZipArchive::new(File::open(Path::new(directory).join(&file.filename)).unwrap()).unwrap();
-    let index: IndexJson =
-        serde_json::from_reader(archive.by_name("modrinth.index.json").unwrap()).unwrap();
+    let mut archive = ZipArchive::new(File::open(Path::new(directory).join(&file.filename))?)?;
+    let index: IndexJson = serde_json::from_reader(archive.by_name("modrinth.index.json")?)?;
 
     println!(" {}", "extracting overrides...".bright_black().italic());
 
     std::fs::remove_dir_all(Path::new(directory).join("overrides")).unwrap_or_default();
-    archive.extract(directory).unwrap();
+    archive.extract(directory)?;
 
     std::fs::remove_file(Path::new(directory).join("modrinth.index.json")).unwrap_or_default();
 
     if let Ok(files) = std::fs::read_dir(Path::new(directory).join("overrides")) {
         for file in files.flatten() {
             let file_path = file.path();
-            let new_path =
-                Path::new(directory).join(file_path.file_name().unwrap().to_str().unwrap());
+            let Some(file_name) = file_path.file_name() else {
+                continue;
+            };
+            let new_path = Path::new(directory).join(file_name);
 
             if new_path.exists() {
                 if new_path.is_dir() {
-                    std::fs::remove_dir_all(&new_path).unwrap();
+                    std::fs::remove_dir_all(&new_path)?;
                 } else {
-                    std::fs::remove_file(&new_path).unwrap();
+                    std::fs::remove_file(&new_path)?;
                 }
             }
 
-            std::fs::rename(&file_path, &new_path).unwrap();
+            std::fs::rename(&file_path, &new_path)?;
         }
 
-        std::fs::remove_dir_all(Path::new(directory).join("overrides")).unwrap();
+        std::fs::remove_dir_all(Path::new(directory).join("overrides"))?;
     }
 
-    std::fs::remove_file(&file.filename).unwrap_or_default();
+    let _ = std::fs::remove_file(Path::new(directory).join(&file.filename));
 
     println!(
         " {} {}",
@@ -133,7 +137,7 @@ pub async fn install(directory: &str, version: &Version) {
 
     println!(" {}", "downloading files...".bright_black().italic());
 
-    let terminal_width = term_size::dimensions().unwrap().0 as usize;
+    let terminal_width = term_size::dimensions().map(|d| d.0).unwrap_or(80);
     for files in index.files.chunks(10) {
         let progress = Arc::new(Mutex::new(ProgressBar::with_capacity(10)));
         let mut handles = Vec::new();
@@ -163,29 +167,29 @@ pub async fn install(directory: &str, version: &Version) {
                 format!("  {}", file_display.cyan().italic()),
             );
 
-            handles.push(tokio::task::spawn(async move {
+            handles.push(async move {
                 let file_path = Path::new(&directory).join(file_path);
                 let file_name = file_path.display().to_string();
 
-                if !file_path.parent().unwrap().exists() {
-                    std::fs::create_dir_all(file_path.parent().unwrap()).unwrap();
+                if let Some(parent) = file_path.parent() {
+                    std::fs::create_dir_all(parent)?;
                 }
 
-                let mut res = reqwest::get(download).await.unwrap();
-                let mut mod_file = File::create(&file_name).unwrap();
+                let mut res = reqwest::get(download).await?;
+                let mut mod_file = File::create(&file_name)?;
 
-                while let Some(chunk) = res.chunk().await.unwrap() {
-                    mod_file.write_all(&chunk).unwrap();
+                while let Some(chunk) = res.chunk().await? {
+                    mod_file.write_all(&chunk)?;
                     progress.lock().await.inc_and_draw(&bar, chunk.len());
                 }
 
-                mod_file.sync_all().unwrap();
-            }));
+                mod_file.sync_all()?;
+
+                Ok::<_, anyhow::Error>(())
+            });
         }
 
-        for handle in handles {
-            handle.await.unwrap();
-        }
+        futures::future::try_join_all(handles).await?;
     }
 
     println!(
@@ -196,12 +200,12 @@ pub async fn install(directory: &str, version: &Version) {
 
     let minecraft = index.dependencies.minecraft;
     if let Some(fabric_loader) = index.dependencies.fabric_loader {
-        let builds = api::mcjars::builds("FABRIC", &minecraft).await.unwrap();
+        let builds = api::mcjars::builds("FABRIC", &minecraft).await?;
 
         let build = builds
             .iter()
             .find(|build| build.project_version_id.as_ref() == Some(&fabric_loader))
-            .unwrap();
+            .ok_or_else(|| anyhow::anyhow!("no Fabric build found for {fabric_loader}"))?;
 
         println!(
             " {} {} {}",
@@ -210,7 +214,7 @@ pub async fn install(directory: &str, version: &Version) {
             "...".bright_black().italic()
         );
 
-        jar::install(build, directory, 2).await.unwrap();
+        jar::install(build, directory, 2).await?;
 
         println!(
             " {} {} {} {}",
@@ -220,12 +224,12 @@ pub async fn install(directory: &str, version: &Version) {
             "DONE".green().bold().italic()
         );
     } else if let Some(quilt_loader) = index.dependencies.quilt_loader {
-        let builds = api::mcjars::builds("QUILT", &minecraft).await.unwrap();
+        let builds = api::mcjars::builds("QUILT", &minecraft).await?;
 
         let build = builds
             .iter()
             .find(|build| build.project_version_id.as_ref() == Some(&quilt_loader))
-            .unwrap();
+            .ok_or_else(|| anyhow::anyhow!("no Quilt build found for {quilt_loader}"))?;
 
         println!(
             " {} {} {}",
@@ -234,7 +238,7 @@ pub async fn install(directory: &str, version: &Version) {
             "...".bright_black().italic()
         );
 
-        jar::install(build, directory, 2).await.unwrap();
+        jar::install(build, directory, 2).await?;
 
         println!(
             " {} {} {} {}",
@@ -244,12 +248,12 @@ pub async fn install(directory: &str, version: &Version) {
             "DONE".green().bold().italic()
         );
     } else if let Some(forge) = index.dependencies.forge {
-        let builds = api::mcjars::builds("FORGE", &minecraft).await.unwrap();
+        let builds = api::mcjars::builds("FORGE", &minecraft).await?;
 
         let build = builds
             .iter()
             .find(|build| build.project_version_id.as_ref() == Some(&forge))
-            .unwrap();
+            .ok_or_else(|| anyhow::anyhow!("no Forge build found for {forge}"))?;
 
         println!(
             " {} {} {}",
@@ -258,7 +262,7 @@ pub async fn install(directory: &str, version: &Version) {
             "...".bright_black().italic()
         );
 
-        jar::install(build, directory, 2).await.unwrap();
+        jar::install(build, directory, 2).await?;
 
         println!(
             " {} {} {} {}",
@@ -268,12 +272,12 @@ pub async fn install(directory: &str, version: &Version) {
             "DONE".green().bold().italic()
         );
     } else if let Some(neoforge) = index.dependencies.neoforge {
-        let builds = api::mcjars::builds("NEOFORGE", &minecraft).await.unwrap();
+        let builds = api::mcjars::builds("NEOFORGE", &minecraft).await?;
 
         let build = builds
             .iter()
             .find(|build| build.project_version_id.as_ref() == Some(&neoforge))
-            .unwrap();
+            .ok_or_else(|| anyhow::anyhow!("no NeoForge build found for {neoforge}"))?;
 
         println!(
             " {} {} {}",
@@ -282,7 +286,7 @@ pub async fn install(directory: &str, version: &Version) {
             "...".bright_black().italic()
         );
 
-        jar::install(build, directory, 2).await.unwrap();
+        jar::install(build, directory, 2).await?;
 
         println!(
             " {} {} {} {}",
@@ -292,4 +296,6 @@ pub async fn install(directory: &str, version: &Version) {
             "DONE".green().bold().italic()
         );
     }
+
+    Ok(())
 }

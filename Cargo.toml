@@ -1,7 +1,7 @@
 [package]
 name = "mcvcli"
 description = "A command line interface for managing Minecraft servers."
-version = "2.4.3"
+version = "2.5.0"
 edition = "2024"
 license = "MIT"
 homepage = "https://github.com/mcjars/mcvcli"
@@ -15,17 +15,17 @@ path = "src/main.rs"
 
 [dependencies]
 clap = "4.5.28"
-reqwest = { version = "0.12.12", default-features = false, features = ["json", "rustls-tls"] }
+reqwest = { version = "0.13.0", features = ["json"] }
 serde = { version = "1.0.138", features = ["derive"] }
 serde_json = "1.0.138"
-tokio = { version = "1.43.0", features = ["rt-multi-thread", "macros", "fs", "io-std", "signal", "process"] }
-dialoguer = { version = "0.11.0", features = ["fuzzy-select"] }
+tokio = { version = "1.43.0", features = ["rt-multi-thread", "macros", "fs", "io-std", "io-util", "signal", "process", "sync", "time"] }
+dialoguer = { version = "0.12.0", features = ["fuzzy-select"] }
 colored = "3.0.0"
 dirs = "6.0.0"
 flate2 = "1.0.35"
 tar = "0.4.43"
-zip = { version = "3.0.0", default-features = false, features = ["bzip2", "deflate", "sha1", "time", "zstd", "lzma-rs"] }
-sha2 = "0.10.8"
+zip = { version = "8.6.0", default-features = false, features = ["bzip2", "deflate", "zstd"] }
+sha2 = "0.11.0"
 indexmap = { version = "2.7.1", features = ["serde"] }
 futures = "0.3.31"
 chrono = "0.4.39"
@@ -33,10 +33,27 @@ human_bytes = { version = "0.4.3", features = ["si-units", "fast"] }
 walkdir = "2.5.0"
 fastnbt = "2.5.0"
 term_size = "0.3.2"
-sysinfo = "0.37.0"
-rand = "0.9.0"
-ipipe = "0.11.7"
+sysinfo = "0.39.0"
+rand = "0.10.0"
+interprocess = { version = "2.2.3", features = ["tokio"] }
 xz2 = { version = "0.1.7", features = ["static"] }
-atoi = "2.0.0"
+atoi = "3.0.0"
 msp = "0.1.2"
 anyhow = "1.0.98"
+hex = "0.4.3"
+uuid = { version = "1.23.2", features = ["serde"] }
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
+[profile.release.package."*"]
+opt-level = "s"
+codegen-units = 1
+strip = true
+
+[profile.release]
+opt-level = "s"
+lto = "fat"
+codegen-units = 1
+strip = true
+panic = "abort"

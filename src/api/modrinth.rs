@@ -94,7 +94,7 @@ pub async fn lookup(
     folder: &str,
     loader: Option<&str>,
     version: Option<&str>,
-) -> Result<IndexMap<PathBuf, Project>, Box<dyn std::error::Error>> {
+) -> Result<IndexMap<PathBuf, Project>, anyhow::Error> {
     let mut read_dir = tokio::fs::read_dir(folder).await?;
     let mut hashes = HashMap::new();
 
@@ -117,7 +117,7 @@ pub async fn lookup(
                 sha512.update(&buffer[..count]);
             }
 
-            hashes.insert(format!("{:x}", sha512.finalize_reset()), entry.path());
+            hashes.insert(hex::encode(sha512.finalize_reset()), entry.path());
         }
     }
 
@@ -139,7 +139,8 @@ pub async fn lookup(
                 "hashes": hashes.keys().collect::<Vec<&String>>(),
                 "algorithm": "sha512",
                 "loaders": [loader],
-                "game_versions": [version.unwrap()],
+                "game_versions": [version
+                    .ok_or_else(|| anyhow::anyhow!("version is required when a loader is set"))?],
             }))
             .send()
             .await?;
@@ -156,7 +157,7 @@ pub async fn lookup(
         .get(format!(
             "{}/v2/projects?ids={}",
             *MODRINTH_URL,
-            serde_json::to_string(&projects).unwrap()
+            serde_json::to_string(&projects)?
         ))
         .send()
         .await?;
@@ -166,15 +167,23 @@ pub async fn lookup(
     projects_data.sort_by(|a, b| a.title.cmp(&b.title));
 
     for project in projects_data {
+        let Some(project_id) = project.id.clone() else {
+            continue;
+        };
+
         for (hash, version) in data.iter() {
-            if version.project_id == project.id.clone().unwrap() {
+            if version.project_id == project_id {
                 let latest_version_data = latest_data.get(hash);
 
+                let Some(path) = hashes.get(hash) else {
+                    continue;
+                };
+
                 result.insert(
-                    hashes.get(hash).unwrap().clone(),
+                    path.clone(),
                     Project {
                         installed_version: Some(Version {
-                            project_id: project.id.clone().unwrap(),
+                            project_id: project_id.clone(),
                             ..version.clone()
                         }),
                         installed_latest_version: latest_version_data.cloned(),

@@ -10,6 +10,7 @@ mod profiles;
 mod progress;
 
 use clap::{Arg, Command};
+use colored::Colorize;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -73,7 +74,7 @@ fn cli() -> Command {
                         .long("ram")
                         .short('r')
                         .num_args(1)
-                        .value_parser(clap::value_parser!(u32).range(1024..=49152))
+                        .value_parser(clap::value_parser!(u32))
                         .required(false),
                 )
                 .arg(
@@ -104,7 +105,7 @@ fn cli() -> Command {
                         .short('r')
                         .help("The amount of RAM to allocate to the server (in MB)")
                         .num_args(1)
-                        .value_parser(clap::value_parser!(u32).range(1024..=49152))
+                        .value_parser(clap::value_parser!(u32))
                         .required(false),
                 )
                 .arg(
@@ -465,101 +466,70 @@ fn cli() -> Command {
                 .arg_required_else_help(true)
                 .subcommand_required(true),
         )
+        .subcommand(
+            Command::new("daemon")
+                .about("Internal detached server supervisor")
+                .hide(true),
+        )
 }
 
 #[tokio::main]
 async fn main() {
     let matches = cli().get_matches();
 
-    match matches.subcommand() {
-        Some(("upgrade", sub_matches)) => {
-            std::process::exit(commands::upgrade::upgrade(sub_matches).await)
-        }
-        Some(("init", sub_matches)) => {
-            std::process::exit(commands::init::init(sub_matches, None, None).await)
-        }
-        Some(("config", sub_matches)) => {
-            std::process::exit(commands::config::config(sub_matches).await)
-        }
-        Some(("install", sub_matches)) => {
-            std::process::exit(commands::install::install(sub_matches).await)
-        }
-        Some(("start", sub_matches)) => {
-            std::process::exit(commands::start::start(sub_matches).await)
-        }
-        Some(("stop", sub_matches)) => std::process::exit(commands::stop::stop(sub_matches).await),
-        Some(("attach", sub_matches)) => {
-            std::process::exit(commands::attach::attach(sub_matches).await)
-        }
-        Some(("status", sub_matches)) => {
-            std::process::exit(commands::status::status(sub_matches).await)
-        }
-        Some(("lookup", sub_matches)) => {
-            std::process::exit(commands::lookup::lookup(sub_matches).await)
-        }
-        Some(("query", sub_matches)) => {
-            std::process::exit(commands::query::query(sub_matches).await)
-        }
-        Some(("version", sub_matches)) => {
-            std::process::exit(commands::version::version(sub_matches).await)
-        }
-        Some(("update", sub_matches)) => {
-            std::process::exit(commands::update::update(sub_matches).await)
-        }
+    let result = match matches.subcommand() {
+        Some(("upgrade", sub_matches)) => commands::upgrade::upgrade(sub_matches).await,
+        Some(("init", sub_matches)) => commands::init::init(sub_matches, None, None).await,
+        Some(("config", sub_matches)) => commands::config::config(sub_matches).await,
+        Some(("install", sub_matches)) => commands::install::install(sub_matches).await,
+        Some(("start", sub_matches)) => commands::start::start(sub_matches).await,
+        Some(("stop", sub_matches)) => commands::stop::stop(sub_matches).await,
+        Some(("daemon", _)) => commands::daemon::run().await,
+        Some(("attach", sub_matches)) => commands::attach::attach(sub_matches).await,
+        Some(("status", sub_matches)) => commands::status::status(sub_matches).await,
+        Some(("lookup", sub_matches)) => commands::lookup::lookup(sub_matches).await,
+        Some(("query", sub_matches)) => commands::query::query(sub_matches).await,
+        Some(("version", sub_matches)) => commands::version::version(sub_matches).await,
+        Some(("update", sub_matches)) => commands::update::update(sub_matches).await,
         Some(("profile", sub_matches)) => match sub_matches.subcommand() {
-            Some(("create", sub_matches)) => {
-                std::process::exit(commands::profile::create::create(sub_matches).await)
-            }
-            Some(("delete", sub_matches)) => {
-                std::process::exit(commands::profile::delete::delete(sub_matches).await)
-            }
-            Some(("use", sub_matches)) => {
-                std::process::exit(commands::profile::r#use::r#use(sub_matches).await)
-            }
-            Some(("list", sub_matches)) => {
-                std::process::exit(commands::profile::list::list(sub_matches).await)
-            }
+            Some(("create", sub_matches)) => commands::profile::create::create(sub_matches).await,
+            Some(("delete", sub_matches)) => commands::profile::delete::delete(sub_matches).await,
+            Some(("use", sub_matches)) => commands::profile::r#use::r#use(sub_matches).await,
+            Some(("list", sub_matches)) => commands::profile::list::list(sub_matches).await,
             _ => unreachable!(),
         },
         Some(("backup", sub_matches)) => match sub_matches.subcommand() {
-            Some(("create", sub_matches)) => {
-                std::process::exit(commands::backups::create::create(sub_matches).await)
-            }
-            Some(("delete", sub_matches)) => {
-                std::process::exit(commands::backups::delete::delete(sub_matches).await)
-            }
+            Some(("create", sub_matches)) => commands::backups::create::create(sub_matches).await,
+            Some(("delete", sub_matches)) => commands::backups::delete::delete(sub_matches).await,
             Some(("restore", sub_matches)) => {
-                std::process::exit(commands::backups::restore::restore(sub_matches).await)
+                commands::backups::restore::restore(sub_matches).await
             }
-            Some(("list", sub_matches)) => {
-                std::process::exit(commands::backups::list::list(sub_matches).await)
-            }
+            Some(("list", sub_matches)) => commands::backups::list::list(sub_matches).await,
             _ => unreachable!(),
         },
         Some(("mods", sub_matches)) => match sub_matches.subcommand() {
-            Some(("list", sub_matches)) => {
-                std::process::exit(commands::mods::list::list(sub_matches).await)
-            }
-            Some(("delete", sub_matches)) => {
-                std::process::exit(commands::mods::delete::delete(sub_matches).await)
-            }
+            Some(("list", sub_matches)) => commands::mods::list::list(sub_matches).await,
+            Some(("delete", sub_matches)) => commands::mods::delete::delete(sub_matches).await,
             _ => unreachable!(),
         },
         Some(("java", sub_matches)) => match sub_matches.subcommand() {
-            Some(("list", sub_matches)) => {
-                std::process::exit(commands::java::list::list(sub_matches).await)
-            }
-            Some(("use", sub_matches)) => {
-                std::process::exit(commands::java::r#use::r#use(sub_matches).await)
-            }
-            Some(("install", sub_matches)) => {
-                std::process::exit(commands::java::install::install(sub_matches).await)
-            }
-            Some(("delete", sub_matches)) => {
-                std::process::exit(commands::java::delete::delete(sub_matches).await)
-            }
+            Some(("list", sub_matches)) => commands::java::list::list(sub_matches).await,
+            Some(("use", sub_matches)) => commands::java::r#use::r#use(sub_matches).await,
+            Some(("install", sub_matches)) => commands::java::install::install(sub_matches).await,
+            Some(("delete", sub_matches)) => commands::java::delete::delete(sub_matches).await,
             _ => unreachable!(),
         },
-        _ => cli().print_help().unwrap(),
+        _ => {
+            let _ = cli().print_help();
+            Ok(0)
+        }
+    };
+
+    match result {
+        Ok(code) => std::process::exit(code),
+        Err(e) => {
+            eprintln!("{} {:?}", "error:".red().bold(), e);
+            std::process::exit(1);
+        }
     }
 }

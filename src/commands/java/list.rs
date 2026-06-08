@@ -7,11 +7,19 @@ use human_bytes::human_bytes;
 fn recursive_size(path: &str) -> u64 {
     let mut size = 0;
 
-    for file in std::fs::read_dir(path).unwrap().flatten() {
-        let metadata = file.metadata().unwrap();
+    let Ok(entries) = std::fs::read_dir(path) else {
+        return size;
+    };
+
+    for file in entries.flatten() {
+        let Ok(metadata) = file.metadata() else {
+            continue;
+        };
 
         if metadata.is_dir() {
-            size += recursive_size(file.path().to_str().unwrap());
+            if let Some(path) = file.path().to_str() {
+                size += recursive_size(path);
+            }
         } else {
             size += metadata.len();
         }
@@ -20,7 +28,7 @@ fn recursive_size(path: &str) -> u64 {
     size
 }
 
-pub async fn list(_matches: &ArgMatches) -> i32 {
+pub async fn list(_matches: &ArgMatches) -> Result<i32, anyhow::Error> {
     let config = config::Config::new_optional(".mcvcli.json");
 
     println!("{}", "listing java versions...".bright_black());
@@ -35,11 +43,10 @@ pub async fn list(_matches: &ArgMatches) -> i32 {
             .arg("-version")
             .output()
             .map(|output| {
-                String::from_utf8(output.stderr)
-                    .unwrap()
+                String::from_utf8_lossy(&output.stderr)
                     .lines()
                     .next()
-                    .unwrap()
+                    .unwrap_or("unknown")
                     .to_string()
             })
             .unwrap_or("unknown".to_string());
@@ -71,7 +78,9 @@ pub async fn list(_matches: &ArgMatches) -> i32 {
             }
         );
 
-        let (version, size) = versions.get(i).unwrap();
+        let (version, size) = versions
+            .get(i)
+            .ok_or_else(|| anyhow::anyhow!("missing version info"))?;
 
         println!("  {} {}", "path:   ".bright_black(), path.cyan());
         println!("  {} {}", "version:".bright_black(), version.cyan());
@@ -95,11 +104,10 @@ pub async fn list(_matches: &ArgMatches) -> i32 {
             .arg("-version")
             .output()
             .map(|output| {
-                String::from_utf8(output.stderr)
-                    .unwrap()
+                String::from_utf8_lossy(&output.stderr)
                     .lines()
                     .next()
-                    .unwrap()
+                    .unwrap_or("unknown")
                     .to_string()
             })
             .unwrap_or("unknown".to_string());
@@ -117,5 +125,5 @@ pub async fn list(_matches: &ArgMatches) -> i32 {
         );
     }
 
-    0
+    Ok(0)
 }

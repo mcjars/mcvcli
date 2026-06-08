@@ -4,20 +4,20 @@ use clap::ArgMatches;
 use colored::Colorize;
 use dialoguer::{Confirm, theme::ColorfulTheme};
 
-pub async fn create(matches: &ArgMatches) -> i32 {
+pub async fn create(matches: &ArgMatches) -> Result<i32, anyhow::Error> {
     let name = matches.get_one::<String>("name").expect("required");
     let format = matches.get_one::<String>("format").expect("required");
     let format: Option<backups::BackupFormat> = serde_json::from_str(&format!("\"{format}\"")).ok();
     let _config = config::Config::new(".mcvcli.json", false);
 
-    if format.is_none() {
+    let Some(format) = format else {
         println!(
             "{} {}",
             "invalid format, accepted values:".red(),
             "(zip, tar, tar.gz, tar.xz)".cyan()
         );
-        return 1;
-    }
+        return Ok(1);
+    };
 
     if backups::list().iter().any(|backup| backup.name == *name) {
         println!(
@@ -26,22 +26,21 @@ pub async fn create(matches: &ArgMatches) -> i32 {
             name.cyan(),
             "already exists!".red()
         );
-        return 1;
+        return Ok(1);
     }
 
     let confirm = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Are you sure you want to create a backup?")
         .default(false)
-        .interact()
-        .unwrap();
+        .interact()?;
 
     if !confirm {
-        return 1;
+        return Ok(1);
     }
 
     println!("{}", "creating backup...".bright_black());
 
-    backups::create(name, &format.unwrap());
+    backups::create(name, &format)?;
 
     println!(
         "{} {}",
@@ -49,5 +48,5 @@ pub async fn create(matches: &ArgMatches) -> i32 {
         "DONE".green().bold()
     );
 
-    0
+    Ok(0)
 }

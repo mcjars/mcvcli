@@ -3,8 +3,8 @@ use crate::{commands, config, profiles};
 use clap::ArgMatches;
 use colored::Colorize;
 
-pub async fn create(matches: &ArgMatches) -> i32 {
-    let name = matches.get_one::<String>("name").unwrap();
+pub async fn create(matches: &ArgMatches) -> Result<i32, anyhow::Error> {
+    let name = matches.get_one::<String>("name").expect("required");
     let config = config::Config::new(".mcvcli.json", false);
 
     if profiles::list().contains(name) {
@@ -14,7 +14,7 @@ pub async fn create(matches: &ArgMatches) -> i32 {
             name.cyan(),
             "already exists!".red()
         );
-        return 1;
+        return Ok(1);
     }
 
     if config.profile_name == *name {
@@ -24,7 +24,7 @@ pub async fn create(matches: &ArgMatches) -> i32 {
             name.cyan(),
             "is currently in use!".red()
         );
-        return 1;
+        return Ok(1);
     }
 
     println!(
@@ -35,7 +35,7 @@ pub async fn create(matches: &ArgMatches) -> i32 {
     );
 
     let directory = format!(".mcvcli.profiles/{name}");
-    commands::init::init(matches, Some(&directory), Some(name)).await;
+    commands::init::init(matches, Some(&directory), Some(name)).await?;
 
     println!(
         "{} {} {} {}",
@@ -45,5 +45,5 @@ pub async fn create(matches: &ArgMatches) -> i32 {
         "DONE".green().bold()
     );
 
-    0
+    Ok(0)
 }

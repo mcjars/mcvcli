@@ -92,5 +92,5 @@ pub static CLIENT: LazyLock<Client> = LazyLock::new(|| {
     Client::builder()
         .user_agent(format!("github.com/mcjars/mcvcli {VERSION}"))
         .build()
-        .unwrap()
+        .expect("failed to build HTTP client")
 });

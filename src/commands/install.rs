@@ -4,17 +4,47 @@ use clap::ArgMatches;
 use colored::Colorize;
 use dialoguer::{FuzzySelect, Input, Select, theme::ColorfulTheme};
 
-pub async fn install(matches: &ArgMatches) -> i32 {
+fn wipe_directory() -> Result<(), anyhow::Error> {
+    println!("{}", "Wiping server directory...".bright_black());
+
+    for entry in std::fs::read_dir(".")?.flatten() {
+        let path = entry.path();
+
+        if path
+            .file_name()
+            .map(|name| name.to_string_lossy().starts_with(".mcvcli"))
+            .unwrap_or(false)
+        {
+            continue;
+        }
+
+        if path.is_dir() {
+            std::fs::remove_dir_all(&path)?;
+        } else {
+            std::fs::remove_file(&path)?;
+        }
+    }
+
+    println!(
+        "{} {}",
+        "Wiping server directory...".bright_black(),
+        "DONE".green().bold()
+    );
+
+    Ok(())
+}
+
+pub async fn install(matches: &ArgMatches) -> Result<i32, anyhow::Error> {
     let mut config = config::Config::new(".mcvcli.json", false);
     let wipe = matches.get_one::<bool>("wipe").expect("required");
 
-    if detached::status(config.pid) {
+    if detached::is_running() {
         println!(
             "{} {}",
             "server is currently running, use".red(),
             "mcvcli stop".cyan()
         );
-        return 1;
+        return Ok(1);
     }
 
     let server_jarfile = if let Some(file) = matches.get_one::<String>("file") {
@@ -23,7 +53,7 @@ pub async fn install(matches: &ArgMatches) -> i32 {
             "modrinth" => 1,
             _ => {
                 println!("{} {}", file.cyan(), "not found".red());
-                return 1;
+                return Ok(1);
             }
         }
     } else {
@@ -32,43 +62,13 @@ pub async fn install(matches: &ArgMatches) -> i32 {
             .default(0)
             .item("Install New (Jar)")
             .item("Install New (Modrinth Modpack)")
-            .interact()
-            .unwrap()
+            .interact()?
     };
 
     match server_jarfile {
         0 => {
             if *wipe {
-                println!("{}", "Wiping server directory...".bright_black());
-
-                let entries = std::fs::read_dir(".").unwrap();
-                for entry in entries {
-                    let entry = entry.unwrap();
-                    let path = entry.path();
-
-                    if path
-                        .file_name()
-                        .unwrap()
-                        .to_str()
-                        .unwrap()
-                        .to_string()
-                        .starts_with(".mcvcli")
-                    {
-                        continue;
-                    }
-
-                    if path.is_dir() {
-                        std::fs::remove_dir_all(&path).unwrap();
-                    } else {
-                        std::fs::remove_file(&path).unwrap();
-                    }
-                }
-
-                println!(
-                    "{} {}",
-                    "Wiping server directory...".bright_black(),
-                    "DONE".green().bold()
-                );
+                wipe_directory()?;
             }
 
             let java = if let Some(Ok(build_id)) =
@@ -89,8 +89,9 @@ pub async fn install(matches: &ArgMatches) -> i32 {
 
                     let server_version = server_build
                         .version_id
-                        .as_ref()
-                        .unwrap_or_else(|| server_build.project_version_id.as_ref().unwrap());
+                        .as_deref()
+                        .or(server_build.project_version_id.as_deref())
+                        .unwrap_or("unknown");
 
                     println!(
                         "{} {} {} {}",
@@ -100,7 +101,7 @@ pub async fn install(matches: &ArgMatches) -> i32 {
                         "...".bright_black()
                     );
 
-                    jar::install(&server_build, ".", 1).await.unwrap();
+                    jar::install(&server_build, ".", 1).await?;
 
                     println!(
                         "{} {} {} {} {}",
@@ -111,10 +112,11 @@ pub async fn install(matches: &ArgMatches) -> i32 {
                         "DONE".green().bold()
                     );
 
-                    versions
-                        .get(server_version)
-                        .unwrap_or(versions.last().unwrap().1)
-                        .java
+                    let fallback = versions
+                        .last()
+                        .ok_or_else(|| anyhow::anyhow!("no versions available"))?
+                        .1;
+                    versions.get(server_version).unwrap_or(fallback).java
                 } else {
                     println!(
                         "{} {} {}",
@@ -122,12 +124,68 @@ pub async fn install(matches: &ArgMatches) -> i32 {
                         build_id.to_string().cyan(),
                         "not found!".red()
                     );
-                    return 1;
+                    return Ok(1);
+                }
+            } else if let Some(Ok(build_uuid)) = matches
+                .get_one::<String>("build")
+                .map(|b| uuid::Uuid::parse_str(b))
+            {
+                println!(
+                    "{} {}",
+                    "getting server build...".bright_black(),
+                    "...".bright_black()
+                );
+
+                if let Ok((server_build, versions)) = api::mcjars::lookup_uuid(build_uuid).await {
+                    println!(
+                        "{} {}",
+                        "getting server build...".bright_black(),
+                        "DONE".green().bold()
+                    );
+
+                    let server_version = server_build
+                        .version_id
+                        .as_deref()
+                        .or(server_build.project_version_id.as_deref())
+                        .unwrap_or("unknown");
+
+                    println!(
+                        "{} {} {} {}",
+                        "installing".bright_black(),
+                        server_version.cyan(),
+                        server_build.name.cyan(),
+                        "...".bright_black()
+                    );
+
+                    jar::install(&server_build, ".", 1).await?;
+
+                    println!(
+                        "{} {} {} {} {}",
+                        "installing".bright_black(),
+                        server_version.cyan(),
+                        server_build.name.cyan(),
+                        "...".bright_black(),
+                        "DONE".green().bold()
+                    );
+
+                    let fallback = versions
+                        .last()
+                        .ok_or_else(|| anyhow::anyhow!("no versions available"))?
+                        .1;
+                    versions.get(server_version).unwrap_or(fallback).java
+                } else {
+                    println!(
+                        "{} {} {}",
+                        "server build".red(),
+                        build_uuid.to_string().cyan(),
+                        "not found!".red()
+                    );
+                    return Ok(1);
                 }
             } else {
                 println!("{}", "getting server types...".bright_black());
 
-                let types = api::mcjars::types().await.unwrap();
+                let types = api::mcjars::types().await?;
 
                 println!(
                     "{} {}",
@@ -143,7 +201,7 @@ pub async fn install(matches: &ArgMatches) -> i32 {
                             r#type.to_string().cyan(),
                             "not found!".red()
                         );
-                        return 1;
+                        return Ok(1);
                     }
 
                     &r#type.to_uppercase()
@@ -151,27 +209,35 @@ pub async fn install(matches: &ArgMatches) -> i32 {
                     let server_type = FuzzySelect::with_theme(&ColorfulTheme::default())
                         .with_prompt("Server Jar File")
                         .default(0)
-                        .items(&types.values().map(|t| &t.name).collect::<Vec<&String>>())
+                        .items(types.values().map(|t| &t.name).collect::<Vec<&String>>())
                         .max_length(10)
-                        .interact()
-                        .unwrap();
+                        .interact()?;
 
-                    types.keys().nth(server_type).unwrap()
+                    types
+                        .keys()
+                        .nth(server_type)
+                        .ok_or_else(|| anyhow::anyhow!("selected server type not found"))?
                 };
+
+                let server_type_name = types
+                    .get(server_type)
+                    .ok_or_else(|| anyhow::anyhow!("server type {server_type} not found"))?
+                    .name
+                    .clone();
 
                 println!(
                     "{} {} {}",
                     "getting server versions for".bright_black(),
-                    types.get(server_type).unwrap().name.to_string().cyan(),
+                    server_type_name.clone().cyan(),
                     "...".bright_black()
                 );
 
-                let versions = api::mcjars::versions(server_type).await.unwrap();
+                let versions = api::mcjars::versions(server_type).await?;
 
                 println!(
                     "{} {} {} {}",
                     "getting server versions for".bright_black(),
-                    types.get(server_type).unwrap().name.to_string().cyan(),
+                    server_type_name.cyan(),
                     "...".bright_black(),
                     "DONE".green().bold()
                 );
@@ -184,7 +250,7 @@ pub async fn install(matches: &ArgMatches) -> i32 {
                             version.to_string().cyan(),
                             "not found!".red()
                         );
-                        return 1;
+                        return Ok(1);
                     }
 
                     version
@@ -192,12 +258,15 @@ pub async fn install(matches: &ArgMatches) -> i32 {
                     let server_version = FuzzySelect::with_theme(&ColorfulTheme::default())
                         .with_prompt("Jar Version")
                         .default(0)
-                        .items(&versions.keys().rev().collect::<Vec<&String>>())
+                        .items(versions.keys().rev().collect::<Vec<&String>>())
                         .max_length(10)
-                        .interact()
-                        .unwrap();
+                        .interact()?;
 
-                    versions.keys().rev().nth(server_version).unwrap()
+                    versions
+                        .keys()
+                        .rev()
+                        .nth(server_version)
+                        .ok_or_else(|| anyhow::anyhow!("selected version not found"))?
                 };
 
                 println!(
@@ -207,9 +276,7 @@ pub async fn install(matches: &ArgMatches) -> i32 {
                     "...".bright_black()
                 );
 
-                let builds = api::mcjars::builds(server_type, server_version)
-                    .await
-                    .unwrap();
+                let builds = api::mcjars::builds(server_type, server_version).await?;
 
                 println!(
                     "{} {} {} {}",
@@ -221,7 +288,9 @@ pub async fn install(matches: &ArgMatches) -> i32 {
 
                 let server_build = if let Some(build) = matches.get_one::<String>("build") {
                     if build.as_str() == "latest" {
-                        builds.first().unwrap()
+                        builds
+                            .first()
+                            .ok_or_else(|| anyhow::anyhow!("no builds available"))?
                     } else if let Some(build) = builds.iter().find(|b| &b.name == build) {
                         build
                     } else {
@@ -231,16 +300,15 @@ pub async fn install(matches: &ArgMatches) -> i32 {
                             build.to_string().cyan(),
                             "not found!".red()
                         );
-                        return 1;
+                        return Ok(1);
                     }
                 } else {
                     let server_build = FuzzySelect::with_theme(&ColorfulTheme::default())
                         .with_prompt("Jar Build")
                         .default(0)
-                        .items(&builds.iter().map(|b| &b.name).collect::<Vec<&String>>())
+                        .items(builds.iter().map(|b| &b.name).collect::<Vec<&String>>())
                         .max_length(10)
-                        .interact()
-                        .unwrap();
+                        .interact()?;
 
                     &builds[server_build]
                 };
@@ -253,7 +321,7 @@ pub async fn install(matches: &ArgMatches) -> i32 {
                     "...".bright_black()
                 );
 
-                jar::install(server_build, ".", 1).await.unwrap();
+                jar::install(server_build, ".", 1).await?;
 
                 println!(
                     "{} {} {} {} {}",
@@ -264,7 +332,10 @@ pub async fn install(matches: &ArgMatches) -> i32 {
                     "DONE".green().bold()
                 );
 
-                versions.get(server_version).unwrap().java
+                versions
+                    .get(server_version)
+                    .ok_or_else(|| anyhow::anyhow!("version {server_version} not found"))?
+                    .java
             };
 
             config.modpack_slug = None;
@@ -277,8 +348,7 @@ pub async fn install(matches: &ArgMatches) -> i32 {
                 "",
                 "[[\"project_type:modpack\"],[\"server_side != unsupported\"]]",
             )
-            .await
-            .unwrap();
+            .await?;
             let mut project;
 
             loop {
@@ -287,15 +357,15 @@ pub async fn install(matches: &ArgMatches) -> i32 {
                     .default(0)
                     .item("Search")
                     .items(
-                        &projects
+                        projects
                             .iter()
                             .map(|p| {
                                 format!(
                                     "{:17} {}",
                                     format!(
                                         "{} - {}",
-                                        p.versions.first().unwrap(),
-                                        p.versions.last().unwrap()
+                                        p.versions.first().map(|v| v.as_str()).unwrap_or("?"),
+                                        p.versions.last().map(|v| v.as_str()).unwrap_or("?")
                                     ),
                                     p.title
                                 )
@@ -303,23 +373,18 @@ pub async fn install(matches: &ArgMatches) -> i32 {
                             .collect::<Vec<String>>(),
                     )
                     .max_length(10)
-                    .interact()
-                    .unwrap();
+                    .interact()?;
 
                 project = modpack;
 
                 if modpack == 0 {
-                    let search = Input::<String>::new()
-                        .with_prompt("Search")
-                        .interact()
-                        .unwrap();
+                    let search = Input::<String>::new().with_prompt("Search").interact()?;
 
                     projects = api::modrinth::projects(
                         &search,
                         "[[\"project_type:modpack\"],[\"server_side != unsupported\"]]",
                     )
-                    .await
-                    .unwrap();
+                    .await?;
                 } else {
                     break;
                 }
@@ -335,9 +400,11 @@ pub async fn install(matches: &ArgMatches) -> i32 {
                 "...".bright_black()
             );
 
-            let versions = api::modrinth::versions(project.project_id.as_ref().unwrap())
-                .await
-                .unwrap();
+            let project_id = project
+                .project_id
+                .as_ref()
+                .ok_or_else(|| anyhow::anyhow!("project has no id"))?;
+            let versions = api::modrinth::versions(project_id).await?;
             let versions = versions
                 .iter()
                 .filter(|v| !v.files.is_empty())
@@ -362,7 +429,7 @@ pub async fn install(matches: &ArgMatches) -> i32 {
             println!(
                 "  {} {}",
                 "project id: ".bright_black(),
-                project.project_id.as_ref().unwrap().cyan()
+                project.project_id.as_deref().unwrap_or("unknown").cyan()
             );
             println!(
                 "  {} {}",
@@ -375,58 +442,29 @@ pub async fn install(matches: &ArgMatches) -> i32 {
                 .with_prompt("Modpack Version?")
                 .default(0)
                 .items(
-                    &versions
+                    versions
                         .iter()
                         .map(|v| {
                             format!(
                                 "{:8} {}",
-                                v.game_versions.first().unwrap(),
+                                v.game_versions.first().map(|g| g.as_str()).unwrap_or("?"),
                                 v.name
-                                    .as_ref()
-                                    .unwrap_or(v.version_number.as_ref().unwrap())
+                                    .as_deref()
+                                    .or(v.version_number.as_deref())
+                                    .unwrap_or("unknown")
                             )
                         })
                         .collect::<Vec<String>>(),
                 )
                 .max_length(5)
-                .interact()
-                .unwrap();
+                .interact()?;
 
             let modpack_version = &versions[modpack_version];
 
             println!();
 
             if *wipe {
-                println!("{}", "Wiping server directory...".bright_black());
-
-                let entries = std::fs::read_dir(".").unwrap();
-                for entry in entries {
-                    let entry = entry.unwrap();
-                    let path = entry.path();
-
-                    if path
-                        .file_name()
-                        .unwrap()
-                        .to_str()
-                        .unwrap()
-                        .to_string()
-                        .starts_with(".mcvcli")
-                    {
-                        continue;
-                    }
-
-                    if path.is_dir() {
-                        std::fs::remove_dir_all(&path).unwrap();
-                    } else {
-                        std::fs::remove_file(&path).unwrap();
-                    }
-                }
-
-                println!(
-                    "{} {}",
-                    "Wiping server directory...".bright_black(),
-                    "DONE".green().bold()
-                );
+                wipe_directory()?;
             }
 
             println!(
@@ -436,22 +474,20 @@ pub async fn install(matches: &ArgMatches) -> i32 {
                 "...".bright_black()
             );
 
-            modpack::install(".", modpack_version).await;
+            modpack::install(".", modpack_version).await?;
 
             config.jar_file = "server.jar".to_string();
-            config.modpack_slug = Some(project.project_id.clone().unwrap());
+            config.modpack_slug = Some(project_id.clone());
             config.modpack_version = Some(modpack_version.id.clone());
             let detected = jar::detect(".", &config).await;
 
-            if let Some(([build, _], versions, _)) = detected {
-                config.java_version = versions
-                    .get(
-                        &build
-                            .version_id
-                            .unwrap_or(build.project_version_id.unwrap_or("unknown".to_string())),
-                    )
-                    .unwrap_or(versions.last().unwrap().1)
-                    .java;
+            if let Some(([build, _], versions, _)) = detected
+                && let Some(fallback) = versions.last()
+            {
+                let key = build
+                    .version_id
+                    .unwrap_or(build.project_version_id.unwrap_or("unknown".to_string()));
+                config.java_version = versions.get(&key).unwrap_or(fallback.1).java;
             }
 
             config.save();
@@ -467,5 +503,5 @@ pub async fn install(matches: &ArgMatches) -> i32 {
         _ => unreachable!(),
     }
 
-    0
+    Ok(0)
 }

@@ -5,17 +5,17 @@ use colored::Colorize;
 use dialoguer::{FuzzySelect, theme::ColorfulTheme};
 use std::path::Path;
 
-pub async fn r#use(matches: &ArgMatches) -> i32 {
+pub async fn r#use(matches: &ArgMatches) -> Result<i32, anyhow::Error> {
     let name = matches.get_one::<String>("name");
     let config = config::Config::new(".mcvcli.json", false);
 
-    if detached::status(config.pid) {
+    if detached::is_running() {
         println!(
             "{} {}",
             "server is currently running, use".red(),
             "mcvcli stop".cyan()
         );
-        return 1;
+        return Ok(1);
     }
 
     let list = profiles::list();
@@ -25,7 +25,7 @@ pub async fn r#use(matches: &ArgMatches) -> i32 {
     } else {
         if list.is_empty() {
             println!("{}", "no profiles to use".red());
-            return 1;
+            return Ok(1);
         }
 
         let name = FuzzySelect::with_theme(&ColorfulTheme::default())
@@ -33,8 +33,7 @@ pub async fn r#use(matches: &ArgMatches) -> i32 {
             .items(&list)
             .default(0)
             .max_length(5)
-            .interact()
-            .unwrap();
+            .interact()?;
         println!();
 
         &list[name]
@@ -47,7 +46,7 @@ pub async fn r#use(matches: &ArgMatches) -> i32 {
             name.cyan(),
             "is currently in use!".red()
         );
-        return 1;
+        return Ok(1);
     }
 
     if !list.contains(name) {
@@ -57,7 +56,7 @@ pub async fn r#use(matches: &ArgMatches) -> i32 {
             name.cyan(),
             "does not exist!".red()
         );
-        return 1;
+        return Ok(1);
     }
 
     println!(
@@ -71,35 +70,34 @@ pub async fn r#use(matches: &ArgMatches) -> i32 {
     let old_directory = format!(".mcvcli.profiles/{name}");
 
     if !Path::new(&new_directory).exists() {
-        std::fs::create_dir_all(&new_directory).unwrap();
+        std::fs::create_dir_all(&new_directory)?;
     }
 
-    for entry in std::fs::read_dir(".").unwrap().flatten() {
+    for entry in std::fs::read_dir(".")?.flatten() {
         let path = entry.path();
 
-        if path.file_name().unwrap() == ".mcvcli.profiles" {
+        let Some(file_name) = path.file_name() else {
+            continue;
+        };
+
+        if file_name == ".mcvcli.profiles" {
             continue;
         }
 
         std::fs::rename(
             &path,
-            format!(
-                "{}/{}",
-                new_directory,
-                path.file_name().unwrap().to_str().unwrap()
-            ),
-        )
-        .unwrap();
+            format!("{}/{}", new_directory, file_name.to_string_lossy()),
+        )?;
     }
 
-    for entry in std::fs::read_dir(&old_directory).unwrap().flatten() {
+    for entry in std::fs::read_dir(&old_directory)?.flatten() {
         let path = entry.path();
 
-        std::fs::rename(
-            &path,
-            format!("./{}", path.file_name().unwrap().to_str().unwrap()),
-        )
-        .unwrap();
+        let Some(file_name) = path.file_name() else {
+            continue;
+        };
+
+        std::fs::rename(&path, format!("./{}", file_name.to_string_lossy()))?;
     }
 
     println!(
@@ -110,5 +108,5 @@ pub async fn r#use(matches: &ArgMatches) -> i32 {
         "DONE".green().bold()
     );
 
-    0
+    Ok(0)
 }

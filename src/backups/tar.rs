@@ -10,13 +10,14 @@ fn recursive_add_directory(
     directory: &Path,
     root: &Path,
     progress: &mut Progress,
-) {
-    for entry in std::fs::read_dir(directory).unwrap().flatten() {
+) -> Result<(), anyhow::Error> {
+    for entry in std::fs::read_dir(directory)?.flatten() {
         let path = entry.path();
 
-        if path.file_name().unwrap() == ".mcvcli.backups"
-            || path.file_name().unwrap() == ".mcvcli.profiles"
-        {
+        let Some(file_name) = path.file_name() else {
+            continue;
+        };
+        if file_name == ".mcvcli.backups" || file_name == ".mcvcli.profiles" {
             continue;
         }
 
@@ -26,9 +27,8 @@ fn recursive_add_directory(
         };
 
         if metadata.is_dir() {
-            tar.append_dir(path.strip_prefix(root).unwrap().to_str().unwrap(), &path)
-                .unwrap();
-            recursive_add_directory(tar, &path, root, progress);
+            tar.append_dir(path.strip_prefix(root)?, &path)?;
+            recursive_add_directory(tar, &path, root, progress)?;
         } else if metadata.is_file() {
             let mut header = tar::Header::new_gnu();
             header.set_entry_type(tar::EntryType::Regular);
@@ -48,11 +48,13 @@ fn recursive_add_directory(
                     .as_secs(),
             );
             let mut reader =
-                CountingReader::new(File::open(&path).unwrap(), Arc::clone(&progress.progress));
+                CountingReader::new(File::open(&path)?, Arc::clone(&progress.progress));
 
-            tar.append_data(&mut header, &path, &mut reader).unwrap();
+            tar.append_data(&mut header, &path, &mut reader)?;
         }
     }
+
+    Ok(())
 }
 
 pub enum TarEncoder {
@@ -61,9 +63,9 @@ pub enum TarEncoder {
     Xz,
 }
 
-pub fn create(name: &str, encoder: TarEncoder, extension: &str) {
+pub fn create(name: &str, encoder: TarEncoder, extension: &str) -> Result<(), anyhow::Error> {
     let path = format!(".mcvcli.backups/{name}.{extension}");
-    let file = File::create(&path).unwrap();
+    let file = File::create(&path)?;
 
     let file: Box<dyn Write> = match encoder {
         TarEncoder::Tar => Box::new(file),
@@ -75,7 +77,7 @@ pub fn create(name: &str, encoder: TarEncoder, extension: &str) {
 
     let mut total_size = 0;
     for entry in walkdir::WalkDir::new(".").into_iter().flatten() {
-        let path = entry.path().to_str().unwrap();
+        let path = entry.path().to_string_lossy();
 
         if path.contains(".mcvcli.backups") || path.contains(".mcvcli.profiles") {
             continue;
@@ -107,19 +109,21 @@ pub fn create(name: &str, encoder: TarEncoder, extension: &str) {
         )
     });
 
-    recursive_add_directory(&mut tar, Path::new("."), Path::new("."), &mut progress);
+    recursive_add_directory(&mut tar, Path::new("."), Path::new("."), &mut progress)?;
 
     progress.finish();
     println!();
 
-    tar.finish().unwrap();
+    tar.finish()?;
+
+    Ok(())
 }
 
-pub fn restore(path: &str, decoder: TarEncoder) {
+pub fn restore(path: &str, decoder: TarEncoder) -> Result<(), anyhow::Error> {
     println!(" {}", "reading backup...".bright_black().italic());
 
-    let file = File::open(path).unwrap();
-    let total = file.metadata().unwrap().len() as usize;
+    let file = File::open(path)?;
+    let total = file.metadata()?.len() as usize;
     let mut progress = Progress::new(total);
 
     let reader = CountingReader::new(file, Arc::clone(&progress.progress));
@@ -150,36 +154,38 @@ pub fn restore(path: &str, decoder: TarEncoder) {
         )
     });
 
-    for file in archive.entries().unwrap() {
-        let mut file = file.unwrap();
-        let path = file.path().unwrap().to_path_buf();
+    for file in archive.entries()? {
+        let mut file = file?;
+        let path = file.path()?.to_path_buf();
 
         if file.header().entry_type().is_dir() {
-            std::fs::create_dir_all(&path).unwrap();
+            std::fs::create_dir_all(&path)?;
 
             #[cfg(unix)]
             if let Ok(mode) = file.header().mode() {
                 use std::os::unix::fs::PermissionsExt;
 
-                std::fs::set_permissions(&path, std::fs::Permissions::from_mode(mode)).unwrap();
+                std::fs::set_permissions(&path, std::fs::Permissions::from_mode(mode))?;
             }
         } else {
-            let mut write_file = File::create(&path).unwrap();
+            let mut write_file = File::create(&path)?;
 
-            std::io::copy(&mut file, &mut write_file).unwrap();
+            std::io::copy(&mut file, &mut write_file)?;
 
-            write_file.sync_all().unwrap();
+            write_file.sync_all()?;
             drop(write_file);
 
             #[cfg(unix)]
             if let Ok(mode) = file.header().mode() {
                 use std::os::unix::fs::PermissionsExt;
 
-                std::fs::set_permissions(&path, std::fs::Permissions::from_mode(mode)).unwrap();
+                std::fs::set_permissions(&path, std::fs::Permissions::from_mode(mode))?;
             }
         }
     }
 
     progress.finish();
     println!();
+
+    Ok(())
 }

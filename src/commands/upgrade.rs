@@ -25,19 +25,19 @@ struct Asset {
     browser_download_url: String,
 }
 
-pub async fn upgrade(_matches: &ArgMatches) -> i32 {
+pub async fn upgrade(_matches: &ArgMatches) -> Result<i32, anyhow::Error> {
     println!("{}", "checking for updates ...".bright_black());
 
     let releases = api::CLIENT
         .get("https://api.github.com/repos/mcjars/mcvcli/releases")
         .send()
-        .await
-        .unwrap()
+        .await?
         .json::<Vec<Release>>()
-        .await
-        .unwrap();
+        .await?;
 
-    let release = releases.first().unwrap();
+    let release = releases
+        .first()
+        .ok_or_else(|| anyhow::anyhow!("no releases found"))?;
 
     println!(
         "{} {}",
@@ -48,14 +48,10 @@ pub async fn upgrade(_matches: &ArgMatches) -> i32 {
 
     if release.tag_name == VERSION {
         println!("{}", "you are already on the latest version".green());
-        return 0;
+        return Ok(0);
     }
 
-    let binary = std::env::current_exe()
-        .unwrap()
-        .to_str()
-        .unwrap()
-        .to_string();
+    let binary = std::env::current_exe()?.to_string_lossy().to_string();
 
     if binary.contains(".cargo") {
         println!(
@@ -63,7 +59,7 @@ pub async fn upgrade(_matches: &ArgMatches) -> i32 {
             "unable to upgrade, installed through cargo, use".red(),
             "cargo install mcvcli".cyan()
         );
-        return 1;
+        return Ok(1);
     }
 
     let confirm_upgrade = Confirm::with_theme(&ColorfulTheme::default())
@@ -72,11 +68,10 @@ pub async fn upgrade(_matches: &ArgMatches) -> i32 {
             VERSION, release.tag_name
         ))
         .default(false)
-        .interact()
-        .unwrap();
+        .interact()?;
 
     if !confirm_upgrade {
-        return 1;
+        return Ok(1);
     }
 
     let arch = match std::env::consts::ARCH {
@@ -85,23 +80,17 @@ pub async fn upgrade(_matches: &ArgMatches) -> i32 {
         _ => std::env::consts::ARCH,
     };
 
-    let asset = match std::env::consts::OS {
-        "macos" => release
-            .assets
-            .iter()
-            .find(|asset| asset.name == format!("mcvcli-{arch}-macos.tar.xz"))
-            .unwrap(),
-        "windows" => release
-            .assets
-            .iter()
-            .find(|asset| asset.name == format!("mcvcli-{arch}-windows.zip"))
-            .unwrap(),
-        _ => release
-            .assets
-            .iter()
-            .find(|asset| asset.name == format!("mcvcli-{arch}-linux.tar.xz"))
-            .unwrap(),
+    let asset_name = match std::env::consts::OS {
+        "macos" => format!("mcvcli-{arch}-macos.tar.xz"),
+        "windows" => format!("mcvcli-{arch}-windows.zip"),
+        _ => format!("mcvcli-{arch}-linux.tar.xz"),
     };
+
+    let asset = release
+        .assets
+        .iter()
+        .find(|asset| asset.name == asset_name)
+        .ok_or_else(|| anyhow::anyhow!("no release asset found for {asset_name}"))?;
 
     println!("{}", "installing update ...".bright_black());
 
@@ -112,12 +101,8 @@ pub async fn upgrade(_matches: &ArgMatches) -> i32 {
         "...".bright_black().italic()
     );
 
-    let mut res = api::CLIENT
-        .get(&asset.browser_download_url)
-        .send()
-        .await
-        .unwrap();
-    let mut file = File::create(Path::new(&temp_dir()).join(&asset.name)).unwrap();
+    let mut res = api::CLIENT.get(&asset.browser_download_url).send().await?;
+    let mut file = File::create(Path::new(&temp_dir()).join(&asset.name))?;
 
     let mut progress = Progress::new(asset.size as usize);
     progress.spinner(|progress, spinner| {
@@ -137,12 +122,12 @@ pub async fn upgrade(_matches: &ArgMatches) -> i32 {
         )
     });
 
-    while let Some(chunk) = res.chunk().await.unwrap() {
-        file.write_all(&chunk).unwrap();
+    while let Some(chunk) = res.chunk().await? {
+        file.write_all(&chunk)?;
         progress.incr(chunk.len());
     }
 
-    file.sync_all().unwrap();
+    file.sync_all()?;
     progress.finish();
     println!();
 
@@ -162,17 +147,16 @@ pub async fn upgrade(_matches: &ArgMatches) -> i32 {
     );
 
     if asset.name.ends_with(".zip") {
-        let mut archive =
-            ZipArchive::new(File::open(Path::new(&temp_dir()).join(&asset.name)).unwrap()).unwrap();
-        archive.extract(temp_dir()).unwrap();
+        let mut archive = ZipArchive::new(File::open(Path::new(&temp_dir()).join(&asset.name))?)?;
+        archive.extract(temp_dir())?;
     } else if asset.name.ends_with(".tar.xz") {
-        let mut archive = TarArchive::new(XzDecoder::new(
-            File::open(Path::new(&temp_dir()).join(&asset.name)).unwrap(),
-        ));
-        archive.unpack(temp_dir()).unwrap();
+        let mut archive = TarArchive::new(XzDecoder::new(File::open(
+            Path::new(&temp_dir()).join(&asset.name),
+        )?));
+        archive.unpack(temp_dir())?;
     }
 
-    std::fs::remove_file(Path::new(&temp_dir()).join(&asset.name)).unwrap();
+    std::fs::remove_file(Path::new(&temp_dir()).join(&asset.name))?;
 
     println!(
         " {} {} {} {}",
@@ -184,13 +168,19 @@ pub async fn upgrade(_matches: &ArgMatches) -> i32 {
 
     let new_binary = std::fs::read_dir(
         Path::new(&temp_dir()).join(asset.name.replace(".tar.xz", "").replace(".zip", "")),
-    );
-    let new_binary = new_binary.unwrap().next().unwrap().unwrap().path();
+    )?
+    .next()
+    .ok_or_else(|| anyhow::anyhow!("extracted archive is empty"))??
+    .path();
+    let new_binary_parent = new_binary
+        .parent()
+        .ok_or_else(|| anyhow::anyhow!("invalid extracted binary path"))?
+        .to_path_buf();
 
     println!(
         " {} {} {} {} {}",
         "moving".bright_black().italic(),
-        new_binary.to_str().unwrap().cyan().italic(),
+        new_binary.display().to_string().cyan().italic(),
         "to".bright_black().italic(),
         binary.cyan().italic(),
         "...".bright_black().italic()
@@ -198,41 +188,44 @@ pub async fn upgrade(_matches: &ArgMatches) -> i32 {
 
     if std::env::consts::OS == "windows" {
         let batch_path = Path::new(&temp_dir()).join("update_mcvcli.bat");
-        let mut batch_file = File::create(&batch_path).unwrap();
+        let mut batch_file = File::create(&batch_path)?;
 
-        writeln!(batch_file, "@echo off").unwrap();
-        writeln!(batch_file, "echo Waiting for mcvcli to exit...").unwrap();
-        writeln!(batch_file, "ping -n 2 127.0.0.1 > nul").unwrap();
-        writeln!(batch_file, "echo Updating mcvcli...").unwrap();
+        writeln!(batch_file, "@echo off")?;
+        writeln!(batch_file, "echo Waiting for mcvcli to exit...")?;
+        writeln!(batch_file, "ping -n 2 127.0.0.1 > nul")?;
+        writeln!(batch_file, "echo Updating mcvcli...")?;
         writeln!(
             batch_file,
             "copy /b /y \"{}\" \"{}\" > nul",
-            new_binary.to_str().unwrap(),
+            new_binary.display(),
             binary
-        )
-        .unwrap();
-        writeln!(batch_file, "echo Cleaning up...").unwrap();
+        )?;
+        writeln!(batch_file, "echo Cleaning up...")?;
         writeln!(
             batch_file,
             "rmdir /s /q \"{}\" > nul",
-            new_binary.parent().unwrap().to_str().unwrap()
-        )
-        .unwrap();
-        writeln!(batch_file, "echo Update complete!").unwrap();
-        writeln!(batch_file, "exit").unwrap();
+            new_binary_parent.display()
+        )?;
+        writeln!(batch_file, "echo Update complete!")?;
+        writeln!(batch_file, "exit")?;
 
-        batch_file.sync_all().unwrap();
+        batch_file.sync_all()?;
 
         #[allow(clippy::zombie_processes)]
         std::process::Command::new("cmd")
-            .args(["/C", "start", "/min", "", batch_path.to_str().unwrap()])
-            .spawn()
-            .unwrap();
+            .args([
+                "/C",
+                "start",
+                "/min",
+                "",
+                batch_path.to_string_lossy().as_ref(),
+            ])
+            .spawn()?;
 
         println!(
             " {} {} {} {} {} {}",
             "moving".bright_black().italic(),
-            new_binary.to_str().unwrap().cyan().italic(),
+            new_binary.display().to_string().cyan().italic(),
             "to".bright_black().italic(),
             binary.cyan().italic(),
             "...".bright_black().italic(),
@@ -240,13 +233,13 @@ pub async fn upgrade(_matches: &ArgMatches) -> i32 {
         );
     } else {
         std::fs::remove_file(&binary).unwrap_or_default();
-        std::fs::copy(&new_binary, &binary).unwrap();
-        std::fs::remove_dir_all(new_binary.parent().unwrap()).unwrap();
+        std::fs::copy(&new_binary, &binary)?;
+        std::fs::remove_dir_all(&new_binary_parent)?;
 
         println!(
             " {} {} {} {} {} {}",
             "moving".bright_black().italic(),
-            new_binary.to_str().unwrap().cyan().italic(),
+            new_binary.display().to_string().cyan().italic(),
             "to".bright_black().italic(),
             binary.cyan().italic(),
             "...".bright_black().italic(),
@@ -260,5 +253,5 @@ pub async fn upgrade(_matches: &ArgMatches) -> i32 {
         "DONE".green().bold()
     );
 
-    0
+    Ok(0)
 }

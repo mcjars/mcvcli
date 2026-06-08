@@ -3,7 +3,7 @@ use crate::{config, profiles};
 use clap::ArgMatches;
 use colored::Colorize;
 
-pub async fn config(matches: &ArgMatches) -> i32 {
+pub async fn config(matches: &ArgMatches) -> Result<i32, anyhow::Error> {
     let profile = matches.get_one::<String>("profile");
 
     if let Some(profile) = profile
@@ -15,7 +15,7 @@ pub async fn config(matches: &ArgMatches) -> i32 {
             profile.cyan(),
             "does not exist!".red()
         );
-        return 1;
+        return Ok(1);
     }
 
     let mut config = if let Some(profile) = profile {
@@ -35,7 +35,7 @@ pub async fn config(matches: &ArgMatches) -> i32 {
             "no changes made, use".bright_black(),
             "mcvcli config --help".cyan(),
         );
-        return 1;
+        return Ok(1);
     }
 
     println!("{}", "updating config ...".bright_black());
@@ -61,5 +61,5 @@ pub async fn config(matches: &ArgMatches) -> i32 {
         "DONE".green().bold()
     );
 
-    0
+    Ok(0)
 }

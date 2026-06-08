@@ -4,8 +4,10 @@ use clap::ArgMatches;
 use colored::Colorize;
 use std::path::Path;
 
-pub async fn list(matches: &ArgMatches) -> i32 {
-    let include_version = matches.get_one::<bool>("include_version").unwrap();
+pub async fn list(matches: &ArgMatches) -> Result<i32, anyhow::Error> {
+    let include_version = matches
+        .get_one::<bool>("include_version")
+        .expect("has default value");
     let config = config::Config::new(".mcvcli.json", false);
 
     println!("{}", "listing profiles...".bright_black());
@@ -25,7 +27,7 @@ pub async fn list(matches: &ArgMatches) -> i32 {
 
             futures.push(async move {
                 let profile_config = config::Config::new(
-                    Path::new(&directory).join(".mcvcli.json").to_str().unwrap(),
+                    &Path::new(&directory).join(".mcvcli.json").to_string_lossy(),
                     false,
                 );
 
@@ -52,7 +54,7 @@ pub async fn list(matches: &ArgMatches) -> i32 {
         };
 
         let profile_config = config::Config::new(
-            Path::new(&directory).join(".mcvcli.json").to_str().unwrap(),
+            &Path::new(&directory).join(".mcvcli.json").to_string_lossy(),
             false,
         );
 
@@ -83,7 +85,10 @@ pub async fn list(matches: &ArgMatches) -> i32 {
         );
 
         if *include_version {
-            let detected = results.get(i).unwrap().as_ref();
+            let detected = results
+                .get(i)
+                .ok_or_else(|| anyhow::anyhow!("missing profile detection result"))?
+                .as_ref();
 
             if let Some(([build, latest], versions, modpack)) = detected {
                 println!("  {}", "version:".bright_black());
@@ -111,7 +116,7 @@ pub async fn list(matches: &ArgMatches) -> i32 {
                     "    {} {} {}",
                     "build:  ".bright_black(),
                     build.name.cyan(),
-                    if build.id == latest.id {
+                    if build.uuid == latest.uuid {
                         "(latest)".green()
                     } else {
                         "(outdated)".red()
@@ -133,14 +138,14 @@ pub async fn list(matches: &ArgMatches) -> i32 {
                     println!(
                         "    {} {}",
                         "project id: ".bright_black(),
-                        modpack.id.as_ref().unwrap().cyan()
+                        modpack.id.as_deref().unwrap_or("unknown").cyan()
                     );
                     if let Some(version) = config.modpack_version.as_ref() {
                         println!(
                             "    {} {} {}",
                             "version id: ".bright_black(),
                             version.cyan(),
-                            if modpack.versions.last().unwrap() == version {
+                            if modpack.versions.last() == Some(version) {
                                 "(latest)".green()
                             } else {
                                 "(outdated)".red()
@@ -160,5 +165,5 @@ pub async fn list(matches: &ArgMatches) -> i32 {
         }
     }
 
-    0
+    Ok(0)
 }

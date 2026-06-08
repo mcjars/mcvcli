@@ -8,10 +8,10 @@ pub async fn init(
     matches: &ArgMatches,
     override_directory: Option<&str>,
     profile_name: Option<&str>,
-) -> i32 {
+) -> Result<i32, anyhow::Error> {
     let directory = override_directory
         .or_else(|| matches.get_one::<String>("directory").map(|d| d.as_str()))
-        .unwrap();
+        .ok_or_else(|| anyhow::anyhow!("no directory specified"))?;
 
     if std::path::Path::new(&format!("{directory}/.mcvcli.json")).exists() {
         println!("{} {}", ".mcvcli.json".cyan(), "already exists!".red());
@@ -22,19 +22,18 @@ pub async fn init(
             "instead.".red()
         );
 
-        return 1;
+        return Ok(1);
     }
 
-    std::fs::create_dir_all(directory).unwrap();
+    std::fs::create_dir_all(directory)?;
 
-    let jars = std::fs::read_dir(directory)
-        .unwrap()
+    let jars = std::fs::read_dir(directory)?
+        .flatten()
         .filter_map(|entry| {
-            let entry = entry.unwrap();
             let path = entry.path();
 
             if path.is_file() {
-                let name = path.file_name().unwrap().to_str().unwrap();
+                let name = path.file_name()?.to_str()?;
 
                 if name.ends_with(".jar") {
                     return Some(name.to_string());
@@ -52,12 +51,11 @@ pub async fn init(
             1
         } else {
             let jar = file.to_string();
-            if jars.contains(&jar) {
-                let index = jars.iter().position(|x| x == &jar).unwrap();
+            if let Some(index) = jars.iter().position(|x| x == &jar) {
                 index + 2
             } else {
                 println!("{} {}", jar.cyan(), "not found!".red());
-                return 1;
+                return Ok(1);
             }
         }
     } else {
@@ -67,8 +65,7 @@ pub async fn init(
             .item("Install New (Jar)")
             .item("Install New (Modrinth Modpack)")
             .items(&jars)
-            .interact()
-            .unwrap()
+            .interact()?
     };
 
     match server_jarfile {
@@ -91,8 +88,9 @@ pub async fn init(
 
                     let server_version = server_build
                         .version_id
-                        .as_ref()
-                        .unwrap_or_else(|| server_build.project_version_id.as_ref().unwrap());
+                        .as_deref()
+                        .or(server_build.project_version_id.as_deref())
+                        .unwrap_or("unknown");
 
                     println!(
                         "{} {} {} {}",
@@ -102,7 +100,7 @@ pub async fn init(
                         "...".bright_black()
                     );
 
-                    jar::install(&server_build, directory, 1).await.unwrap();
+                    jar::install(&server_build, directory, 1).await?;
 
                     println!(
                         "{} {} {} {} {}",
@@ -113,10 +111,11 @@ pub async fn init(
                         "DONE".green().bold()
                     );
 
-                    versions
-                        .get(server_version)
-                        .unwrap_or(versions.last().unwrap().1)
-                        .java
+                    let fallback = versions
+                        .last()
+                        .ok_or_else(|| anyhow::anyhow!("no versions available"))?
+                        .1;
+                    versions.get(server_version).unwrap_or(fallback).java
                 } else {
                     println!(
                         "{} {} {}",
@@ -124,12 +123,12 @@ pub async fn init(
                         build_id.to_string().cyan(),
                         "not found!".red()
                     );
-                    return 1;
+                    return Ok(1);
                 }
             } else {
                 println!("{}", "getting server types...".bright_black());
 
-                let types = api::mcjars::types().await.unwrap();
+                let types = api::mcjars::types().await?;
 
                 println!(
                     "{} {}",
@@ -145,7 +144,7 @@ pub async fn init(
                             r#type.to_string().cyan(),
                             "not found!".red()
                         );
-                        return 1;
+                        return Ok(1);
                     }
 
                     &r#type.to_uppercase()
@@ -153,27 +152,35 @@ pub async fn init(
                     let server_type = FuzzySelect::with_theme(&ColorfulTheme::default())
                         .with_prompt("Server Jar File")
                         .default(0)
-                        .items(&types.values().map(|t| &t.name).collect::<Vec<&String>>())
+                        .items(types.values().map(|t| &t.name).collect::<Vec<&String>>())
                         .max_length(10)
-                        .interact()
-                        .unwrap();
+                        .interact()?;
 
-                    types.keys().nth(server_type).unwrap()
+                    types
+                        .keys()
+                        .nth(server_type)
+                        .ok_or_else(|| anyhow::anyhow!("selected server type not found"))?
                 };
+
+                let server_type_name = types
+                    .get(server_type)
+                    .ok_or_else(|| anyhow::anyhow!("server type {server_type} not found"))?
+                    .name
+                    .clone();
 
                 println!(
                     "{} {} {}",
                     "getting server versions for".bright_black(),
-                    types.get(server_type).unwrap().name.to_string().cyan(),
+                    server_type_name.clone().cyan(),
                     "...".bright_black()
                 );
 
-                let versions = api::mcjars::versions(server_type).await.unwrap();
+                let versions = api::mcjars::versions(server_type).await?;
 
                 println!(
                     "{} {} {} {}",
                     "getting server versions for".bright_black(),
-                    types.get(server_type).unwrap().name.to_string().cyan(),
+                    server_type_name.cyan(),
                     "...".bright_black(),
                     "DONE".green().bold()
                 );
@@ -186,7 +193,7 @@ pub async fn init(
                             version.to_string().cyan(),
                             "not found!".red()
                         );
-                        return 1;
+                        return Ok(1);
                     }
 
                     version
@@ -194,12 +201,15 @@ pub async fn init(
                     let server_version = FuzzySelect::with_theme(&ColorfulTheme::default())
                         .with_prompt("Jar Version")
                         .default(0)
-                        .items(&versions.keys().rev().collect::<Vec<&String>>())
+                        .items(versions.keys().rev().collect::<Vec<&String>>())
                         .max_length(10)
-                        .interact()
-                        .unwrap();
+                        .interact()?;
 
-                    versions.keys().rev().nth(server_version).unwrap()
+                    versions
+                        .keys()
+                        .rev()
+                        .nth(server_version)
+                        .ok_or_else(|| anyhow::anyhow!("selected version not found"))?
                 };
 
                 println!(
@@ -209,9 +219,7 @@ pub async fn init(
                     "...".bright_black()
                 );
 
-                let builds = api::mcjars::builds(server_type, server_version)
-                    .await
-                    .unwrap();
+                let builds = api::mcjars::builds(server_type, server_version).await?;
 
                 println!(
                     "{} {} {} {}",
@@ -223,7 +231,9 @@ pub async fn init(
 
                 let server_build = if let Some(build) = matches.get_one::<String>("build") {
                     if build.as_str() == "latest" {
-                        builds.first().unwrap()
+                        builds
+                            .first()
+                            .ok_or_else(|| anyhow::anyhow!("no builds available"))?
                     } else if let Some(build) = builds.iter().find(|b| &b.name == build) {
                         build
                     } else {
@@ -233,16 +243,15 @@ pub async fn init(
                             build.to_string().cyan(),
                             "not found!".red()
                         );
-                        return 1;
+                        return Ok(1);
                     }
                 } else {
                     let server_build = FuzzySelect::with_theme(&ColorfulTheme::default())
                         .with_prompt("Jar Build")
                         .default(0)
-                        .items(&builds.iter().map(|b| &b.name).collect::<Vec<&String>>())
+                        .items(builds.iter().map(|b| &b.name).collect::<Vec<&String>>())
                         .max_length(10)
-                        .interact()
-                        .unwrap();
+                        .interact()?;
 
                     &builds[server_build]
                 };
@@ -255,7 +264,7 @@ pub async fn init(
                     "...".bright_black()
                 );
 
-                jar::install(server_build, directory, 1).await.unwrap();
+                jar::install(server_build, directory, 1).await?;
 
                 println!(
                     "{} {} {} {} {}",
@@ -266,7 +275,10 @@ pub async fn init(
                     "DONE".green().bold()
                 );
 
-                versions.get(server_version).unwrap().java
+                versions
+                    .get(server_version)
+                    .ok_or_else(|| anyhow::anyhow!("version {server_version} not found"))?
+                    .java
             };
 
             let ram_mb = if let Some(ram) = matches.get_one::<u32>("ram") {
@@ -275,19 +287,18 @@ pub async fn init(
                 Input::<u32>::with_theme(&ColorfulTheme::default())
                     .with_prompt("RAM (MB)")
                     .default(2048)
-                    .interact()
-                    .unwrap()
+                    .interact()?
             };
 
             let java = if let Some(java) = matches.get_one::<u8>("java") {
-                if !java::versions().await.contains(java) {
+                if !java::versions().await?.contains(java) {
                     println!(
                         "{} {} {}",
                         "java version".red(),
                         java.to_string().cyan(),
                         "not found!".red()
                     );
-                    return 1;
+                    return Ok(1);
                 }
 
                 *java
@@ -306,8 +317,7 @@ pub async fn init(
                 "",
                 "[[\"project_type:modpack\"],[\"server_side != unsupported\"]]",
             )
-            .await
-            .unwrap();
+            .await?;
             let mut project;
 
             loop {
@@ -316,15 +326,15 @@ pub async fn init(
                     .default(0)
                     .item("Search")
                     .items(
-                        &projects
+                        projects
                             .iter()
                             .map(|p| {
                                 format!(
                                     "{:17} {}",
                                     format!(
                                         "{} - {}",
-                                        p.versions.first().unwrap(),
-                                        p.versions.last().unwrap()
+                                        p.versions.first().map(|v| v.as_str()).unwrap_or("?"),
+                                        p.versions.last().map(|v| v.as_str()).unwrap_or("?")
                                     ),
                                     p.title
                                 )
@@ -332,23 +342,18 @@ pub async fn init(
                             .collect::<Vec<String>>(),
                     )
                     .max_length(10)
-                    .interact()
-                    .unwrap();
+                    .interact()?;
 
                 project = modpack;
 
                 if modpack == 0 {
-                    let search = Input::<String>::new()
-                        .with_prompt("Search")
-                        .interact()
-                        .unwrap();
+                    let search = Input::<String>::new().with_prompt("Search").interact()?;
 
                     projects = api::modrinth::projects(
                         &search,
                         "[[\"project_type:modpack\"],[\"server_side != unsupported\"]]",
                     )
-                    .await
-                    .unwrap();
+                    .await?;
                 } else {
                     break;
                 }
@@ -364,9 +369,11 @@ pub async fn init(
                 "...".bright_black()
             );
 
-            let versions = api::modrinth::versions(project.project_id.as_ref().unwrap())
-                .await
-                .unwrap();
+            let project_id = project
+                .project_id
+                .as_ref()
+                .ok_or_else(|| anyhow::anyhow!("project has no id"))?;
+            let versions = api::modrinth::versions(project_id).await?;
             let versions = versions
                 .iter()
                 .filter(|v| !v.files.is_empty())
@@ -391,7 +398,7 @@ pub async fn init(
             println!(
                 "  {} {}",
                 "project id: ".bright_black(),
-                project.project_id.as_ref().unwrap().cyan()
+                project.project_id.as_deref().unwrap_or("unknown").cyan()
             );
             println!(
                 "  {} {}",
@@ -404,22 +411,22 @@ pub async fn init(
                 .with_prompt("Modpack Version?")
                 .default(0)
                 .items(
-                    &versions
+                    versions
                         .iter()
                         .map(|v| {
                             format!(
                                 "{:8} {}",
-                                v.game_versions.first().unwrap(),
+                                v.game_versions.first().map(|g| g.as_str()).unwrap_or("?"),
                                 v.name
-                                    .as_ref()
-                                    .unwrap_or(v.version_number.as_ref().unwrap())
+                                    .as_deref()
+                                    .or(v.version_number.as_deref())
+                                    .unwrap_or("unknown")
                             )
                         })
                         .collect::<Vec<String>>(),
                 )
                 .max_length(5)
-                .interact()
-                .unwrap();
+                .interact()?;
 
             let modpack_version = &versions[modpack_version];
 
@@ -429,8 +436,7 @@ pub async fn init(
                 Input::<u32>::with_theme(&ColorfulTheme::default())
                     .with_prompt("RAM (MB)")
                     .default(2048)
-                    .interact()
-                    .unwrap()
+                    .interact()?
             };
 
             println!();
@@ -441,38 +447,37 @@ pub async fn init(
                 "...".bright_black()
             );
 
-            modpack::install(directory, modpack_version).await;
+            modpack::install(directory, modpack_version).await?;
 
             let mut config = config::Config::new(&format!("{directory}/.mcvcli.json"), true);
             config.profile_name = profile_name.unwrap_or("default").to_string();
             config.ram_mb = ram_mb;
             config.jar_file = "server.jar".to_string();
-            config.modpack_slug = Some(project.project_id.clone().unwrap());
+            config.modpack_slug = Some(project_id.clone());
             config.modpack_version = Some(modpack_version.id.clone());
 
             if let Some(java) = matches.get_one::<u8>("java") {
-                if !java::versions().await.contains(java) {
+                if !java::versions().await?.contains(java) {
                     println!(
                         "{} {} {}",
                         "java version".red(),
                         java.to_string().cyan(),
                         "not found!".red()
                     );
-                    return 1;
+                    return Ok(1);
                 }
 
                 config.java_version = *java;
             } else {
                 let detected = jar::detect(".", &config).await;
 
-                if let Some(([build, _], versions, _)) = detected {
-                    config.java_version =
-                        versions
-                            .get(&build.version_id.unwrap_or(
-                                build.project_version_id.unwrap_or("unknown".to_string()),
-                            ))
-                            .unwrap_or(versions.last().unwrap().1)
-                            .java;
+                if let Some(([build, _], versions, _)) = detected
+                    && let Some(fallback) = versions.last()
+                {
+                    let key = build
+                        .version_id
+                        .unwrap_or(build.project_version_id.unwrap_or("unknown".to_string()));
+                    config.java_version = versions.get(&key).unwrap_or(fallback.1).java;
                 } else {
                     config.java_version = 21;
                 }
@@ -493,7 +498,7 @@ pub async fn init(
 
             println!("{}", "getting java versions...".bright_black());
 
-            let java_versions = java::versions().await;
+            let java_versions = java::versions().await?;
 
             println!(
                 "{} {}",
@@ -509,7 +514,7 @@ pub async fn init(
                         java.to_string().cyan(),
                         "not found!".red()
                     );
-                    return 1;
+                    return Ok(1);
                 }
 
                 *java
@@ -518,17 +523,20 @@ pub async fn init(
                     .with_prompt("Java Version")
                     .default(0)
                     .items(
-                        &java_versions
+                        java_versions
                             .iter()
                             .rev()
                             .map(|v| v.to_string())
                             .collect::<Vec<String>>(),
                     )
                     .max_length(10)
-                    .interact()
-                    .unwrap();
+                    .interact()?;
 
-                *java_versions.iter().rev().nth(java_version).unwrap()
+                *java_versions
+                    .iter()
+                    .rev()
+                    .nth(java_version)
+                    .ok_or_else(|| anyhow::anyhow!("selected java version not found"))?
             };
 
             let ram_mb = if let Some(ram) = matches.get_one::<u32>("ram") {
@@ -537,8 +545,7 @@ pub async fn init(
                 Input::<u32>::with_theme(&ColorfulTheme::default())
                     .with_prompt("RAM (MB)")
                     .default(2048)
-                    .interact()
-                    .unwrap()
+                    .interact()?
             };
 
             let mut config = config::Config::new(&format!("{directory}/.mcvcli.json"), true);
@@ -550,5 +557,5 @@ pub async fn init(
         }
     }
 
-    0
+    Ok(0)
 }

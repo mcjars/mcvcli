@@ -4,7 +4,7 @@ use clap::ArgMatches;
 use colored::Colorize;
 use human_bytes::human_bytes;
 
-pub async fn list(_matches: &ArgMatches) -> i32 {
+pub async fn list(_matches: &ArgMatches) -> Result<i32, anyhow::Error> {
     let _config = config::Config::new(".mcvcli.json", false);
 
     println!("{}", "listing backups...".bright_black());
@@ -20,7 +20,7 @@ pub async fn list(_matches: &ArgMatches) -> i32 {
     if list.is_empty() {
         println!();
         println!("{}", "no backups found".red());
-        return 1;
+        return Ok(1);
     }
 
     for backup in list {
@@ -49,5 +49,5 @@ pub async fn list(_matches: &ArgMatches) -> i32 {
         );
     }
 
-    0
+    Ok(0)
 }

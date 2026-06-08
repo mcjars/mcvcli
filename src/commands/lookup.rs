@@ -58,7 +58,7 @@ struct Custom {
     play_time: Option<u32>,
 }
 
-pub async fn lookup(matches: &ArgMatches) -> i32 {
+pub async fn lookup(matches: &ArgMatches) -> Result<i32, anyhow::Error> {
     let player = matches.get_one::<String>("player").expect("required");
     let _config = config::Config::new(".mcvcli.json", false);
 
@@ -69,14 +69,17 @@ pub async fn lookup(matches: &ArgMatches) -> i32 {
         None => api::mojang::get_profile_name(player).await,
     };
 
-    if player.is_err() {
-        println!(
-            "{} {}",
-            "looking up player...".bright_black(),
-            "FAILED".red().bold()
-        );
-        return 1;
-    }
+    let player = match player {
+        Ok(player) => player,
+        Err(_) => {
+            println!(
+                "{} {}",
+                "looking up player...".bright_black(),
+                "FAILED".red().bold()
+            );
+            return Ok(1);
+        }
+    };
 
     println!(
         "{} {}",
@@ -85,57 +88,43 @@ pub async fn lookup(matches: &ArgMatches) -> i32 {
     );
     println!();
 
-    let player = player.unwrap();
+    let uuid = api::mojang::format_uuid(&player.id)
+        .ok_or_else(|| anyhow::anyhow!("invalid player uuid"))?;
 
     println!("{}", player.name.cyan().bold());
-    println!(
-        "  {} {}",
-        "uuid:".bright_black(),
-        api::mojang::format_uuid(&player.id).unwrap().cyan()
-    );
+    println!("  {} {}", "uuid:".bright_black(), uuid.cyan());
 
-    if !Path::new(&format!(
-        "world/playerdata/{}.dat",
-        api::mojang::format_uuid(&player.id).unwrap()
-    ))
-    .exists()
-    {
+    if !Path::new(&format!("world/playerdata/{uuid}.dat")).exists() {
         println!(
             "  {} {}",
             "player data:".bright_black(),
             "not found".red().bold()
         );
-        return 0;
+        return Ok(0);
     }
 
     println!("  {}", "player data:".bright_black());
 
-    let player_data = File::open(format!(
-        "world/playerdata/{}.dat",
-        api::mojang::format_uuid(&player.id).unwrap()
-    ))
-    .unwrap();
+    let player_data = File::open(format!("world/playerdata/{uuid}.dat"))?;
     let player_data = GzDecoder::new(BufReader::new(player_data));
     let player_data: Result<PlayerData, _> = fastnbt::from_reader(player_data);
 
-    let player_stats: Option<PlayerStats> = match File::open(format!(
-        "world/stats/{}.json",
-        api::mojang::format_uuid(&player.id).unwrap()
-    )) {
+    let player_stats: Option<PlayerStats> = match File::open(format!("world/stats/{uuid}.json")) {
         Ok(player_stats) => serde_json::from_reader(player_stats).ok(),
         Err(_) => None,
     };
 
-    if player_data.is_err() {
-        println!(
-            "    {} {}",
-            "player data:".bright_black(),
-            "unable to read".red().bold()
-        );
-        return 1;
-    }
-
-    let player_data = player_data.unwrap();
+    let player_data = match player_data {
+        Ok(player_data) => player_data,
+        Err(_) => {
+            println!(
+                "    {} {}",
+                "player data:".bright_black(),
+                "unable to read".red().bold()
+            );
+            return Ok(1);
+        }
+    };
 
     let mut max_health: f64 = 20.0;
     if let Some(attributes) = player_data.attributes {
@@ -233,5 +222,5 @@ pub async fn lookup(matches: &ArgMatches) -> i32 {
         }
     }
 
-    0
+    Ok(0)
 }

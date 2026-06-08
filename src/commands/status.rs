@@ -5,24 +5,28 @@ use clap::ArgMatches;
 use colored::Colorize;
 use human_bytes::human_bytes;
 
-pub async fn status(_matches: &ArgMatches) -> i32 {
+pub async fn status(_matches: &ArgMatches) -> Result<i32, anyhow::Error> {
     let config = config::Config::new(".mcvcli.json", false);
 
-    if !detached::status(config.pid) {
+    if !detached::is_running() {
         println!(
             "{} {}",
             "server is not running, use".red(),
             "mcvcli start --detached".cyan()
         );
-        return 1;
+        return Ok(1);
     }
 
     println!("{}", "getting server status ...".bright_black());
 
-    let pid = sysinfo::Pid::from(config.pid.unwrap());
+    let state = detached::read_state()
+        .ok_or_else(|| anyhow::anyhow!("server is running but has no state"))?;
+    let pid = sysinfo::Pid::from(state.java_pid as usize);
     let sys = sysinfo::System::new_all();
 
-    let process = sys.process(pid).unwrap();
+    let process = sys
+        .process(pid)
+        .ok_or_else(|| anyhow::anyhow!("server process {pid} not found"))?;
 
     println!(
         "{} {}",
@@ -47,7 +51,7 @@ pub async fn status(_matches: &ArgMatches) -> i32 {
         "  {} {} ({}h {}m {}s)",
         "start time:  ".bright_black(),
         DateTime::from_timestamp(process.start_time() as i64, 0)
-            .unwrap()
+            .ok_or_else(|| anyhow::anyhow!("invalid process start time"))?
             .format("%Y-%m-%d %H:%M:%S")
             .to_string()
             .cyan(),
@@ -56,5 +60,5 @@ pub async fn status(_matches: &ArgMatches) -> i32 {
         (uptime % 60).to_string().cyan()
     );
 
-    0
+    Ok(0)
 }

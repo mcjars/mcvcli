@@ -13,7 +13,7 @@ use std::io::Write;
 use std::path::Path;
 use zip::ZipArchive;
 
-pub async fn install(build: &Build, directory: &str, spaces: usize) -> Result<(), reqwest::Error> {
+pub async fn install(build: &Build, directory: &str, spaces: usize) -> Result<(), anyhow::Error> {
     if Path::new(directory).join("libraries").exists() {
         std::fs::remove_dir_all(Path::new(directory).join("libraries")).unwrap_or_default();
     }
@@ -30,20 +30,15 @@ pub async fn install(build: &Build, directory: &str, spaces: usize) -> Result<()
                         "...".bright_black().italic()
                     );
 
-                    if !Path::new(directory)
-                        .join(&step.file)
-                        .parent()
-                        .unwrap()
-                        .exists()
+                    let target = Path::new(directory).join(&step.file);
+                    if let Some(parent) = target.parent()
+                        && !parent.exists()
                     {
-                        std::fs::create_dir_all(
-                            Path::new(directory).join(&step.file).parent().unwrap(),
-                        )
-                        .unwrap();
+                        std::fs::create_dir_all(parent)?;
                     }
 
                     let mut res = api::CLIENT.get(&step.url).send().await?;
-                    let mut file = File::create(Path::new(directory).join(&step.file)).unwrap();
+                    let mut file = File::create(&target)?;
 
                     let mut progress = Progress::new(step.size as usize);
                     progress.spinner(move |progress, spinner| {
@@ -64,13 +59,13 @@ pub async fn install(build: &Build, directory: &str, spaces: usize) -> Result<()
                         )
                     });
 
-                    while let Some(chunk) = res.chunk().await.unwrap() {
-                        file.write_all(&chunk).unwrap();
+                    while let Some(chunk) = res.chunk().await? {
+                        file.write_all(&chunk)?;
 
                         progress.incr(chunk.len());
                     }
 
-                    file.sync_all().unwrap();
+                    file.sync_all()?;
                     progress.finish();
                     println!();
 
@@ -93,15 +88,12 @@ pub async fn install(build: &Build, directory: &str, spaces: usize) -> Result<()
                     );
 
                     if !Path::new(&step.location).exists() {
-                        std::fs::create_dir_all(Path::new(directory).join(&step.location)).unwrap();
+                        std::fs::create_dir_all(Path::new(directory).join(&step.location))?;
                     }
 
                     let mut archive =
-                        ZipArchive::new(File::open(Path::new(directory).join(&step.file)).unwrap())
-                            .unwrap();
-                    archive
-                        .extract(Path::new(directory).join(&step.location))
-                        .unwrap();
+                        ZipArchive::new(File::open(Path::new(directory).join(&step.file))?)?;
+                    archive.extract(Path::new(directory).join(&step.location))?;
 
                     println!(
                         "{}{} {} {} {}",
@@ -151,8 +143,7 @@ pub async fn detect(
 ) -> Option<([Build; 2], IndexMap<String, Version>, Option<Project>)> {
     let mut file = Path::new(directory)
         .join(&config.jar_file)
-        .to_str()
-        .unwrap()
+        .to_string_lossy()
         .to_string();
 
     if let Ok(entries) =
@@ -162,14 +153,20 @@ pub async fn detect(
             let path = entry.path();
 
             if path.is_dir() {
-                for entry in std::fs::read_dir(&path).unwrap().flatten() {
+                let Ok(entries) = std::fs::read_dir(&path) else {
+                    continue;
+                };
+
+                for entry in entries.flatten() {
                     let path = entry.path();
 
                     if path.is_file() {
-                        let name = path.file_name().unwrap().to_str().unwrap();
+                        let Some(name) = path.file_name().and_then(|name| name.to_str()) else {
+                            continue;
+                        };
 
                         if name.ends_with("-server.jar") || name.ends_with("-universal.jar") {
-                            file = path.to_str().unwrap().to_string();
+                            file = path.to_string_lossy().to_string();
                             break;
                         }
                     }
@@ -183,14 +180,20 @@ pub async fn detect(
             let path = entry.path();
 
             if path.is_dir() {
-                for entry in std::fs::read_dir(&path).unwrap().flatten() {
+                let Ok(entries) = std::fs::read_dir(&path) else {
+                    continue;
+                };
+
+                for entry in entries.flatten() {
                     let path = entry.path();
 
                     if path.is_file() {
-                        let name = path.file_name().unwrap().to_str().unwrap();
+                        let Some(name) = path.file_name().and_then(|name| name.to_str()) else {
+                            continue;
+                        };
 
                         if name.ends_with("-server.jar") || name.ends_with("-universal.jar") {
-                            file = path.to_str().unwrap().to_string();
+                            file = path.to_string_lossy().to_string();
                             break;
                         }
                     }
@@ -204,9 +207,9 @@ pub async fn detect(
     }
 
     if let Ok(([build, latest], versions)) = api::mcjars::lookup(&file).await {
-        if let Some(modpack_slug) = &config.modpack_slug {
-            let modpack = api::modrinth::project(modpack_slug).await.unwrap();
-
+        if let Some(modpack_slug) = &config.modpack_slug
+            && let Ok(modpack) = api::modrinth::project(modpack_slug).await
+        {
             return Some(([build, latest], versions, Some(modpack)));
         }
 
@@ -218,12 +221,17 @@ pub async fn detect(
 
 #[inline]
 pub fn is_latest_version(build: &Build, versions: &IndexMap<String, Version>) -> bool {
-    let version = build
+    let Some(version) = build
         .version_id
-        .as_ref()
-        .unwrap_or_else(|| build.project_version_id.as_ref().unwrap());
+        .as_deref()
+        .or(build.project_version_id.as_deref())
+    else {
+        return false;
+    };
 
-    let version_type = versions.get(version).unwrap().r#type.clone();
+    let Some(version_type) = versions.get(version).map(|v| v.r#type.clone()) else {
+        return false;
+    };
     let latest_version = versions
         .iter()
         .rev()

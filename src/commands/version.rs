@@ -3,7 +3,7 @@ use crate::{config, jar, profiles};
 use clap::ArgMatches;
 use colored::Colorize;
 
-pub async fn version(matches: &ArgMatches) -> i32 {
+pub async fn version(matches: &ArgMatches) -> Result<i32, anyhow::Error> {
     let profile = matches.get_one::<String>("profile");
 
     if let Some(profile) = profile
@@ -15,7 +15,7 @@ pub async fn version(matches: &ArgMatches) -> i32 {
             profile.cyan(),
             "does not exist!".red()
         );
-        return 1;
+        return Ok(1);
     }
 
     let directory = if let Some(profile) = profile {
@@ -67,7 +67,7 @@ pub async fn version(matches: &ArgMatches) -> i32 {
             "  {} {} {}",
             "build:  ".bright_black(),
             build.name.cyan(),
-            if build.id == latest.id {
+            if build.uuid == latest.uuid {
                 "(latest)".green()
             } else {
                 "(outdated)".red()
@@ -89,13 +89,17 @@ pub async fn version(matches: &ArgMatches) -> i32 {
             println!(
                 "  {} {}",
                 "project id: ".bright_black(),
-                modpack.id.unwrap().cyan()
+                modpack.id.as_deref().unwrap_or("unknown").cyan()
             );
             println!(
                 "  {} {} {}",
                 "version id: ".bright_black(),
-                config.modpack_version.as_ref().unwrap().cyan(),
-                if modpack.versions.last().unwrap() == &config.modpack_version.unwrap() {
+                config
+                    .modpack_version
+                    .as_deref()
+                    .unwrap_or("unknown")
+                    .cyan(),
+                if modpack.versions.last() == config.modpack_version.as_ref() {
                     "(latest)".green()
                 } else {
                     "(outdated)".red()
@@ -119,5 +123,5 @@ pub async fn version(matches: &ArgMatches) -> i32 {
         config.java_version.to_string().cyan()
     );
 
-    0
+    Ok(0)
 }

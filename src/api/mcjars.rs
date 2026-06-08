@@ -4,7 +4,6 @@ use crate::api;
 
 use indexmap::IndexMap;
 use serde::Deserialize;
-use serde_json::json;
 use sha2::Digest;
 use tokio::io::AsyncReadExt;
 
@@ -20,13 +19,14 @@ pub struct Version {
 }
 
 #[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct Build {
-    pub id: u32,
+    pub uuid: uuid::Uuid,
     pub r#type: String,
     pub name: String,
 
+    #[serde(alias = "versionId")]
     pub version_id: Option<String>,
+    #[serde(alias = "projectVersionId")]
     pub project_version_id: Option<String>,
 
     pub installation: Vec<Vec<InstallationStep>>,
@@ -61,15 +61,15 @@ pub struct InstallationStepRemove {
 
 static MCJARS_URL: LazyLock<String> =
     LazyLock::new(|| std::env::var("MCJARS_URL").unwrap_or("https://mcjars.app".to_string()));
-const MCJARS_FIELDS: &str = "id,type,versionId,projectVersionId,name,installation,changes";
+const MCJARS_FIELDS: &str = "uuid,type,versionId,projectVersionId,name,installation,changes";
 
-pub async fn lookup(file: &str) -> Result<([Build; 2], IndexMap<String, Version>), reqwest::Error> {
+pub async fn lookup(file: &str) -> Result<([Build; 2], IndexMap<String, Version>), anyhow::Error> {
     let mut sha512 = sha2::Sha512::new();
-    let mut file = tokio::fs::File::open(file).await.unwrap();
+    let mut file = tokio::fs::File::open(file).await?;
 
     loop {
         let mut buffer = vec![0; 32 * 1024];
-        let count = file.read(&mut buffer).await.unwrap();
+        let count = file.read(&mut buffer).await?;
 
         if count == 0 {
             break;
@@ -79,15 +79,12 @@ pub async fn lookup(file: &str) -> Result<([Build; 2], IndexMap<String, Version>
     }
 
     let res = api::CLIENT
-        .post(format!(
-            "{}/api/v2/build?fields={}",
-            *MCJARS_URL, MCJARS_FIELDS
+        .get(format!(
+            "{}/api/v3/builds/{}?fields={}",
+            *MCJARS_URL,
+            hex::encode(sha512.finalize()),
+            MCJARS_FIELDS
         ))
-        .json(&json!({
-            "hash": {
-                "sha512": format!("{:x}", sha512.finalize())
-            }
-        }))
         .send()
         .await?;
     let data = res.json::<ApiResponse>().await?;
@@ -98,19 +95,16 @@ pub async fn lookup(file: &str) -> Result<([Build; 2], IndexMap<String, Version>
         latest: Build,
     }
 
-    let versions = versions(&data.build.r#type).await.unwrap();
+    let versions = versions(&data.build.r#type).await?;
     Ok(([data.build, data.latest], versions))
 }
 
-pub async fn lookup_id(id: u32) -> Result<(Build, IndexMap<String, Version>), reqwest::Error> {
+pub async fn lookup_id(id: u32) -> Result<(Build, IndexMap<String, Version>), anyhow::Error> {
     let res = api::CLIENT
-        .post(format!(
-            "{}/api/v2/build?fields={}",
+        .get(format!(
+            "{}/api/v3/builds/{id}?fields={}",
             *MCJARS_URL, MCJARS_FIELDS
         ))
-        .json(&json!({
-            "id": id
-        }))
         .send()
         .await?;
     let data = res.json::<ApiResponse>().await?;
@@ -120,7 +114,28 @@ pub async fn lookup_id(id: u32) -> Result<(Build, IndexMap<String, Version>), re
         build: Build,
     }
 
-    let versions = versions(&data.build.r#type).await.unwrap();
+    let versions = versions(&data.build.r#type).await?;
+    Ok((data.build, versions))
+}
+
+pub async fn lookup_uuid(
+    uuid: uuid::Uuid,
+) -> Result<(Build, IndexMap<String, Version>), anyhow::Error> {
+    let res = api::CLIENT
+        .get(format!(
+            "{}/api/v3/builds/{uuid}?fields={}",
+            *MCJARS_URL, MCJARS_FIELDS
+        ))
+        .send()
+        .await?;
+    let data = res.json::<ApiResponse>().await?;
+
+    #[derive(Deserialize)]
+    struct ApiResponse {
+        build: Build,
+    }
+
+    let versions = versions(&data.build.r#type).await?;
     Ok((data.build, versions))
 }
 

@@ -21,8 +21,14 @@ struct Package {
     link: String,
 }
 
-static LOCATION: LazyLock<String> =
-    LazyLock::new(|| format!("{}/.mcvcli/java", home_dir().unwrap().to_str().unwrap()));
+static LOCATION: LazyLock<String> = LazyLock::new(|| {
+    format!(
+        "{}/.mcvcli/java",
+        home_dir()
+            .map(|path| path.to_string_lossy().to_string())
+            .unwrap_or_default()
+    )
+});
 
 fn parse_version_stderr(stderr: &str) -> Option<u8> {
     let line = stderr.lines().next()?;
@@ -53,14 +59,12 @@ pub fn installed() -> Vec<(u8, String)> {
         if path.is_dir() && std::fs::exists(path.join("bin")).unwrap_or_default() {
             let version = path
                 .file_name()
-                .unwrap()
-                .to_str()
-                .unwrap()
-                .parse()
+                .and_then(|name| name.to_str())
+                .and_then(|name| name.parse().ok())
                 .unwrap_or_default();
 
             if version != 0 {
-                installed.push((version, path.to_str().unwrap().to_string()));
+                installed.push((version, path.to_string_lossy().to_string()));
             }
         }
     }
@@ -74,7 +78,7 @@ pub fn remove(version: u8) {
     let installed = installed();
 
     if let Some((_, path)) = installed.iter().find(|(v, _)| *v == version) {
-        std::fs::remove_dir_all(path).unwrap();
+        let _ = std::fs::remove_dir_all(path);
     }
 }
 
@@ -116,7 +120,7 @@ pub fn find_local() -> Option<(u8, String, String)> {
     None
 }
 
-pub async fn binary(version: u8) -> [String; 2] {
+pub async fn binary(version: u8) -> Result<[String; 2], anyhow::Error> {
     println!(
         "{} {} {}",
         "checking for java".bright_black(),
@@ -138,7 +142,7 @@ pub async fn binary(version: u8) -> [String; 2] {
             "DONE".green().bold()
         );
 
-        return [path, root];
+        return Ok([path, root]);
     }
 
     if !installed.iter().any(|(v, _)| *v == version) {
@@ -149,7 +153,7 @@ pub async fn binary(version: u8) -> [String; 2] {
             "not found, installing...".bright_black()
         );
 
-        install(version).await.unwrap();
+        install(version).await?;
 
         println!(
             "{} {} {} {}",
@@ -168,10 +172,10 @@ pub async fn binary(version: u8) -> [String; 2] {
         "DONE".green().bold()
     );
 
-    [
+    Ok([
         format!("{}/{}/bin/java", *LOCATION, version),
         format!("{}/{}", *LOCATION, version),
-    ]
+    ])
 }
 
 pub async fn install(version: u8) -> Result<(), anyhow::Error> {
@@ -261,35 +265,28 @@ pub async fn install(version: u8) -> Result<(), anyhow::Error> {
     );
 
     if binary.binary.package.name.ends_with(".zip") {
-        let mut archive = ZipArchive::new(File::open(&destination).unwrap()).unwrap();
+        let mut archive = ZipArchive::new(File::open(&destination)?)?;
         archive.extract(format!("{}/{}", *LOCATION, version))?;
     } else {
-        let mut archive = TarArchive::new(GzDecoder::new(File::open(&destination).unwrap()));
+        let mut archive = TarArchive::new(GzDecoder::new(File::open(&destination)?));
         archive.unpack(format!("{}/{}", *LOCATION, version))?;
     }
 
     std::fs::remove_file(&destination)?;
 
     let entries = std::fs::read_dir(format!("{}/{}", *LOCATION, version))?;
-    if entries.count() == 1 {
-        let entry = std::fs::read_dir(format!("{}/{}", *LOCATION, version))
-            .unwrap()
-            .next()
-            .unwrap()
-            .unwrap();
+    if let Some(Ok(entry)) = entries.into_iter().next() {
         let path = entry.path();
 
         for file in std::fs::read_dir(&path)?.flatten() {
             let file_path = file.path();
+            let Some(file_name) = file_path.file_name() else {
+                continue;
+            };
 
             std::fs::rename(
                 &file_path,
-                format!(
-                    "{}/{}/{}",
-                    *LOCATION,
-                    version,
-                    file_path.file_name().unwrap().to_str().unwrap()
-                ),
+                format!("{}/{}/{}", *LOCATION, version, file_name.to_string_lossy()),
             )?;
         }
 
@@ -307,18 +304,17 @@ pub async fn install(version: u8) -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-pub async fn versions() -> Vec<u8> {
+pub async fn versions() -> Result<Vec<u8>, anyhow::Error> {
     let res = api::CLIENT
         .get("https://api.adoptium.net/v3/info/available_releases")
         .send()
-        .await
-        .unwrap();
-    let data = res.json::<ApiResponse>().await.unwrap();
+        .await?;
+    let data = res.json::<ApiResponse>().await?;
 
     #[derive(Deserialize)]
     struct ApiResponse {
         available_releases: Vec<u8>,
     }
 
-    data.available_releases
+    Ok(data.available_releases)
 }

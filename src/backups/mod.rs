@@ -34,49 +34,46 @@ pub fn list() -> Vec<Backup> {
     if let Ok(entries) = std::fs::read_dir(".mcvcli.backups") {
         for entry in entries.flatten() {
             let path = entry.path();
-            let name = path.file_name().unwrap().to_str().unwrap();
 
             if !path.is_file() {
                 continue;
             }
 
-            if name.ends_with("zip") {
-                backups.push(Backup {
-                    name: name.to_string().replacen(".zip", "", 1),
-                    path: path.to_str().unwrap().to_string(),
-                    size: path.metadata().unwrap().len(),
-                    format: BackupFormat::Zip,
-                    created: DateTime::from(path.metadata().unwrap().created().unwrap()),
-                });
+            let Some(name) = path.file_name().and_then(|name| name.to_str()) else {
+                continue;
+            };
+            let Ok(metadata) = path.metadata() else {
+                continue;
+            };
+
+            let (stripped, format) = if name.ends_with("tar.gz") {
+                (name.replacen(".tar.gz", "", 1), BackupFormat::TarGz)
+            } else if name.ends_with("tar.xz") {
+                (name.replacen(".tar.xz", "", 1), BackupFormat::TarXz)
             } else if name.ends_with("tar") {
-                backups.push(Backup {
-                    name: name.to_string().replacen(".tar", "", 1),
-                    path: path.to_str().unwrap().to_string(),
-                    size: path.metadata().unwrap().len(),
-                    format: BackupFormat::Tar,
-                    created: DateTime::from(path.metadata().unwrap().created().unwrap()),
-                });
-            } else if name.ends_with("tar.gz") {
-                backups.push(Backup {
-                    name: name.to_string().replacen(".tar.gz", "", 1),
-                    path: path.to_str().unwrap().to_string(),
-                    size: path.metadata().unwrap().len(),
-                    format: BackupFormat::TarGz,
-                    created: DateTime::from(path.metadata().unwrap().created().unwrap()),
-                });
-            } else if path.is_file() && name.ends_with("tar.xz") {
-                backups.push(Backup {
-                    name: name.to_string().replacen(".tar.xz", "", 1),
-                    path: path.to_str().unwrap().to_string(),
-                    size: path.metadata().unwrap().len(),
-                    format: BackupFormat::TarXz,
-                    created: DateTime::from(path.metadata().unwrap().created().unwrap()),
-                });
-            }
+                (name.replacen(".tar", "", 1), BackupFormat::Tar)
+            } else if name.ends_with("zip") {
+                (name.replacen(".zip", "", 1), BackupFormat::Zip)
+            } else {
+                continue;
+            };
+
+            let created = metadata
+                .created()
+                .map(DateTime::from)
+                .unwrap_or_else(|_| Local::now());
+
+            backups.push(Backup {
+                name: stripped,
+                path: path.to_string_lossy().to_string(),
+                size: metadata.len(),
+                format,
+                created,
+            });
         }
     }
 
-    backups.sort_by(|a, b| b.created.cmp(&a.created));
+    backups.sort_by_key(|b| std::cmp::Reverse(b.created));
 
     backups
 }
@@ -90,9 +87,9 @@ pub fn extension(format: &BackupFormat) -> String {
     }
 }
 
-pub fn create(name: &str, format: &BackupFormat) {
+pub fn create(name: &str, format: &BackupFormat) -> Result<(), anyhow::Error> {
     if !Path::new(".mcvcli.backups").exists() {
-        std::fs::create_dir_all(".mcvcli.backups").unwrap();
+        std::fs::create_dir_all(".mcvcli.backups")?;
     }
 
     match format {
@@ -103,7 +100,7 @@ pub fn create(name: &str, format: &BackupFormat) {
     }
 }
 
-pub fn restore(backup: &Backup) {
+pub fn restore(backup: &Backup) -> Result<(), anyhow::Error> {
     let path = &backup.path;
 
     match backup.format {

@@ -1,7 +1,7 @@
 use clap::ArgMatches;
 use colored::Colorize;
 
-pub async fn query(matches: &ArgMatches) -> i32 {
+pub async fn query(matches: &ArgMatches) -> Result<i32, anyhow::Error> {
     let mut address = matches
         .get_one::<String>("address")
         .expect("required")
@@ -31,7 +31,7 @@ pub async fn query(matches: &ArgMatches) -> i32 {
             Ok(status) => status,
             Err(e) => {
                 println!("{}: {}", "Error".red(), e);
-                return 1;
+                return Ok(1);
             }
         };
 
@@ -91,7 +91,7 @@ pub async fn query(matches: &ArgMatches) -> i32 {
                                 Ok(status) => status,
                                 Err(e) => {
                                     println!("{}: {}", "Error".red(), e);
-                                    return 1;
+                                    return Ok(1);
                                 }
                             };
 
@@ -117,7 +117,7 @@ pub async fn query(matches: &ArgMatches) -> i32 {
                                 status.max_players.to_string().cyan()
                             );
 
-                            return 0;
+                            return Ok(0);
                         }
                     },
                 };
@@ -163,5 +163,5 @@ pub async fn query(matches: &ArgMatches) -> i32 {
         };
     }
 
-    0
+    Ok(0)
 }

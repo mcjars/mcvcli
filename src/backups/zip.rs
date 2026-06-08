@@ -9,13 +9,14 @@ fn recursive_add_directory(
     root: &Path,
     mut options: SimpleFileOptions,
     progress: &mut Progress,
-) {
-    for entry in std::fs::read_dir(directory).unwrap().flatten() {
+) -> Result<(), anyhow::Error> {
+    for entry in std::fs::read_dir(directory)?.flatten() {
         let path = entry.path();
 
-        if path.file_name().unwrap() == ".mcvcli.backups"
-            || path.file_name().unwrap() == ".mcvcli.profiles"
-        {
+        let Some(file_name) = path.file_name() else {
+            continue;
+        };
+        if file_name == ".mcvcli.backups" || file_name == ".mcvcli.profiles" {
             continue;
         }
 
@@ -27,9 +28,8 @@ fn recursive_add_directory(
                 options = options.unix_permissions(metadata.permissions().mode());
             }
 
-            zip.add_directory(path.strip_prefix(root).unwrap().to_str().unwrap(), options)
-                .unwrap();
-            recursive_add_directory(zip, &path, root, options, progress);
+            zip.add_directory(path.strip_prefix(root)?.to_string_lossy(), options)?;
+            recursive_add_directory(zip, &path, root, options, progress)?;
         } else {
             #[cfg(unix)]
             if let Ok(metadata) = path.metadata() {
@@ -40,11 +40,11 @@ fn recursive_add_directory(
                     .large_file(metadata.len() >= 4 * 1024 * 1024 * 1024);
             }
 
-            zip.start_file_from_path(&path, options).unwrap();
+            zip.start_file_from_path(&path, options)?;
 
             let mut reader =
-                CountingReader::new(File::open(&path).unwrap(), Arc::clone(&progress.progress));
-            std::io::copy(&mut reader, zip).unwrap();
+                CountingReader::new(File::open(&path)?, Arc::clone(&progress.progress));
+            std::io::copy(&mut reader, zip)?;
 
             progress.incr(1usize);
             eprint!(
@@ -56,11 +56,13 @@ fn recursive_add_directory(
             );
         }
     }
+
+    Ok(())
 }
 
-pub fn create(name: &str) {
+pub fn create(name: &str) -> Result<(), anyhow::Error> {
     let path = format!(".mcvcli.backups/{name}.zip");
-    let file = File::create(&path).unwrap();
+    let file = File::create(&path)?;
 
     let mut zip = ZipWriter::new(file);
     let options = SimpleFileOptions::default()
@@ -69,7 +71,7 @@ pub fn create(name: &str) {
 
     let mut total_size = 0;
     for entry in walkdir::WalkDir::new(".").into_iter().flatten() {
-        let path = entry.path().to_str().unwrap();
+        let path = entry.path().to_string_lossy();
 
         if path.contains(".mcvcli.backups") || path.contains(".mcvcli.profiles") {
             continue;
@@ -107,16 +109,18 @@ pub fn create(name: &str) {
         Path::new("."),
         options,
         &mut progress,
-    );
+    )?;
 
     progress.finish();
     println!();
 
-    zip.finish().unwrap();
+    zip.finish()?;
+
+    Ok(())
 }
 
-pub fn restore(path: &str) {
-    let mut archive = ZipArchive::new(File::open(path).unwrap()).unwrap();
+pub fn restore(path: &str) -> Result<(), anyhow::Error> {
+    let mut archive = ZipArchive::new(File::open(path)?)?;
 
     let mut progress = Progress::new(archive.len());
     progress.spinner(|progress, spinner| {
@@ -131,36 +135,38 @@ pub fn restore(path: &str) {
     });
 
     for i in 0..archive.len() {
-        let mut file = archive.by_index(i).unwrap();
+        let mut file = archive.by_index(i)?;
         let path = file.mangled_name();
 
         if file.is_dir() {
-            std::fs::create_dir_all(&path).unwrap();
+            std::fs::create_dir_all(&path)?;
 
             #[cfg(unix)]
             if let Some(mode) = file.unix_mode() {
                 use std::os::unix::fs::PermissionsExt;
 
-                std::fs::set_permissions(&path, std::fs::Permissions::from_mode(mode)).unwrap();
+                std::fs::set_permissions(&path, std::fs::Permissions::from_mode(mode))?;
             }
         } else {
-            let mut write_file = std::fs::File::create(&path).unwrap();
+            let mut write_file = std::fs::File::create(&path)?;
 
             let mut reader = CountingReader::new(&mut file, Arc::clone(&progress.progress));
-            std::io::copy(&mut reader, &mut write_file).unwrap();
+            std::io::copy(&mut reader, &mut write_file)?;
 
-            write_file.sync_all().unwrap();
+            write_file.sync_all()?;
             drop(write_file);
 
             #[cfg(unix)]
             if let Some(mode) = file.unix_mode() {
                 use std::os::unix::fs::PermissionsExt;
 
-                std::fs::set_permissions(&path, std::fs::Permissions::from_mode(mode)).unwrap();
+                std::fs::set_permissions(&path, std::fs::Permissions::from_mode(mode))?;
             }
         }
     }
 
     progress.finish();
     println!();
+
+    Ok(())
 }

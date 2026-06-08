@@ -1,94 +1,117 @@
-use crate::{config, detached};
+use crate::detached;
 
 use clap::ArgMatches;
 use colored::Colorize;
-use std::io::Write;
+use tokio::io::AsyncWriteExt;
 
-pub async fn stop(matches: &ArgMatches) -> i32 {
+/// Best-effort kill of the server and supervisor when the control socket is unreachable (a wedged
+/// or already-killed daemon, the latter having orphaned the java child).
+async fn force_kill() {
+    let Some(state) = detached::read_state() else {
+        detached::cleanup();
+        return;
+    };
+
+    let pids = [state.java_pid, state.daemon_pid];
+
+    {
+        let sys = sysinfo::System::new_all();
+        for pid in pids {
+            if let Some(process) = sys.process(sysinfo::Pid::from(pid as usize)) {
+                process.kill_with(sysinfo::Signal::Kill);
+            }
+        }
+    }
+
+    // Wait for the kills to actually land before clearing state, so a follow-up `start` doesn't
+    // race a not-yet-dead server still holding the port.
+    for _ in 0..50 {
+        let sys = sysinfo::System::new_all();
+        let alive = pids
+            .iter()
+            .any(|pid| sys.process(sysinfo::Pid::from(*pid as usize)).is_some());
+        if !alive {
+            break;
+        }
+
+        tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+    }
+
+    detached::cleanup();
+}
+
+pub async fn stop(matches: &ArgMatches) -> Result<i32, anyhow::Error> {
     let timeout = *matches.get_one::<u64>("timeout").expect("required");
-    let mut config = config::Config::new(".mcvcli.json", false);
 
-    if !detached::status(config.pid) {
+    if !detached::is_running() {
         println!(
             "{} {}",
             "server is not running, use".red(),
             "mcvcli start --detached".cyan()
         );
-        return 1;
+        return Ok(1);
     }
 
-    let [mut stdin, mut stdout, mut stderr] = detached::get_pipes(&config.identifier.unwrap());
+    let connection = match detached::connect().await {
+        Ok(connection) => connection,
+        Err(_) => {
+            println!(
+                "{}",
+                "daemon is unreachable, killing the server ...".bright_black()
+            );
+            force_kill().await;
+            println!(
+                "{} {}",
+                "stopping server ...".bright_black(),
+                "DONE".green().bold()
+            );
+            return Ok(0);
+        }
+    };
+
+    let (mut reader, mut writer) = tokio::io::split(connection);
 
     println!(
         "{}",
         format!("stopping server ({timeout}s before being killed) ...").bright_black()
     );
 
-    tokio::task::spawn_blocking(move || {
-        std::io::copy(&mut stdout, &mut std::io::stdout()).unwrap();
-    });
+    detached::write_frame(&mut writer, detached::TAG_STOP, &timeout.to_be_bytes()).await?;
 
-    tokio::task::spawn_blocking(move || {
-        std::io::copy(&mut stderr, &mut std::io::stderr()).unwrap();
-    });
+    let mut stdout = tokio::io::stdout();
+    let mut stderr = tokio::io::stderr();
 
-    tokio::task::spawn_blocking({
-        let stop_command = config.stop_command.clone();
-
-        move || {
-            stdin.write_all((stop_command + "\n").as_bytes()).unwrap();
-
-            std::io::copy(&mut std::io::stdin(), &mut stdin).unwrap();
-        }
-    });
-
-    let kill_future = async {
-        tokio::time::sleep(tokio::time::Duration::from_secs(timeout)).await;
-
-        if detached::status(config.pid) {
-            println!(
-                "{}",
-                "server is taking too long to stop, killing it ...".bright_black()
-            );
-
-            let pid = sysinfo::Pid::from(config.pid.unwrap());
-            let sys = sysinfo::System::new_all();
-            let process = sys.process(pid).unwrap();
-
-            process.kill_with(sysinfo::Signal::Kill);
-
-            println!(
-                "{} {}",
-                "server is taking too long to stop, killing it ...".bright_black(),
-                "DONE".green().bold()
-            );
-        }
-    };
-
-    let stop_future = async {
-        loop {
-            if !detached::status(config.pid) {
-                println!();
-                println!(
-                    "{} {}",
-                    "stopping server ...".bright_black(),
-                    "DONE".green().bold()
-                );
-                break;
+    loop {
+        match detached::read_frame(&mut reader).await {
+            Ok((detached::TAG_STDOUT, data)) => {
+                let _ = stdout.write_all(&data).await;
+                let _ = stdout.flush().await;
             }
-
-            tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+            Ok((detached::TAG_STDERR, data)) => {
+                let _ = stderr.write_all(&data).await;
+                let _ = stderr.flush().await;
+            }
+            Ok((detached::TAG_EXIT, _)) => break,
+            Ok(_) => {}
+            Err(_) => break,
         }
-    };
-
-    tokio::select! {
-        _ = kill_future => {},
-        _ = stop_future => {},
     }
 
-    config.pid = None;
-    config.identifier = None;
-    config.save();
+    // Wait for the daemon to finish tearing itself down so a follow-up `start` sees a clean slate.
+    for _ in 0..50 {
+        if !detached::is_running() {
+            break;
+        }
 
-    0
+        tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+    }
+
+    println!();
+    println!(
+        "{} {}",
+        "stopping server ...".bright_black(),
+        "DONE".green().bold()
+    );
+
+    Ok(0)
 }
