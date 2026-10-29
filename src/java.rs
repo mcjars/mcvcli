@@ -5,6 +5,7 @@ use dirs::home_dir;
 use flate2::read::GzDecoder;
 use human_bytes::human_bytes;
 use serde::Deserialize;
+use sha2::Digest;
 use std::{fs::File, io::Write, path::Path, sync::LazyLock};
 use tar::Archive as TarArchive;
 use zip::ZipArchive;
@@ -19,6 +20,7 @@ struct Binary {
 struct Package {
     name: String,
     link: String,
+    checksum: String,
 }
 
 static LOCATION: LazyLock<String> = LazyLock::new(|| {
@@ -179,6 +181,26 @@ pub async fn binary(version: u8) -> Result<[String; 2], anyhow::Error> {
 }
 
 pub async fn install(version: u8) -> Result<(), anyhow::Error> {
+    std::fs::create_dir_all(LOCATION.as_str())?;
+
+    let lock = File::create(format!("{}/{}.lock", *LOCATION, version))?;
+    let _lock = tokio::task::spawn_blocking(move || lock.lock().map(|_| lock)).await??;
+
+    if installed().iter().any(|(v, _)| *v == version) {
+        return Ok(());
+    }
+
+    let staging_prefix = format!(".{version}.");
+    for entry in std::fs::read_dir(LOCATION.as_str())?.flatten() {
+        if entry
+            .file_name()
+            .to_string_lossy()
+            .starts_with(&staging_prefix)
+        {
+            let _ = std::fs::remove_dir_all(entry.path());
+        }
+    }
+
     let query_arch = std::env::consts::ARCH;
     let query_os = match std::env::consts::OS {
         "macos" => "mac",
@@ -216,9 +238,10 @@ pub async fn install(version: u8) -> Result<(), anyhow::Error> {
         None => return Err(anyhow::anyhow!("no binary found for Java {version}")),
     };
 
-    let destination = format!("{}/{}/java.archive", *LOCATION, version);
+    let staging = format!("{}/.{}.{}", *LOCATION, version, std::process::id());
+    let destination = format!("{staging}/java.archive");
 
-    std::fs::create_dir_all(format!("{}/{}", *LOCATION, version))?;
+    std::fs::create_dir_all(&staging)?;
 
     let mut res = api::CLIENT.get(&binary.binary.package.link).send().await?;
     let mut file = File::create(&destination)?;
@@ -241,14 +264,26 @@ pub async fn install(version: u8) -> Result<(), anyhow::Error> {
         )
     });
 
-    while let Ok(Some(chunk)) = res.chunk().await {
+    let mut sha256 = sha2::Sha256::new();
+    while let Some(chunk) = res.chunk().await? {
         file.write_all(&chunk)?;
+        sha256.update(&chunk);
         progress.incr(chunk.len());
     }
 
     file.sync_all()?;
     progress.finish();
     println!();
+
+    let checksum = hex::encode(sha256.finalize());
+    if !checksum.eq_ignore_ascii_case(&binary.binary.package.checksum) {
+        let _ = std::fs::remove_dir_all(&staging);
+
+        return Err(anyhow::anyhow!(
+            "java {version} download is corrupted (expected sha256 {}, got {checksum})",
+            binary.binary.package.checksum
+        ));
+    }
 
     println!(
         " {} {} {} {}",
@@ -266,15 +301,15 @@ pub async fn install(version: u8) -> Result<(), anyhow::Error> {
 
     if binary.binary.package.name.ends_with(".zip") {
         let mut archive = ZipArchive::new(File::open(&destination)?)?;
-        archive.extract(format!("{}/{}", *LOCATION, version))?;
+        archive.extract(&staging)?;
     } else {
         let mut archive = TarArchive::new(GzDecoder::new(File::open(&destination)?));
-        archive.unpack(format!("{}/{}", *LOCATION, version))?;
+        archive.unpack(&staging)?;
     }
 
     std::fs::remove_file(&destination)?;
 
-    let entries = std::fs::read_dir(format!("{}/{}", *LOCATION, version))?;
+    let entries = std::fs::read_dir(&staging)?;
     if let Some(Ok(entry)) = entries.into_iter().next() {
         let path = entry.path();
 
@@ -286,12 +321,17 @@ pub async fn install(version: u8) -> Result<(), anyhow::Error> {
 
             std::fs::rename(
                 &file_path,
-                format!("{}/{}/{}", *LOCATION, version, file_name.to_string_lossy()),
+                format!("{}/{}", staging, file_name.to_string_lossy()),
             )?;
         }
 
         std::fs::remove_dir_all(&path)?;
     }
+
+    // a leftover from an install that died halfway would make the rename fail
+    let target = format!("{}/{}", *LOCATION, version);
+    let _ = std::fs::remove_dir_all(&target);
+    std::fs::rename(&staging, &target)?;
 
     println!(
         " {} {} {} {}",

@@ -96,7 +96,9 @@ pub fn is_running() -> bool {
         return false;
     };
 
-    let sys = sysinfo::System::new_all();
+    let Ok(sys) = sysinfo::System::new_all() else {
+        return false;
+    };
 
     process_alive(&sys, state.daemon_pid, "mcvcli") || process_alive(&sys, state.java_pid, "java")
 }

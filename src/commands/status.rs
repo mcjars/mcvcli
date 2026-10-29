@@ -22,7 +22,7 @@ pub async fn status(_matches: &ArgMatches) -> Result<i32, anyhow::Error> {
     let state = detached::read_state()
         .ok_or_else(|| anyhow::anyhow!("server is running but has no state"))?;
     let pid = sysinfo::Pid::from(state.java_pid as usize);
-    let sys = sysinfo::System::new_all();
+    let sys = sysinfo::System::new_all()?;
 
     let process = sys
         .process(pid)

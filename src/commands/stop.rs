@@ -11,22 +11,22 @@ async fn force_kill() {
         detached::cleanup();
         return;
     };
+    let Ok(sys) = sysinfo::System::new_all() else {
+        detached::cleanup();
+        return;
+    };
 
     let pids = [state.java_pid, state.daemon_pid];
 
-    {
-        let sys = sysinfo::System::new_all();
-        for pid in pids {
-            if let Some(process) = sys.process(sysinfo::Pid::from(pid as usize)) {
-                process.kill_with(sysinfo::Signal::Kill);
-            }
+    for pid in pids {
+        if let Some(process) = sys.process(sysinfo::Pid::from(pid as usize)) {
+            process.kill_with(sysinfo::Signal::Kill);
         }
     }
 
     // Wait for the kills to actually land before clearing state, so a follow-up `start` doesn't
     // race a not-yet-dead server still holding the port.
     for _ in 0..50 {
-        let sys = sysinfo::System::new_all();
         let alive = pids
             .iter()
             .any(|pid| sys.process(sysinfo::Pid::from(*pid as usize)).is_some());

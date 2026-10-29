@@ -124,7 +124,7 @@ pub async fn start(matches: &ArgMatches) -> Result<i32, anyhow::Error> {
                 )
             });
 
-            while let Ok(Some(chunk)) = req.chunk().await {
+            while let Some(chunk) = req.chunk().await? {
                 file.write_all(&chunk)?;
                 progress.incr(chunk.len());
             }
@@ -171,6 +171,19 @@ pub async fn start(matches: &ArgMatches) -> Result<i32, anyhow::Error> {
             #[cfg(unix)]
             command.process_group(0);
 
+            // The server is in its own process group, so it would outlive mcvcli being killed outright
+            #[cfg(target_os = "linux")]
+            // SAFETY: the closure runs between fork and exec and only calls prctl, which is async-signal-safe
+            unsafe {
+                command.pre_exec(|| {
+                    if libc::prctl(libc::PR_SET_PDEATHSIG, libc::SIGTERM) != 0 {
+                        return Err(std::io::Error::last_os_error());
+                    }
+
+                    Ok(())
+                });
+            }
+
             command.spawn()?
         };
 
@@ -183,7 +196,7 @@ pub async fn start(matches: &ArgMatches) -> Result<i32, anyhow::Error> {
         );
 
         let stop_future = async {
-            let _ = tokio::signal::ctrl_c().await;
+            shutdown_signal().await;
 
             println!();
             println!();
@@ -237,17 +250,17 @@ pub async fn start(matches: &ArgMatches) -> Result<i32, anyhow::Error> {
                     0
                 },
                 status = child.wait() => {
-                    status.ok().and_then(|status| status.code()).unwrap_or(0)
+                    status.map(exit_code).unwrap_or(1)
                 }
             }
         };
 
         let code = tokio::select! {
             _ = stop_future => {
-                child.wait().await.ok().and_then(|status| status.code()).unwrap_or(0)
+                child.wait().await.map(exit_code).unwrap_or(1)
             },
             _ = stdin_future => {
-                child.wait().await.ok().and_then(|status| status.code()).unwrap_or(0)
+                child.wait().await.map(exit_code).unwrap_or(1)
             },
             code = code_future => {
                 code
@@ -262,6 +275,8 @@ pub async fn start(matches: &ArgMatches) -> Result<i32, anyhow::Error> {
         );
 
         println!("{} {}", "server has stopped with code".red(), code);
+
+        return Ok(code);
     } else {
         // Hand the server off to a detached `mcvcli daemon` supervisor. The daemon owns java,
         // continuously drains its output (so the pipe never fills) and exposes a control socket
@@ -306,4 +321,41 @@ pub async fn start(matches: &ArgMatches) -> Result<i32, anyhow::Error> {
     }
 
     Ok(0)
+}
+
+async fn shutdown_signal() {
+    #[cfg(unix)]
+    {
+        use tokio::signal::unix::{SignalKind, signal};
+
+        match signal(SignalKind::terminate()) {
+            Ok(mut terminate) => {
+                tokio::select! {
+                    _ = tokio::signal::ctrl_c() => {},
+                    _ = terminate.recv() => {},
+                }
+            }
+            Err(_) => {
+                let _ = tokio::signal::ctrl_c().await;
+            }
+        }
+    }
+
+    #[cfg(not(unix))]
+    {
+        let _ = tokio::signal::ctrl_c().await;
+    }
+}
+
+fn exit_code(status: std::process::ExitStatus) -> i32 {
+    #[cfg(unix)]
+    {
+        use std::os::unix::process::ExitStatusExt;
+
+        if let Some(signal) = status.signal() {
+            return 128 + signal;
+        }
+    }
+
+    status.code().unwrap_or(1)
 }
